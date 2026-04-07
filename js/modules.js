@@ -1137,3 +1137,465 @@ function downloadCSV(content, filename) {
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download=filename; a.click(); URL.revokeObjectURL(a.href);
 }
+
+// ══════════════════════════════════════════════════════════
+// MOTOR CPC / ITG — Classificação por Regime Tributário
+// ══════════════════════════════════════════════════════════
+const CPC_ENGINE = {
+
+  // SIMPLES NACIONAL e MEI → ITG 1000 (NBC TG 1000)
+  'Simples Nacional': {
+    norma_base: 'ITG 1000 — Modelo Contábil para Microempresa e Empresa de Pequeno Porte (NBC TG 1000)',
+    cit_base: 'Resolução CFC n.º 1.418/2012 e NBC TG 1000 (atualizada)',
+    regras: [
+      { doc:'extrato', cpc:'ITG 1000 (item 1.4.3)', risco:'alto',
+        impacto:'Impossibilidade de conciliação bancária. A NBC TG 1000 exige que as movimentações de caixa e bancos sejam integralmente registradas.',
+        acao:'Solicitar extratos bancários completos do período. Sem eles a escrituração está incompleta.' },
+      { doc:'nf-e', cpc:'ITG 1000 (item 1.4.1 — Receitas)', risco:'alto',
+        impacto:'Sem NF-e de entrada e saída não é possível apurar receitas e despesas. Risco de omissão de receita perante a Receita Federal e SEFAZ.',
+        acao:'Solicitar XMLs das NFs emitidas e recebidas no período.' },
+      { doc:'folha', cpc:'ITG 1000 (item 1.4.2 — Custos e Despesas)', risco:'alto',
+        impacto:'A folha de pagamento é insumo obrigatório para registro de salários, FGTS e INSS — despesas relevantes da DRE.',
+        acao:'Solicitar holerites e relatórios de GPS/DCTF-Web do período.' },
+      { doc:'das', cpc:'Res. CGSN n.º 140/2018, Art. 38', risco:'alto',
+        impacto:'O DAS é a guia do Simples Nacional. Sem comprovante não é possível conciliar o passivo tributário nem demonstrar regularidade fiscal.',
+        acao:'Solicitar DAS pagos ou verificar no PGDAS-D do eSocial/RFB.' },
+      { doc:'defis', cpc:'Res. CGSN n.º 140/2018, Art. 66', risco:'alto',
+        impacto:'DEFIS é obrigação acessória anual do Simples Nacional. A não entrega gera multa de R$500 a R$1.000 e pode resultar em exclusão.',
+        acao:'Verificar entrega da DEFIS no Portal SIMEI / PGDAS.' },
+    ]
+  },
+
+  'MEI': {
+    norma_base: 'ITG 1000 — Modelo Contábil para MEI (NBC TG 1000)',
+    cit_base: 'LC 123/2006, Art. 18-A; LC 128/2008; Res. CGSN 140/2018',
+    regras: [
+      { doc:'extrato', cpc:'LC 123/2006 + ITG 1000', risco:'medio',
+        impacto:'MEI com múltiplas movimentações deve manter registros mínimos de entradas e saídas (Relatório Mensal de Receitas Brutas).',
+        acao:'Verificar caderneta de receitas e extratos disponíveis.' },
+      { doc:'dasn-mei', cpc:'Res. CGSN 140/2018, Art. 91', risco:'alto',
+        impacto:'DASN-SIMEI é obrigação anual. Omissão impede emissão de certidão negativa e bloqueia benefícios previdenciários.',
+        acao:'Verificar entrega da DASN-SIMEI até 31/05 de cada ano.' },
+      { doc:'nf-e', cpc:'LC 128/2008 + ITG 1000', risco:'medio',
+        impacto:'Para MEI com clientes PJ é obrigatória a emissão de NF. A ausência pode gerar exclusão da condição de MEI.',
+        acao:'Verificar se o cliente emite NFs para pessoas jurídicas.' },
+    ]
+  },
+
+  // LUCRO PRESUMIDO → CPCs selecionados + ITG 2000
+  'Lucro Presumido': {
+    norma_base: 'CPCs Completos + ITG 2000 (NBC TG 2000 — Escrituração Contábil)',
+    cit_base: 'Lei 6.404/76; RIR/2018 (Dec. 9.580); IN RFB 2.004/2021; CPCs 26, 03, 30, 32, 33, 25',
+    regras: [
+      { doc:'extrato', cpc:'CPC 03 (DFC) + CPC 26 (Apresentação)', risco:'alto',
+        impacto:'CPC 03 exige Demonstração dos Fluxos de Caixa. Sem extratos não há base para DFC e o Balanço Patrimonial fica sem conciliação bancária.',
+        acao:'Exigir extratos bancários completos. Elaborar DFC pelo método direto ou indireto conforme CPC 03.' },
+      { doc:'nf-e', cpc:'CPC 30 (Receitas) + CPC 47', risco:'alto',
+        impacto:'CPC 30 exige o reconhecimento de receita quando do cumprimento da obrigação de desempenho. Sem NFs há subavaliação de receita bruta e distorção do LALUR.',
+        acao:'Solicitar XMLs das NFs emitidas. Conferir com SPED Fiscal e EFD-Contribuições.' },
+      { doc:'folha', cpc:'CPC 33 (Benefícios a Empregados)', risco:'alto',
+        impacto:'CPC 33 exige reconhecimento de férias proporcionais, 13º proporcional e encargos como passivo de curto prazo. Sem folha essas provisões ficam incorretas.',
+        acao:'Exigir folha de pagamento assinada e relatório de GPS/DCTF-Web.' },
+      { doc:'darf', cpc:'CPC 32 (Tributos sobre o Lucro)', risco:'alto',
+        impacto:'CPC 32 trata do reconhecimento correto de CSLL, IRPJ, PIS e COFINS. Sem comprovante de pagamento o passivo fiscal fica distorcido.',
+        acao:'Solicitar DARFs pagos ou comprovantes via SICALC / eSocial.' },
+      { doc:'ecd', cpc:'ITG 2000 + IN RFB 2.004/2021', risco:'alto',
+        impacto:'ECD é obrigatória para Lucro Presumido com faturamento acima de R$78 Mi ou que distribuiu lucros acima do limite presumido. Omissão gera multa de R$5.000/mês.',
+        acao:'Verificar obrigatoriedade e apurar se ECD foi entregue no prazo.' },
+      { doc:'ecf', cpc:'IN RFB 2.004/2021', risco:'alto',
+        impacto:'ECF é obrigatória para todas as PJs tributadas pelo Lucro Presumido. Multa de 0,25% da receita bruta por mês de atraso.',
+        acao:'Verificar entrega da ECF no prazo (último dia útil de julho do ano seguinte).' },
+      { doc:'desp', cpc:'CPC 25 (Provisões e Contingências)', risco:'medio',
+        impacto:'CPC 25 exige reconhecimento de passivos contingentes. Despesas sem documentação geram risco de autuação fiscal por indedutibilidade (Art. 311 do RIR).',
+        acao:'Exigir comprovantes de todas as despesas lançadas como dedutíveis.' },
+      { doc:'imob', cpc:'CPC 27 (Ativo Imobilizado)', risco:'medio',
+        impacto:'CPC 27 exige controle de depreciação por vida útil econômica. Sem nota de aquisição/baixa a depreciação fica incorreta.',
+        acao:'Manter laudo de ativos e planilha de controle de imobilizado.' },
+    ]
+  },
+
+  // LUCRO REAL → Todos os CPCs aplicáveis
+  'Lucro Real': {
+    norma_base: 'CPCs Completos + IFRS + ITG 2000 + NBC TAs (Auditoria)',
+    cit_base: 'Lei 6.404/76; RIR/2018; IN RFB 2.004/2021; CPCs 26, 03, 01, 30, 32, 33, 25, 27, 06',
+    regras: [
+      { doc:'extrato', cpc:'CPC 03 (DFC, obrigatória) + CPC 26', risco:'alto',
+        impacto:'DFC pelo método direto é altamente recomendada pelo CPC 03. Sem extratos não é possível nem elaborar DFC nem validar o LALUR de forma confiável.',
+        acao:'Exigir extratos de todas as contas, inclusive investimentos e aplicações.' },
+      { doc:'nf-e', cpc:'CPC 30 + CPC 47 (Contratos c/ Clientes)', risco:'alto',
+        impacto:'CPC 47 (correlato ao IFRS 15) exige reconhecimento de receita por etapas de desempenho. Sem NFs não há base para apuração correta do IRPJ/CSLL pelo método real.',
+        acao:'Cruzar XMLs com EFD-Contribuições e SPED Fiscal.' },
+      { doc:'folha', cpc:'CPC 33 + NBC TA 570 (Continuidade)', risco:'alto',
+        impacto:'Para Lucro Real as provisões de benefícios (férias, 13º, PLR) impactam diretamente o LALUR. Erro gera diferença de adição/exclusão na ECF.',
+        acao:'Exigir folha, GPS, GFIP e e-Social mensal.' },
+      { doc:'darf', cpc:'CPC 32 + NBC TA 540', risco:'alto',
+        impacto:'Cálculo do IRPJ/CSLL pelo Lucro Real depende do LALUR, que por sua vez depende de todos os DARFs corretamente provisionados.',
+        acao:'Exigir todos os DARFs e DCTF-Web do período.' },
+      { doc:'ecd', cpc:'ITG 2000 + IN RFB 2.004/2021 (obrigatória)', risco:'alto',
+        impacto:'ECD é OBRIGATÓRIA sem exceção para Lucro Real. Omissão: multa de R$5.000/mês pessoa jurídica + 0,5% sobre o lucro líquido.',
+        acao:'Confirmar entrega da ECD e integridade dos arquivos SPED.' },
+      { doc:'ecf', cpc:'IN RFB 2.004/2021 (obrigatória)', risco:'alto',
+        impacto:'ECF é OBRIGATÓRIA sem exceção para Lucro Real com todo o LALUR. Multa de 0,25% da receita bruta/mês de atraso.',
+        acao:'Verificar ECF e LALUR/LACS no sistema.' },
+      { doc:'imob', cpc:'CPC 27 (Ativo Imobilizado)', risco:'alto',
+        impacto:'CPC 27 exige depreciação pela vida útil econômica real, não necessariamente as taxas fiscais. Diferenças geram ajuste de adição/exclusão na ECF.',
+        acao:'Manter laudo técnico de imobilizado e controle item a item.' },
+      { doc:'imp', cpc:'CPC 01 (Valor Recuperável — Impairment)', risco:'medio',
+        impacto:'CPC 01 exige avaliação anual de ativos para impairment. Não reconhecer pode gerar superavaliação do ativo e violação ao princípio da prudência.',
+        acao:'Realizar teste de impairment ao menos anualmente para ativos significativos.' },
+      { doc:'arren', cpc:'CPC 06 (Arrendamentos — IFRS 16)', risco:'medio',
+        impacto:'CPC 06 revisado exige que contratos de arrendamento operacional sejam reconhecidos como ativo de direito de uso e passivo de arrendamento.',
+        acao:'Mapear todos os contratos de aluguel e leasing e aplicar CPC 06.' },
+      { doc:'prov', cpc:'CPC 25 (Provisões e Contingências)', risco:'alto',
+        impacto:'Passivos contingentes trabalhistas, cíveis e fiscais devem ser reconhecidos conforme probabilidade de perda (CPC 25). Omissão distorce o Balanço.',
+        acao:'Verificar lista de processos judiciais e classificar por probabilidade.' },
+    ]
+  }
+};
+
+// Função auxiliar: retorna regras CPC para o regime do cliente
+function getCPCRules(regime) {
+  return CPC_ENGINE[regime] || CPC_ENGINE['Simples Nacional'];
+}
+
+// Verifica se um apontamento de checklist tem regra CPC correspondente
+function getCPCForItem(itemNome, regime) {
+  const rules = getCPCRules(regime);
+  const n = (itemNome||'').toLowerCase();
+  const keywords = {
+    extrato:['extrato','bancário','banco','banco '], 'nf-e':['nota fiscal','xml','nf-e','nfs-e','nfe','nfse'],
+    folha:['folha','holerite','funcionario','funcionário'], das:['das','simples nac','pgdas'],
+    darf:['darf','guia','imposto','gps','dctf','inss','fgts'], defis:['defis'],
+    'dasn-mei':['dasn','dasn-mei'], ecd:['ecd'], ecf:['ecf'],
+    desp:['comprovante','despesa','recibo'], imob:['imobilizado','depreciação','bem'],
+    prov:['provisão','contingência','judicial'], imp:['impairment','valor recup'],
+    arren:['arrendamento','leasing','aluguel']
+  };
+  for (const [key, kws] of Object.entries(keywords)) {
+    if (kws.some(k => n.includes(k))) {
+      const rule = rules.regras?.find(r => r.doc === key);
+      if (rule) return rule;
+    }
+  }
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════
+// CONTROLE DE CLIENTES — Lista avançada com filtros
+// ══════════════════════════════════════════════════════════
+let cliFilter = { regime:'', status:'', complexidade:'', busca:'' };
+
+function renderClientesAvancado() {
+  let clientes = DB.get('clientes') || [];
+  // Deduplicar por ID
+  const seen = new Set();
+  clientes = clientes.filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
+
+  // Aplicar filtros
+  let filtrados = clientes;
+  if (cliFilter.regime)       filtrados = filtrados.filter(c => c.regime === cliFilter.regime);
+  if (cliFilter.status)       filtrados = filtrados.filter(c => c.status === cliFilter.status);
+  if (cliFilter.complexidade) filtrados = filtrados.filter(c => c.complexidade === cliFilter.complexidade);
+  if (cliFilter.busca)        filtrados = filtrados.filter(c =>
+    c.nome.toLowerCase().includes(cliFilter.busca.toLowerCase()) ||
+    c.cnpj.includes(cliFilter.busca) ||
+    (c.obs||'').toLowerCase().includes(cliFilter.busca.toLowerCase())
+  );
+
+  const regimes    = [...new Set(clientes.map(c=>c.regime).filter(Boolean))];
+  const statuses   = [...new Set(clientes.map(c=>c.status).filter(Boolean))];
+  const complexs   = [...new Set(clientes.map(c=>c.complexidade).filter(Boolean))];
+
+  const totalAtivos = clientes.filter(c=>c.status==='Ativo').length;
+  const totalInativ = clientes.filter(c=>c.status==='Inativo'||c.status==='Encerrada').length;
+
+  const filterBar = `
+<div class="card mb-4" style="padding:14px 18px">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <input type="text" placeholder="🔍 Buscar por nome, CNPJ ou observação..."
+      value="${cliFilter.busca}" oninput="cliFilter.busca=this.value;renderCliAv()"
+      style="flex:1;min-width:220px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+    <select onchange="cliFilter.regime=this.value;renderCliAv()" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+      <option value="">Todos regimes</option>
+      ${regimes.map(r=>`<option ${cliFilter.regime===r?'selected':''}>${r}</option>`).join('')}
+    </select>
+    <select onchange="cliFilter.status=this.value;renderCliAv()" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+      <option value="">Todos status</option>
+      ${statuses.map(s=>`<option ${cliFilter.status===s?'selected':''}>${s}</option>`).join('')}
+    </select>
+    <select onchange="cliFilter.complexidade=this.value;renderCliAv()" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+      <option value="">Toda complexidade</option>
+      ${complexs.map(x=>`<option ${cliFilter.complexidade===x?'selected':''}>${x}</option>`).join('')}
+    </select>
+    <button class="btn btn-ghost btn-sm" onclick="cliFilter={regime:'',status:'',complexidade:'',busca:''};renderCliAv()">✕ Limpar</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportarClientesCSV()">⬇️ Exportar</button>
+  </div>
+  <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">
+    ${filtrados.length} de ${clientes.length} clientes · ${totalAtivos} ativos · ${totalInativ} inativos
+  </div>
+</div>`;
+
+  if (!filtrados.length) return filterBar + `<div class="empty-state"><div class="empty-icon">🔍</div><p>Nenhum cliente encontrado com os filtros aplicados.</p></div>`;
+
+  const regimedBadge = r => {
+    const m={'Simples Nacional':'badge-green','Lucro Presumido':'badge-blue','Lucro Real':'badge-red','MEI':'badge-yellow','A definir':'badge-gray'};
+    return `<span class="badge ${m[r]||'badge-gray'}" style="font-size:10px">${r}</span>`;
+  };
+
+  const rows = filtrados.map(c => {
+    const statusBg = c.status==='Ativo'?'#d1fae5':c.status==='Inativo'?'#f3f4f6':'#fee2e2';
+    const statusClr = c.status==='Ativo'?'#065f46':c.status==='Inativo'?'#6b7280':'#991b1b';
+    const obsPend = [
+      c.d_div_rfb?'⚠ Dívida RFB':'', c.d_div_pgfn?'⚠ Dívida PGFN':'',
+      c.d_div_pref?'⚠ Dívida Pref':'', c.d_ecd===false&&(c.regime==='Lucro Presumido'||c.regime==='Lucro Real')?'📋 ECD pendente':'',
+      c.d_ecf===false&&(c.regime==='Lucro Presumido'||c.regime==='Lucro Real')?'📋 ECF pendente':'',
+      c.obs?`💬 ${c.obs.slice(0,40)}${c.obs.length>40?'…':''}`:'',
+    ].filter(Boolean);
+
+    return `<tr style="cursor:pointer" onclick="navigate('clientes');openModal('edit','${c.id}')">
+      <td style="font-family:monospace;font-size:11px;color:var(--text-muted)">${c.id}</td>
+      <td style="font-weight:600;max-width:280px">
+        ${c.nome}
+        ${c.cnpj?`<br><span style="font-size:11px;color:var(--text-muted);font-weight:400">${c.cnpj}</span>`:''}
+      </td>
+      <td>${regimedBadge(c.regime)}</td>
+      <td><span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:10px;background:${statusBg};color:${statusClr}">${c.status}</span></td>
+      <td style="font-size:11px">${c.tipo_operacao||'—'}</td>
+      <td style="font-size:11px">${c.complexidade||'—'}</td>
+      <td style="font-size:11px">
+        ${obsPend.slice(0,2).map(o=>`<div style="color:${o.startsWith('⚠')?'#b45309':'var(--text-muted)'}">${o}</div>`).join('')}
+      </td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();audClienteId='${c.id}';navigate('auditoria')" title="Auditoria">🔍</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();chkClienteId='${c.id}';navigate('checklist')" title="Checklist">✅</button>
+          ${c.drive_url?`<a href="${c.drive_url}" target="_blank" class="btn btn-ghost btn-sm" onclick="event.stopPropagation()" title="Drive">🗂️</a>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();abrirCPCAnalise('${c.id}')" title="Análise CPC">📊</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+<div class="card mb-4" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);color:#fff;padding:16px 22px">
+  <h2 style="font-size:15px;margin-bottom:2px">👥 Controle de Clientes — CM Contabilidade</h2>
+  <p style="opacity:.8;font-size:12px">${clientes.length} clientes · Baseado na Escrituração em andamento</p>
+</div>
+${filterBar}
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Cód.</th><th>Razão Social / CNPJ</th><th>Regime</th><th>Status</th><th>Operação</th><th>Complexidade</th><th>Pendências/Obs.</th><th>Ações</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+function renderCliAv() {
+  const el = document.getElementById('main-content');
+  if (el) el.innerHTML = renderClientesAvancado();
+}
+
+function abrirCPCAnalise(cliId) {
+  audClienteId = cliId;
+  navigate('auditoria');
+  setTimeout(() => {
+    const el = document.getElementById('cpc-panel');
+    if (el) el.scrollIntoView({behavior:'smooth'});
+  }, 300);
+}
+
+// ══════════════════════════════════════════════════════════
+// MÓDULO: PAINEL GLOBAL — Kanban de entrega por todos os clientes
+// ══════════════════════════════════════════════════════════
+function renderPainelGlobal() {
+  const clientes   = (DB.get('clientes')||[]).filter(c=>c.status==='Ativo');
+  const checklists = DB.get('checklists') || {};
+  const comp       = state.competencia;
+
+  const header = `
+<div class="card mb-4" style="background:linear-gradient(135deg,#7c3aed,#1e3a8a);color:#fff;padding:16px 22px">
+  <h2 style="font-size:15px;margin-bottom:2px">🗂️ Painel Global — Entrega de Documentos</h2>
+  <p style="opacity:.8;font-size:12px">Todos os clientes ativos · Competência: ${comp}</p>
+</div>`;
+
+  const cards = clientes.map(c => {
+    const key  = `${c.id}_${comp}`;
+    const data = checklists[key];
+    let pct=0, done=0, total=0, statusCls='k-empty', emoji='⬜', statusTxt='Sem dados';
+    if (data) {
+      const vals = Object.values(data);
+      total = vals.length; done = vals.filter(v=>v==='recebido').length;
+      pct = total?Math.round(done/total*100):0;
+      statusCls = pct===100?'k-full':done>0?'k-partial':'k-empty';
+      emoji = pct===100?'✅':done>0?'⚠️':'❌';
+      statusTxt = pct===100?'Completo':`${done}/${total} — ${pct}%`;
+    }
+    return `<div class="kanban-card ${statusCls}" onclick="chkClienteId='${c.id}';navigate('checklist')" style="min-width:180px;max-width:220px">
+      <div style="font-size:18px;margin-bottom:4px">${emoji}</div>
+      <div style="font-weight:700;font-size:12px;line-height:1.3">${c.nome.slice(0,32)}${c.nome.length>32?'…':''}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:2px">#${c.id} · ${c.regime?.split(' ')[0]||''}</div>
+      <div style="margin-top:6px;font-size:11px;font-weight:600">${statusTxt}</div>
+      ${data?`<div class="kanban-card-bar" style="margin-top:4px"><div class="kanban-card-fill" style="width:${pct}%"></div></div>`:''}
+    </div>`;
+  });
+
+  const total    = clientes.length;
+  const completo = clientes.filter(c=>{ const d=checklists[`${c.id}_${comp}`]; return d&&Object.values(d).every(v=>v==='recebido');}).length;
+  const parcial  = clientes.filter(c=>{ const d=checklists[`${c.id}_${comp}`]; return d&&Object.values(d).some(v=>v==='recebido')&&!Object.values(d).every(v=>v==='recebido');}).length;
+  const semDados = total - completo - parcial;
+
+  return `${header}
+<div class="card mb-4" style="padding:14px 18px;display:flex;gap:20px;flex-wrap:wrap">
+  <div style="text-align:center"><div style="font-size:24px;font-weight:800;color:#10b981">${completo}</div><div style="font-size:11px;color:var(--text-muted)">✅ Completos</div></div>
+  <div style="text-align:center"><div style="font-size:24px;font-weight:800;color:#f59e0b">${parcial}</div><div style="font-size:11px;color:var(--text-muted)">⚠️ Parciais</div></div>
+  <div style="text-align:center"><div style="font-size:24px;font-weight:800;color:#6b7280">${semDados}</div><div style="font-size:11px;color:var(--text-muted)">❌ Sem dados</div></div>
+  <div style="text-align:center"><div style="font-size:24px;font-weight:800;color:#1e3a8a">${total}</div><div style="font-size:11px;color:var(--text-muted)">Total clientes</div></div>
+  <button class="btn btn-ghost btn-sm" style="margin-left:auto;align-self:center" onclick="exportarRelatorioEntrega()">⬇️ Relatório CSV</button>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:12px">${cards.join('')}</div>`;
+}
+
+function exportarRelatorioEntrega() {
+  const clientes   = DB.get('clientes') || [];
+  const checklists = DB.get('checklists') || {};
+  const comp       = state.competencia;
+  const rows = ['id;nome;cnpj;regime;status_entrega;docs_recebidos;docs_total;pct'];
+  clientes.filter(c=>c.status==='Ativo').forEach(c => {
+    const data = checklists[`${c.id}_${comp}`];
+    if (data) {
+      const vals=Object.values(data), done=vals.filter(v=>v==='recebido').length, tot=vals.length;
+      rows.push(`${c.id};${c.nome};${c.cnpj};${c.regime};${done===tot?'Completo':done>0?'Parcial':'Pendente'};${done};${tot};${Math.round(done/tot*100)}%`);
+    } else {
+      rows.push(`${c.id};${c.nome};${c.cnpj};${c.regime};Sem dados;0;0;0%`);
+    }
+  });
+  downloadCSV('\ufeff'+rows.join('\r\n'), `RelatorioEntrega_${comp}.csv`);
+}
+
+// ══════════════════════════════════════════════════════════
+// PARECER FORMAL COM CPC — Gerado pelo motor de regras
+// ══════════════════════════════════════════════════════════
+function gerarParecerCPC(cliId) {
+  const clientes  = DB.get('clientes') || [];
+  const cliente   = clientes.find(c => c.id === cliId);
+  if (!cliente) return;
+
+  const chkSaved  = (DB.get('checklists')||{})[`${cliId}_${state.competencia}`] || {};
+  const obgSaved  = (DB.get('onboarding')||{})[cliId] || {};
+  const rules     = getCPCRules(cliente.regime);
+
+  // Coletar pendências do checklist e cruzar com CPC
+  const pendencias = [];
+  Object.entries(chkSaved).forEach(([k,v]) => {
+    if (v === 'recebido' || v === 'aguardando') return;
+    const rule = getCPCForItem(k.replace(/_/g,' '), cliente.regime);
+    pendencias.push({ nome: k.replace(/_/g,' '), status: v, rule });
+  });
+
+  const altoRisco  = pendencias.filter(p => p.rule?.risco === 'alto');
+  const medioRisco = pendencias.filter(p => p.rule?.risco === 'medio');
+  const baixoRisco = pendencias.filter(p => !p.rule || p.rule.risco === 'baixo');
+
+  const hoje   = new Date().toLocaleDateString('pt-BR');
+  const escritorio = localStorage.getItem('esc_nome') || 'CM Contabilidade';
+  const sep    = '═'.repeat(60);
+  const sep2   = '─'.repeat(60);
+
+  let parecer = `${sep}
+RELATÓRIO DE ANÁLISE CONTÁBIL E AUDITORIA INTERNA
+${sep}
+Cliente     : ${cliente.nome}
+CNPJ        : ${cliente.cnpj}
+Regime      : ${cliente.regime}
+Tipo        : ${cliente.tipo_operacao||'—'} | Complexidade: ${cliente.complexidade||'—'}
+Competência : ${fmtComp(state.competencia)}
+Emissão     : ${hoje}
+Escritório  : ${escritorio}
+${sep2}
+NORMAS E PRONUNCIAMENTOS APLICÁVEIS
+${sep2}
+${rules.norma_base}
+Referência legal: ${rules.cit_base}
+${sep2}
+ANÁLISE CRÍTICA — DOCUMENTAÇÃO PENDENTE
+${sep2}
+`;
+
+  if (!pendencias.length) {
+    parecer += `✅ SITUAÇÃO REGULAR: Toda a documentação foi recebida e está em conformidade\ncom as normas contábeis aplicáveis ao regime ${cliente.regime}.\n\n`;
+    parecer += `O escritório está em condições de prosseguir com a escrituração do\nperíodo sem ressalvas técnicas.\n`;
+  } else {
+    if (altoRisco.length) {
+      parecer += `\n⚠️  PENDÊNCIAS DE ALTO RISCO (${altoRisco.length}) — AÇÃO IMEDIATA NECESSÁRIA\n${sep2}\n`;
+      altoRisco.forEach((p,i) => {
+        parecer += `\n${i+1}. ${p.nome.toUpperCase()}\n`;
+        parecer += `   Status      : ${p.status}\n`;
+        if (p.rule) {
+          parecer += `   Norma CPC   : ${p.rule.cpc}\n`;
+          parecer += `   Impacto     : ${p.rule.impacto}\n`;
+          parecer += `   Ação        : ${p.rule.acao}\n`;
+        }
+      });
+    }
+    if (medioRisco.length) {
+      parecer += `\n⚠️  PENDÊNCIAS DE MÉDIO RISCO (${medioRisco.length})\n${sep2}\n`;
+      medioRisco.forEach((p,i) => {
+        parecer += `\n${i+1}. ${p.nome.toUpperCase()}\n`;
+        if (p.rule) {
+          parecer += `   Norma CPC   : ${p.rule.cpc}\n`;
+          parecer += `   Impacto     : ${p.rule.impacto}\n`;
+        }
+      });
+    }
+    if (baixoRisco.length) {
+      parecer += `\n🔵  PENDÊNCIAS DE BAIXO RISCO (${baixoRisco.length})\n`;
+      baixoRisco.forEach(p => { parecer += `   • ${p.nome}\n`; });
+    }
+
+    parecer += `\n${sep2}\nCONCLUSÃO TÉCNICA\n${sep2}\n`;
+    parecer += `Com base nas normas do ${rules.norma_base.split('—')[0].trim()},\n`;
+    if (altoRisco.length > 0) {
+      parecer += `identificamos ${altoRisco.length} pendência(s) de ALTO RISCO que\n`;
+      parecer += `comprometem a qualidade e fidedignidade da escrituração contábil\n`;
+      parecer += `referente à competência ${fmtComp(state.competencia)}.\n\n`;
+      parecer += `Solicitamos que a CM Contabilidade adote providências urgentes\n`;
+      parecer += `junto ao cliente para regularizar a documentação.\n`;
+    } else {
+      parecer += `as pendências identificadas são de impacto moderado e podem ser\n`;
+      parecer += `regularizadas no prazo normal do ciclo contábil.\n`;
+    }
+  }
+
+  parecer += `\n${sep2}\nASSINATURA\n${sep2}\n`;
+  parecer += `${escritorio}\nAnálise gerada em ${hoje}\nSistema de Automação Contábil — CM Contabilidade\n`;
+  parecer += `${sep}\n`;
+
+  // Exibir
+  const container = document.getElementById('cpc-panel');
+  if (container) {
+    container.innerHTML = `
+<div class="card mt-4" id="cpc-parecer">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+    <strong style="font-size:14px">📊 Parecer CPC — ${cliente.nome.slice(0,40)}</strong>
+    <span class="badge ${altoRisco.length?'badge-red':medioRisco.length?'badge-yellow':'badge-green'}">${altoRisco.length?'🔴 Alto Risco':medioRisco.length?'🟡 Médio Risco':'🟢 Regular'}</span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('cpc-parecer-txt').textContent);alert('Copiado!')">📋 Copiar</button>
+      <button class="btn btn-ghost btn-sm" onclick="imprimirParecerCPC()">🖨️ Imprimir</button>
+    </div>
+  </div>
+  <pre id="cpc-parecer-txt" style="font-family:monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;border:1px solid var(--border)">${parecer}</pre>
+</div>`;
+    container.scrollIntoView({behavior:'smooth'});
+  }
+}
+
+function imprimirParecerCPC() {
+  const txt = document.getElementById('cpc-parecer-txt')?.textContent || '';
+  const win = window.open('','_blank');
+  win.document.write(`<html><head><title>Parecer CPC</title>
+    <style>body{font-family:monospace;font-size:12px;padding:30px;line-height:1.7;white-space:pre-wrap}</style>
+  </head><body>${txt}</body></html>`);
+  win.document.close(); win.print();
+}

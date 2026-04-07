@@ -58,7 +58,9 @@ function render() {
     educacao:'Educação do Cliente', importacao:'Importação com Gemini AI',
     configuracoes:'Configurações', obrigacoes:'Obrigações Acessórias',
     planocontas:'Plano de Contas', treinamento:'Treinamento da Equipe',
-    integracao:'Integração — Import & Export'
+    integracao:'Integração — Import & Export',
+    painel:'Painel Global — Entrega de Documentos',
+    controle:'Controle de Clientes — CM Contabilidade'
   };
   document.getElementById('topbar-title').textContent = titles[state.page] || '';
   switch(state.page) {
@@ -74,6 +76,8 @@ function render() {
     case 'planocontas':   main.innerHTML = renderPlanoContas(); break;
     case 'treinamento':   main.innerHTML = renderTreinamento(); break;
     case 'integracao':    main.innerHTML = renderIntegracao(); break;
+    case 'painel':        main.innerHTML = renderPainelGlobal(); break;
+    case 'controle':      main.innerHTML = renderClientesAvancado(); break;
   }
   attachEvents();
 }
