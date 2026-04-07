@@ -266,15 +266,18 @@ function initSeed() {
   const nd = seedDefis();
   if (nd > 0) console.log('[Seed] DEFIS carregados:', nd);
 
-  // Update sidebar count
+  // Update sidebar count and force re-render if we are on clients page or dashboard
   setTimeout(() => {
     const el = document.getElementById('sidebar-count');
     if (el) {
       const total = (DB.get('clientes') || []).length;
       if (total > 0) el.textContent = total + ' clientes cadastrados';
     }
+    // Force UI refresh so seeded data appears immediately without needing a click
+    if (typeof render === 'function') render();
   }, 100);
 }
 
 // Execute immediately — seed.js is after all other scripts in body
 initSeed();
+
