@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Criscontab & Madeira — Sistema de Gestão Contábil</title>
-  <meta name="description" content="Sistema de gestão contábil multitenant — Criscontab & Madeira Contabilidade">
+  <title>Criscontab &amp; Madeira — Sistema de Automação Contábil</title>
+  <meta name="description" content="Sistema de gestão contábil multitenant — Criscontab &amp; Madeira Contabilidade">
   <link rel="stylesheet" href="css/app.css">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="favicon.png">
@@ -18,7 +18,7 @@
       <div class="logo">
         <div class="logo-icon">📊</div>
         <div>
-          <div class="logo-text">Criscontab & Madeira</div>
+          <div class="logo-text">Criscontab &amp; Madeira</div>
           <div class="logo-sub">Gestão Contábil</div>
         </div>
       </div>
@@ -52,6 +52,9 @@
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">Ferramentas</div>
+      <button class="nav-item" data-page="integracao" onclick="navigate('integracao')">
+        <span class="nav-icon">🔄</span><span>Integração</span>
+      </button>
       <button class="nav-item" data-page="planocontas" onclick="navigate('planocontas')">
         <span class="nav-icon">📊</span><span>Plano de Contas</span>
       </button>
@@ -71,8 +74,8 @@
 
     <div style="padding:16px 20px;margin-top:auto;border-top:1px solid rgba(255,255,255,.07)">
       <div style="font-size:11px;color:#475569;line-height:1.7">
-        <div style="color:#64748b;font-weight:600;margin-bottom:2px">87 clientes cadastrados</div>
-        Sistema contábil v2.0<br>
+        <div style="color:#64748b;font-weight:600;margin-bottom:2px" id="sidebar-count">87 clientes cadastrados</div>
+        Sistema contábil v2.1<br>
         <span id="gemini-status-sidebar" style="color:#10b981"></span>
       </div>
     </div>
@@ -83,7 +86,7 @@
     <div class="topbar">
       <div>
         <div id="topbar-title" class="topbar-title">Dashboard</div>
-        <div class="topbar-sub">Criscontab & Madeira Contabilidade</div>
+        <div class="topbar-sub">Criscontab &amp; Madeira Contabilidade</div>
       </div>
       <div class="topbar-actions">
         <label style="font-size:13px;font-weight:600;color:var(--text-muted)">Competência:</label>
@@ -102,16 +105,22 @@
 <script src="js/gemini.js"></script>
 <script src="js/app.js"></script>
 <script src="js/modules.js"></script>
+<script src="js/seed.js"></script>
 <script>
   function resetarDados() {
     if (!confirm('Apagar todos os dados operacionais e recarregar base dos 87 clientes?')) return;
     localStorage.clear();
     location.reload();
   }
-  // Mostra status Gemini na sidebar
   window.addEventListener('load', () => {
     const el = document.getElementById('gemini-status-sidebar');
     if (el) el.textContent = getApiKey() ? '🤖 Gemini AI ativo' : '';
+    // Update sidebar client count
+    const countEl = document.getElementById('sidebar-count');
+    if (countEl) {
+      const total = (DB.get('clientes') || []).length;
+      if (total > 0) countEl.textContent = total + ' clientes cadastrados';
+    }
   });
 </script>
 </body>

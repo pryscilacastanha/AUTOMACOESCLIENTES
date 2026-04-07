@@ -825,3 +825,315 @@ function finalizarQuiz(trilhaId, moduloId) {
   DB.set('treinamento_prog', prog);
   tQuizAns={}; tView='trilha'; render();
 }
+
+// ─── INTEGRAÇÃO — IMPORT & EXPORT ───
+let intTab = 'import';  // 'import' | 'export'
+
+function renderIntegracao() {
+  const tabBtn = (id, label, icon) =>
+    `<button class="btn ${intTab===id?'btn-primary':'btn-ghost'} btn-sm" onclick="intTab='${id}';render()">${icon} ${label}</button>`;
+
+  const header = `
+<div class="card mb-4" style="background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:#fff;padding:18px 24px">
+  <h2 style="font-size:15px;margin-bottom:4px">🔄 Integração — Import &amp; Export</h2>
+  <p style="opacity:.8;font-size:12px">Importe dados externos e exporte relatórios em formatos compatíveis com Domínio Único e planilhas</p>
+</div>
+<div class="card mb-4" style="padding:12px 18px;display:flex;gap:8px;flex-wrap:wrap">
+  ${tabBtn('import','Importação','⬆️')}
+  ${tabBtn('export','Exportação','⬇️')}
+</div>`;
+
+  if (intTab === 'import') {
+    return header + renderIntegracaoImport();
+  } else {
+    return header + renderIntegracaoExport();
+  }
+}
+
+function renderIntegracaoImport() {
+  const clientes = DB.get('clientes') || [];
+  return `
+<div class="card mb-4">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px">📥 Importar Clientes (CSV)</div>
+  <p class="text-muted text-sm mb-3">
+    Arquivo CSV com colunas: <code>id;nome;cnpj;regime;status;tipo_operacao;complexidade</code><br>
+    Regimes aceitos: Simples Nacional, Lucro Presumido, Lucro Real, MEI
+  </p>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+      📂 Selecionar CSV de Clientes
+      <input type="file" accept=".csv" style="display:none" onchange="importarClientesCSV(this)">
+    </label>
+    <button class="btn btn-ghost btn-sm" onclick="baixarModeloClientesCSV()">⬇️ Baixar Modelo CSV</button>
+    <span class="text-muted text-sm">${clientes.length} clientes já cadastrados</span>
+  </div>
+  <div id="import-status-cli" style="margin-top:8px;font-size:13px"></div>
+</div>
+
+<div class="card mb-4">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px">🔄 Recarregar Base de 87 Clientes</div>
+  <p class="text-muted text-sm mb-3">Adiciona os 87 clientes da carteira Criscontab &amp; Madeira sem apagar dados existentes.</p>
+  <button class="btn btn-primary btn-sm" onclick="const n=seedClientes();document.getElementById('seed-status').textContent=n?'✅ '+n+' clientes adicionados!':'ℹ️ Todos os clientes já estão cadastrados.'">
+    ➕ Adicionar Clientes Base
+  </button>
+  <span id="seed-status" class="text-muted text-sm" style="margin-left:10px"></span>
+</div>
+
+<div class="card mb-4">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px">📋 Importar Checklist (JSON)</div>
+  <p class="text-muted text-sm mb-3">Importe um backup do checklist mensal exportado anteriormente.</p>
+  <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+    📂 Selecionar backup JSON
+    <input type="file" accept=".json" style="display:none" onchange="importarChecklistJSON(this)">
+  </label>
+  <div id="import-status-chk" style="margin-top:8px;font-size:13px"></div>
+</div>
+
+<div class="card mb-4">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px">📎 Anexar Arquivos a Obrigações Acessórias</div>
+  <p class="text-muted text-sm mb-3">
+    Anexe recibos e declarações (DEFIS, ECD, ECF etc.) diretamente no registro da obrigação.<br>
+    Os arquivos ficam referenciados no sistema para validação em Auditoria.
+  </p>
+  ${renderDefisAttach()}
+</div>`;
+}
+
+function renderDefisAttach() {
+  const clientes = (DB.get('clientes') || []).filter(c => c.status === 'Ativo');
+  const obgData  = DB.get('obrigacoes') || {};
+  const anos     = ['2024','2025','2026'];
+  const obgs     = ['DEFIS','ECD','ECF','RAIS','DIRF','DASN-MEI'];
+
+  const opts = clientes.map(c =>
+    `<option value="${c.id}">${c.id} — ${c.nome}</option>`).join('');
+  const optAnos = anos.map(a => `<option>${a}</option>`).join('');
+  const optObgs = obgs.map(o => `<option>${o}</option>`).join('');
+
+  return `<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px">
+    <div class="form-group" style="min-width:200px">
+      <label>Cliente</label>
+      <select id="atch-cli" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+        <option value="">— selecione —</option>${opts}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Obrigação</label>
+      <select id="atch-obg" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">${optObgs}</select>
+    </div>
+    <div class="form-group">
+      <label>Ano</label>
+      <select id="atch-ano" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">${optAnos}</select>
+    </div>
+    <div class="form-group">
+      <label>Tipo</label>
+      <select id="atch-tipo" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+        <option value="recibo">Recibo de Entrega</option>
+        <option value="declaracao">Declaração</option>
+        <option value="guia">Guia/DARF</option>
+        <option value="outro">Outro Documento</option>
+      </select>
+    </div>
+  </div>
+  <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+    📎 Selecionar Arquivo (PDF/imagem)
+    <input type="file" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="salvarAnexoObg(this)">
+  </label>
+  <div id="atch-status" style="margin-top:8px;font-size:13px"></div>
+  <div id="atch-list" style="margin-top:10px">${renderAnexosList()}</div>`;
+}
+
+function renderAnexosList() {
+  const obgData = DB.get('obrigacoes') || {};
+  const rows = Object.entries(obgData)
+    .filter(([,d]) => d.arquivo_nome)
+    .map(([k,d]) => {
+      const [cliId, cod, ano] = k.split('_');
+      const cli = (DB.get('clientes')||[]).find(c=>c.id===cliId);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:4px;font-size:12px">
+        <span class="badge badge-green">📎</span>
+        <span><strong>${cod} ${ano}</strong> — ${cli?.nome||cliId}</span>
+        <span class="text-muted">${d.arquivo_nome}</span>
+        <span class="text-muted">${d.arquivo_tipo||''}  ${d.data_entrega||''}</span>
+        <button class="btn btn-danger btn-sm" style="margin-left:auto;font-size:10px" onclick="removerAnexoObg('${k}')">✕</button>
+      </div>`;
+    }).join('');
+  return rows || '<p class="text-muted text-sm">Nenhum arquivo anexado ainda.</p>';
+}
+
+function salvarAnexoObg(input) {
+  const file = input.files[0]; if (!file) return;
+  const cliId = document.getElementById('atch-cli').value;
+  const obg   = document.getElementById('atch-obg').value;
+  const ano   = document.getElementById('atch-ano').value;
+  const tipo  = document.getElementById('atch-tipo').value;
+  if (!cliId) { document.getElementById('atch-status').textContent='❌ Selecione o cliente.'; return; }
+  const k = `${cliId}_${obg}_${ano}`;
+  const obgData = DB.get('obrigacoes') || {};
+  obgData[k] = obgData[k] || {};
+  obgData[k].arquivo_nome  = file.name;
+  obgData[k].arquivo_tipo  = tipo;
+  if (!obgData[k].status) obgData[k].status = 'entregue';
+  if (!obgData[k].data_entrega) obgData[k].data_entrega = new Date().toISOString().split('T')[0];
+  DB.set('obrigacoes', obgData);
+  document.getElementById('atch-status').textContent = `✅ Arquivo "${file.name}" vinculado a ${obg} ${ano}!`;
+  document.getElementById('atch-list').innerHTML = renderAnexosList();
+  input.value = '';
+}
+
+function removerAnexoObg(k) {
+  const obgData = DB.get('obrigacoes') || {};
+  if (obgData[k]) { delete obgData[k].arquivo_nome; delete obgData[k].arquivo_tipo; }
+  DB.set('obrigacoes', obgData);
+  document.getElementById('atch-list').innerHTML = renderAnexosList();
+}
+
+function importarClientesCSV(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.trim().split('\n').filter(l=>l.trim());
+    const sep   = lines[0].includes(';') ? ';' : ',';
+    const header = lines[0].split(sep).map(h=>h.toLowerCase().trim());
+    const clientes = DB.get('clientes') || [];
+    const existingIds = new Set(clientes.map(c=>c.id));
+    let added = 0;
+    lines.slice(1).forEach(line => {
+      const cols = line.split(sep).map(v=>v.trim().replace(/^"|"$/g,''));
+      const obj  = {}; header.forEach((h,i)=>obj[h]=cols[i]);
+      const id   = obj['id'] || obj['cod'] || obj['codigo'] || cols[0];
+      if (!id || existingIds.has(id)) return;
+      clientes.push({
+        id, nome: obj['nome']||cols[1]||'', cnpj: obj['cnpj']||cols[2]||'',
+        regime: obj['regime']||obj['enquadramento']||cols[3]||'Simples Nacional',
+        status: obj['status']||'Ativo', tipo_operacao: obj['tipo_operacao']||'Serviço',
+        complexidade: obj['complexidade']||'Simples',
+        erp:'Domínio Único', bancos:[], parc_federal:false, parc_estadual:false,
+        parc_pref:false, parc_pgfn:false, drive_url:'',
+        criado_em: new Date().toISOString(),
+      });
+      existingIds.add(id); added++;
+    });
+    DB.set('clientes', clientes);
+    document.getElementById('import-status-cli').innerHTML =
+      `<span style="color:var(--success)">✅ ${added} client(es) importado(s). Total: ${clientes.length}</span>`;
+    input.value='';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function importarChecklistJSON(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const existing = DB.get('checklists') || {};
+      let count = 0;
+      Object.entries(data).forEach(([k,v]) => { if (!existing[k]) { existing[k]=v; count++; } });
+      DB.set('checklists', existing);
+      document.getElementById('import-status-chk').innerHTML =
+        `<span style="color:var(--success)">✅ ${count} competência(s) importada(s).</span>`;
+    } catch(err) {
+      document.getElementById('import-status-chk').innerHTML =
+        `<span style="color:var(--danger)">❌ Erro: JSON inválido.</span>`;
+    }
+    input.value='';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function baixarModeloClientesCSV() {
+  const header = 'id;nome;cnpj;regime;status;tipo_operacao;complexidade\r\n';
+  const exemplo = '001;EMPRESA EXEMPLO LTDA;00.000.000/0001-00;Simples Nacional;Ativo;Serviço;Simples\r\n';
+  const blob = new Blob(['\ufeff'+header+exemplo], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='modelo_importacao_clientes.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function renderIntegracaoExport() {
+  return `
+<div class="card mb-4">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px">⬇️ Exportar Clientes (CSV)</div>
+  <p class="text-muted text-sm mb-3">Exporta todos os clientes cadastrados com CNPJ, regime e status.</p>
+  <button class="btn btn-ghost btn-sm" onclick="exportarClientesCSV()">⬇️ Baixar Clientes.csv</button>
+</div>
+
+<div class="card mb-4">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px">⬇️ Exportar Checklist por Competência (CSV)</div>
+  <p class="text-muted text-sm mb-3">Exporta o status de todos os documentos de todas as competências.</p>
+  <button class="btn btn-ghost btn-sm" onclick="exportarChecklistCSV()">⬇️ Baixar Checklist.csv</button>
+</div>
+
+<div class="card mb-4">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px">⬇️ Exportar Obrigações Acessórias (CSV)</div>
+  <p class="text-muted text-sm mb-3">Status de todas as obrigações anuais e mensais por cliente.</p>
+  <button class="btn btn-ghost btn-sm" onclick="exportarObrigacoesCSV()">⬇️ Baixar Obrigacoes.csv</button>
+</div>
+
+<div class="card mb-4">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px">⬇️ Backup Completo (JSON)</div>
+  <p class="text-muted text-sm mb-3">Exporta todos os dados do sistema (clientes, checklists, auditoria, obrigações) em JSON para backup.</p>
+  <button class="btn btn-primary btn-sm" onclick="exportarBackupJSON()">💾 Baixar Backup_Sistema.json</button>
+</div>`;
+}
+
+function exportarClientesCSV() {
+  const clientes = DB.get('clientes') || [];
+  const header = 'id;nome;cnpj;regime;status;tipo_operacao;complexidade;erp;drive_url\r\n';
+  const rows = clientes.map(c =>
+    `${c.id};${c.nome};${c.cnpj};${c.regime};${c.status};${c.tipo_operacao||''};${c.complexidade||''};${c.erp||''};${c.drive_url||''}`
+  ).join('\r\n');
+  downloadCSV('\ufeff'+header+rows, 'Clientes_Criscontab.csv');
+}
+
+function exportarChecklistCSV() {
+  const checklists = DB.get('checklists') || {};
+  const clientes   = DB.get('clientes')   || [];
+  const rows = ['competencia;cliente_id;cliente_nome;documento;status'];
+  Object.entries(checklists).forEach(([key, items]) => {
+    const [cliId, comp] = key.split('_');
+    const cli = clientes.find(c=>c.id===cliId);
+    Object.entries(items).forEach(([doc, status]) => {
+      rows.push(`${comp};${cliId};${cli?.nome||''};${doc.replace(/;/g,'')};${status}`);
+    });
+  });
+  downloadCSV('\ufeff'+rows.join('\r\n'), 'Checklist_Criscontab.csv');
+}
+
+function exportarObrigacoesCSV() {
+  const obgData  = DB.get('obrigacoes') || [];
+  const clientes = DB.get('clientes')   || [];
+  const rows = ['cliente_id;cliente_nome;obrigacao;periodo;status;data_entrega;arquivo'];
+  Object.entries(obgData).forEach(([key, d]) => {
+    const parts = key.split('_');
+    const cliId = parts[0]; const cod = parts[1]; const periodo = parts.slice(2).join('-');
+    const cli = clientes.find(c=>c.id===cliId);
+    rows.push(`${cliId};${cli?.nome||''};${cod};${periodo};${d.status||''};${d.data_entrega||''};${d.arquivo_nome||''}`);
+  });
+  downloadCSV('\ufeff'+rows.join('\r\n'), 'Obrigacoes_Criscontab.csv');
+}
+
+function exportarBackupJSON() {
+  const backup = {
+    exportado_em: new Date().toISOString(),
+    clientes:     DB.get('clientes')     || [],
+    checklists:   DB.get('checklists')   || {},
+    onboarding:   DB.get('onboarding')   || {},
+    auditoria:    DB.get('auditoria')    || {},
+    obrigacoes:   DB.get('obrigacoes')   || {},
+    planos_contas:DB.get('planos_contas')|| [],
+    plano_historico: DB.get('plano_historico') || null,
+    treinamento_prog: DB.get('treinamento_prog') || {},
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`Backup_Sistema_${new Date().toISOString().split('T')[0]}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+function downloadCSV(content, filename) {
+  const blob = new Blob([content], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+}

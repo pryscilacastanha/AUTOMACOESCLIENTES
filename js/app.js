@@ -57,7 +57,8 @@ function render() {
     onboarding:'Onboarding de Clientes', auditoria:'Auditoria & Apontamentos',
     educacao:'Educação do Cliente', importacao:'Importação com Gemini AI',
     configuracoes:'Configurações', obrigacoes:'Obrigações Acessórias',
-    planocontas:'Plano de Contas', treinamento:'Treinamento da Equipe'
+    planocontas:'Plano de Contas', treinamento:'Treinamento da Equipe',
+    integracao:'Integração — Import & Export'
   };
   document.getElementById('topbar-title').textContent = titles[state.page] || '';
   switch(state.page) {
@@ -72,6 +73,7 @@ function render() {
     case 'obrigacoes':    main.innerHTML = renderObrigacoes(); break;
     case 'planocontas':   main.innerHTML = renderPlanoContas(); break;
     case 'treinamento':   main.innerHTML = renderTreinamento(); break;
+    case 'integracao':    main.innerHTML = renderIntegracao(); break;
   }
   attachEvents();
 }
