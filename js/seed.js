@@ -227,8 +227,10 @@ function seedClientes() {
     if (!existingIds.has(seed.id)) {
       existing.push({
         ...seed,
-        cnae: '', erp: 'Domínio Único', responsavel: '', whatsapp: '', email: '',
-        im: '', ie: '', fat_medio: '', qtd_socios: '', obs_diag: '',
+        cnae: seed.cnae || '', erp: seed.erp || 'Domínio Único',
+        responsavel: seed.responsavel || '', whatsapp: seed.whatsapp || '', email: seed.email || '',
+        im: seed.im || '', ie: seed.ie || '', fat_medio: seed.fat_medio || '',
+        qtd_socios: seed.qtd_socios || '', obs_diag: seed.obs_diag || '',
         fiscal_integrado: false, folha_integrada: false, financeiro_integrado: false,
         tem_caixa: false, tem_estoque: false, tem_prolabore: true, tem_folha: false,
         bancos: [], banco_outro: '', parc_federal: false, parc_estadual: false,
@@ -249,35 +251,17 @@ function seedClientes() {
   return added;
 }
 
-
-// ─── Auto-seed: called directly when seed.js loads ───
-// (DOMContentLoaded already fired before this script runs at bottom of body)
+// ─── initSeed: chamada pelo bootstrapApp() em modules.js ANTES do render ───
 function initSeed() {
-  if (typeof DB === 'undefined') {
-    // DB not ready yet — wait and retry
-    window.addEventListener('load', initSeed);
-    return;
-  }
-  const clientes = DB.get('clientes') || [];
-  if (clientes.length === 0) {
-    const n = seedClientes();
-    console.log('[Seed] Clientes carregados:', n);
-  }
+  // Sempre executa merge — adiciona clientes faltantes
+  seedClientes();
+  // Seed obrigações (DEFIS)
   const nd = seedDefis();
   if (nd > 0) console.log('[Seed] DEFIS carregados:', nd);
-
-  // Update sidebar count and force re-render if we are on clients page or dashboard
-  setTimeout(() => {
-    const el = document.getElementById('sidebar-count');
-    if (el) {
-      const total = (DB.get('clientes') || []).length;
-      if (total > 0) el.textContent = total + ' clientes cadastrados';
-    }
-    // Force UI refresh so seeded data appears immediately without needing a click
-    if (typeof render === 'function') render();
-  }, 100);
+  // Atualiza sidebar count sincronamente
+  const el = document.getElementById('sidebar-count');
+  if (el) {
+    const total = (DB.get('clientes') || []).length;
+    if (total > 0) el.textContent = total + ' clientes cadastrados';
+  }
 }
-
-// Execute immediately — seed.js is after all other scripts in body
-initSeed();
-

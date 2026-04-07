@@ -10,24 +10,13 @@ const DB = {
 };
 
 function initDB() {
-  if (!DB.get('initialized')) {
-    // Seed dos 87 clientes com campos extras padrão
-    const clientes = CLIENTES_SEED.map(c => ({
-      ...c,
-      cnae: '', tipo_operacao: 'Serviço', complexidade: 'Intermediário',
-      fiscal_integrado: false, folha_integrada: false, financeiro_integrado: false,
-      tem_caixa: false, tem_estoque: false, tem_prolabore: true, tem_folha: false,
-      bancos: [], parc_federal: false, parc_estadual: false, parc_pref: false, parc_pgfn: false,
-      erp: 'Manual', responsavel: '', whatsapp: '', email: '',
-      im: '', ie: '', fat_medio: '', qtd_socios: '',
-      obs_diag: '', criado_em: new Date().toISOString(),
-    }));
-    DB.set('clientes', clientes);
-    DB.set('checklists', {});
-    DB.set('auditoria', {});
-    DB.set('onboarding', {});
-    DB.set('initialized', true);
-  }
+  // Inicializa apenas as chaves de storage vazias se não existirem.
+  // Os clientes serão populados pelo seed.js (initSeed) — fonte única de dados.
+  if (!DB.get('clientes'))    DB.set('clientes', []);
+  if (!DB.get('checklists'))  DB.set('checklists', {});
+  if (!DB.get('auditoria'))   DB.set('auditoria', {});
+  if (!DB.get('onboarding'))  DB.set('onboarding', {});
+  if (!DB.get('obrigacoes'))  DB.set('obrigacoes', {});
 }
 
 // ─── STATE ───

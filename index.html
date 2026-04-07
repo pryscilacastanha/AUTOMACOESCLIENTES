@@ -114,19 +114,13 @@
 <script src="js/seed.js"></script>
 <script>
   function resetarDados() {
-    if (!confirm('Apagar todos os dados operacionais e recarregar base dos 87 clientes?')) return;
+    if (!confirm('Apagar todos os dados operacionais e recarregar base dos clientes?')) return;
     localStorage.clear();
     location.reload();
   }
   window.addEventListener('load', () => {
     const el = document.getElementById('gemini-status-sidebar');
     if (el) el.textContent = getApiKey() ? '🤖 Gemini AI ativo' : '';
-    // Update sidebar client count
-    const countEl = document.getElementById('sidebar-count');
-    if (countEl) {
-      const total = (DB.get('clientes') || []).length;
-      if (total > 0) countEl.textContent = total + ' clientes cadastrados';
-    }
   });
 </script>
 </body>

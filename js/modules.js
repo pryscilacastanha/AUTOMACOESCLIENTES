@@ -407,15 +407,30 @@ function attachEvents() {
   if (compSel) compSel.value = state.competencia;
 }
 
-// ─── INIT ───
-document.addEventListener('DOMContentLoaded', () => {
+// ─── BOOTSTRAP (orquestrador principal) ───
+function bootstrapApp() {
+  // 1. Inicializa storage (sem seed de clientes)
   initDB();
+  // 2. Seed de clientes e obrigações (seed.js é a fonte primária)
+  if (typeof initSeed === 'function') {
+    initSeed();
+  }
+  // 3. Atualiza contagem no sidebar
+  const countEl = document.getElementById('sidebar-count');
+  if (countEl) {
+    const total = (DB.get('clientes') || []).length;
+    if (total > 0) countEl.textContent = total + ' clientes cadastrados';
+  }
+  // 4. Binds e primeira renderização
   document.getElementById('comp-topbar').addEventListener('change', e => {
     state.competencia = e.target.value;
     render();
   });
   navigate('dashboard');
-});
+}
+
+// ─── INIT ───
+document.addEventListener('DOMContentLoaded', bootstrapApp);
 
 // ─── PLANO DE CONTAS ───
 let pcView = 'list';   // 'list' | 'detail' | 'historico'
