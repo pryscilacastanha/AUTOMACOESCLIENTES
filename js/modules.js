@@ -1291,47 +1291,71 @@ function renderClientesAvancado() {
   const seen = new Set();
   clientes = clientes.filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
 
+  // Ler obrigações para buscar dados da DEFIS/ECD (Ação e Responsável)
+  const obrigacoes = DB.get('obrigacoes') || {};
+  clientes.forEach(c => {
+    let chave = c.regime === 'Simples Nacional' ? `${c.id}_DEFIS_2025` : `${c.id}_ECD_2025`;
+    let ob = obrigacoes[chave] || {};
+    c.acao_entrega = ob.status === 'entregue' ? 'Entregue' : (ob.status === 'nao_aplicavel' ? 'Sem entrega' : 'Pendente/ECD');
+    c.responsavel = ob.responsavel || 'Não def.';
+    if (ob.obs_defis) c.obs = c.obs ? c.obs + ' | ' + ob.obs_defis : ob.obs_defis;
+  });
+
   // Aplicar filtros
   let filtrados = clientes;
   if (cliFilter.regime)       filtrados = filtrados.filter(c => c.regime === cliFilter.regime);
   if (cliFilter.status)       filtrados = filtrados.filter(c => c.status === cliFilter.status);
   if (cliFilter.complexidade) filtrados = filtrados.filter(c => c.complexidade === cliFilter.complexidade);
+  if (cliFilter.responsavel)  filtrados = filtrados.filter(c => c.responsavel === cliFilter.responsavel);
+  if (cliFilter.acao_entrega) filtrados = filtrados.filter(c => c.acao_entrega === cliFilter.acao_entrega);
   if (cliFilter.busca)        filtrados = filtrados.filter(c =>
     c.nome.toLowerCase().includes(cliFilter.busca.toLowerCase()) ||
     c.cnpj.includes(cliFilter.busca) ||
-    (c.obs||'').toLowerCase().includes(cliFilter.busca.toLowerCase())
+    (c.obs||'').toLowerCase().includes(cliFilter.busca.toLowerCase()) ||
+    c.id.toString() === cliFilter.busca
   );
 
   const regimes    = [...new Set(clientes.map(c=>c.regime).filter(Boolean))];
   const statuses   = [...new Set(clientes.map(c=>c.status).filter(Boolean))];
   const complexs   = [...new Set(clientes.map(c=>c.complexidade).filter(Boolean))];
+  const resps      = [...new Set(clientes.map(c=>c.responsavel).filter(Boolean))];
+  const acoes      = [...new Set(clientes.map(c=>c.acao_entrega).filter(Boolean))];
 
   const totalAtivos = clientes.filter(c=>c.status==='Ativo').length;
-  const totalInativ = clientes.filter(c=>c.status==='Inativo'||c.status==='Encerrada').length;
+  const totalInativ = clientes.filter(c=>c.status==='Inativo'||c.status==='Encerrada'||c.status==='Avaliar').length;
 
   const filterBar = `
 <div class="card mb-4" style="padding:14px 18px">
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <input type="text" placeholder="🔍 Buscar por nome, CNPJ ou observação..."
-      value="${cliFilter.busca}" oninput="cliFilter.busca=this.value;renderCliAv()"
-      style="flex:1;min-width:220px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+    <input type="text" placeholder="🔍 Buscar nome, CNPJ, Cód, Obs..."
+      value="${cliFilter.busca||''}" oninput="cliFilter.busca=this.value;renderCliAv()"
+      style="flex:1;min-width:200px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+    
+    <select onchange="cliFilter.acao_entrega=this.value;renderCliAv()" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+      <option value="">Status Entrega</option>
+      ${acoes.map(x=>`<option ${cliFilter.acao_entrega===x?'selected':''}>${x}</option>`).join('')}
+    </select>
+    
+    <select onchange="cliFilter.responsavel=this.value;renderCliAv()" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+      <option value="">Quem Faz?</option>
+      ${resps.map(x=>`<option ${cliFilter.responsavel===x?'selected':''}>${x}</option>`).join('')}
+    </select>
+
     <select onchange="cliFilter.regime=this.value;renderCliAv()" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
       <option value="">Todos regimes</option>
       ${regimes.map(r=>`<option ${cliFilter.regime===r?'selected':''}>${r}</option>`).join('')}
     </select>
+    
     <select onchange="cliFilter.status=this.value;renderCliAv()" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
-      <option value="">Todos status</option>
+      <option value="">Todos status CRM</option>
       ${statuses.map(s=>`<option ${cliFilter.status===s?'selected':''}>${s}</option>`).join('')}
     </select>
-    <select onchange="cliFilter.complexidade=this.value;renderCliAv()" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
-      <option value="">Toda complexidade</option>
-      ${complexs.map(x=>`<option ${cliFilter.complexidade===x?'selected':''}>${x}</option>`).join('')}
-    </select>
-    <button class="btn btn-ghost btn-sm" onclick="cliFilter={regime:'',status:'',complexidade:'',busca:''};renderCliAv()">✕ Limpar</button>
-    <button class="btn btn-ghost btn-sm" onclick="exportarClientesCSV()">⬇️ Exportar</button>
+
+    <button class="btn btn-ghost btn-sm" onclick="cliFilter={regime:'',status:'',complexidade:'',busca:'',acao_entrega:'',responsavel:''};renderCliAv()">✕ Limpar</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportarClientesCSV()">⬇️ Export</button>
   </div>
   <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">
-    ${filtrados.length} de ${clientes.length} clientes · ${totalAtivos} ativos · ${totalInativ} inativos
+    ${filtrados.length} de ${clientes.length} clientes listados · ${totalAtivos} operacionais
   </div>
 </div>`;
 
@@ -1365,12 +1389,13 @@ function renderClientesAvancado() {
       <td style="font-size:11px">
         ${obsPend.slice(0,2).map(o=>`<div style="color:${o.startsWith('⚠')?'#b45309':'var(--text-muted)'}">${o}</div>`).join('')}
       </td>
+      <td style="font-size:11px;font-weight:600;color:var(--primary)">${c.responsavel}</td>
       <td>
         <div style="display:flex;gap:4px;flex-wrap:wrap">
-          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();audClienteId='${c.id}';navigate('auditoria')" title="Auditoria">🔍</button>
-          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();chkClienteId='${c.id}';navigate('checklist')" title="Checklist">✅</button>
-          ${c.drive_url?`<a href="${c.drive_url}" target="_blank" class="btn btn-ghost btn-sm" onclick="event.stopPropagation()" title="Drive">🗂️</a>`:''}
-          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();abrirCPCAnalise('${c.id}')" title="Análise CPC">📊</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();audClienteId='${c.id}';navigate('auditoria')" title="Compliance/Pendências">🔍</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();chkClienteId='${c.id}';navigate('checklist')" title="Checklist mensal">✅</button>
+          ${c.drive_url?`<a href="${c.drive_url}" target="_blank" class="btn btn-ghost btn-sm" onclick="event.stopPropagation()" title="Pasta Nuvem">🗂️</a>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();abrirCPCAnalise('${c.id}')" title="Emitir Parecer Técnico">📄Técnico</button>
         </div>
       </td>
     </tr>`;
@@ -1378,14 +1403,14 @@ function renderClientesAvancado() {
 
   return `
 <div class="card mb-4" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);color:#fff;padding:16px 22px">
-  <h2 style="font-size:15px;margin-bottom:2px">👥 Controle de Clientes — CM Contabilidade</h2>
-  <p style="opacity:.8;font-size:12px">${clientes.length} clientes · Baseado na Escrituração em andamento</p>
+  <h2 style="font-size:15px;margin-bottom:2px">👥 Controle Unificado de Entregas e Clientes — CM Contabilidade</h2>
+  <p style="opacity:.8;font-size:12px">${clientes.length} clientes classificados · Baseado na Escrituração 2025/2026</p>
 </div>
 ${filterBar}
 <div class="card">
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Cód.</th><th>Razão Social / CNPJ</th><th>Regime</th><th>Status</th><th>Operação</th><th>Complexidade</th><th>Pendências/Obs.</th><th>Ações</th></tr></thead>
+      <thead><tr><th>Cód.</th><th>Razão Social / CNPJ</th><th>Regime</th><th>Status</th><th>Operação</th><th>Pendências/Obs.</th><th>Resp.</th><th>Ações</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>
@@ -1475,7 +1500,7 @@ function exportarRelatorioEntrega() {
 }
 
 // ══════════════════════════════════════════════════════════
-// PARECER FORMAL COM CPC — Gerado pelo motor de regras
+// ANÁLISE TÉCNICA DE CONFORMIDADE COM CPC — Gerado pelo motor de regras
 // ══════════════════════════════════════════════════════════
 function gerarParecerCPC(cliId) {
   const clientes  = DB.get('clientes') || [];
@@ -1504,7 +1529,7 @@ function gerarParecerCPC(cliId) {
   const sep2   = '─'.repeat(60);
 
   let parecer = `${sep}
-RELATÓRIO DE ANÁLISE CONTÁBIL E AUDITORIA INTERNA
+ANÁLISE TÉCNICA DE CONFORMIDADE CONTÁBIL
 ${sep}
 Cliente     : ${cliente.nome}
 CNPJ        : ${cliente.cnpj}
@@ -1578,7 +1603,7 @@ ${sep2}
     container.innerHTML = `
 <div class="card mt-4" id="cpc-parecer">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-    <strong style="font-size:14px">📊 Parecer CPC — ${cliente.nome.slice(0,40)}</strong>
+    <strong style="font-size:14px">📊 Análise Técnica — ${cliente.nome.slice(0,40)}</strong>
     <span class="badge ${altoRisco.length?'badge-red':medioRisco.length?'badge-yellow':'badge-green'}">${altoRisco.length?'🔴 Alto Risco':medioRisco.length?'🟡 Médio Risco':'🟢 Regular'}</span>
     <div style="margin-left:auto;display:flex;gap:6px">
       <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('cpc-parecer-txt').textContent);alert('Copiado!')">📋 Copiar</button>
@@ -1594,7 +1619,7 @@ ${sep2}
 function imprimirParecerCPC() {
   const txt = document.getElementById('cpc-parecer-txt')?.textContent || '';
   const win = window.open('','_blank');
-  win.document.write(`<html><head><title>Parecer CPC</title>
+  win.document.write(`<html><head><title>Análise Técnica</title>
     <style>body{font-family:monospace;font-size:12px;padding:30px;line-height:1.7;white-space:pre-wrap}</style>
   </head><body>${txt}</body></html>`);
   win.document.close(); win.print();
