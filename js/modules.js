@@ -1,0 +1,827 @@
+
+// ─── IMPORTAÇÃO COM GEMINI AI ───
+let impClienteId = null;
+let impArquivos = [];
+let impResultados = [];
+
+function renderImportacao() {
+  const apiKey = getApiKey();
+  const clientes = DB.get('clientes') || [];
+  const ativos = clientes.filter(c => c.status === 'Ativo');
+
+  const aviso = !apiKey ? `<div class="card mb-4" style="border-left:4px solid var(--danger)">
+  <div class="flex items-center gap-2"><span style="font-size:20px">⚠️</span><div>
+    <strong>API Key não configurada</strong><br>
+    <span class="text-muted text-sm">Vá em <button class="btn btn-ghost btn-sm" onclick="navigate('configuracoes')">⚙️ Configurações</button> e cadastre sua chave do Google AI Studio.</span>
+  </div></div></div>` : '';
+
+  const selectorOptions = ativos.map(c =>
+    `<option value="${c.id}" ${impClienteId === c.id ? 'selected' : ''}>#${c.id} — ${c.nome}</option>`
+  ).join('');
+
+  const tiposDoc = [
+    { val: 'extrato',       label: '📄 Extrato Bancário (PDF/imagem)' },
+    { val: 'nfe_xml',       label: '🧾 Nota Fiscal XML (NF-e / NFS-e)' },
+    { val: 'fatura_cartao', label: '💳 Fatura de Cartão de Crédito' },
+    { val: 'folha',         label: '👥 Folha de Pagamento / Holerite' },
+    { val: 'guia_imposto',  label: '🏛️ Guia de Imposto (DAS, DARF, GPS)' },
+    { val: 'generico',      label: '📂 Outro documento contábil' },
+  ];
+
+  const resultHtml = impResultados.map((r, i) => {
+    const hasChk = r.chkKeys && r.chkKeys.length && impClienteId;
+    return `<div class="card mb-3" style="border-left:4px solid var(--success)">
+      <div class="flex justify-between items-center mb-2">
+        <strong>📄 ${r.arquivo}</strong>
+        <span class="badge badge-green">${r.tipo}</span>
+      </div>
+      <pre style="background:var(--bg);border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;max-height:220px;white-space:pre-wrap">${JSON.stringify(r.resultado, null, 2)}</pre>
+      ${hasChk ? `<div class="mt-2 flex items-center gap-2">
+        <span class="text-sm text-muted">Marcar no checklist <strong>${fmtComp(state.competencia)}</strong>:</span>
+        <button class="btn btn-success btn-sm" onclick="aplicarNoChecklist(${i})">✅ Marcar como Recebido</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  return `
+${aviso}
+<div class="card mb-4" style="background:linear-gradient(135deg,#1e40af,#0891b2);color:#fff;padding:20px 24px">
+  <h2 style="font-size:16px;margin-bottom:4px">🤖 Importação Inteligente com Gemini AI</h2>
+  <p style="opacity:.85;font-size:13px">Envie PDFs, XMLs ou imagens — a IA extrai os dados e preenche o checklist automaticamente.</p>
+</div>
+<div class="card mb-4">
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Cliente</label>
+      <select id="imp-cliente" style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px" onchange="impClienteId=this.value">
+        <option value="">— Selecione o cliente —</option>${selectorOptions}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Tipo de Documento</label>
+      <select id="imp-tipo" style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px">
+        ${tiposDoc.map(t => `<option value="${t.val}">${t.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group form-full">
+      <label>Arquivos (PDF, XML, imagem, CSV, OFX)</label>
+      <input type="file" id="imp-files" multiple accept=".pdf,.xml,.csv,.jpg,.jpeg,.png,.ofx,.txt"
+        style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;width:100%;background:var(--card)"
+        onchange="impArquivos=[...this.files]">
+    </div>
+    <div class="form-group">
+      <label>Competência para o Checklist</label>
+      <input type="month" value="${state.competencia}" onchange="state.competencia=this.value"
+        style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px">
+    </div>
+  </div>
+  <div class="mt-4" style="display:flex;gap:10px;align-items:center">
+    <button class="btn btn-primary" onclick="processarImportacao()">🤖 Analisar com Gemini AI</button>
+    <span id="imp-status" class="text-muted text-sm"></span>
+  </div>
+</div>
+${resultHtml || '<div class="empty-state"><div class="empty-icon">📂</div><p>Selecione um cliente, o tipo de documento, faça o upload e clique em Analisar.</p></div>'}`;
+}
+
+async function processarImportacao() {
+  if (!getApiKey()) { alert('Configure a API Key em Configurações.'); return; }
+  if (!impClienteId) { alert('Selecione um cliente.'); return; }
+  const fileInput = document.getElementById('imp-files');
+  impArquivos = fileInput ? [...fileInput.files] : impArquivos;
+  if (!impArquivos.length) { alert('Selecione pelo menos um arquivo.'); return; }
+
+  const tipo = document.getElementById('imp-tipo').value;
+  const clientes = DB.get('clientes') || [];
+  const cliente = clientes.find(c => c.id === impClienteId);
+  const statusEl = document.getElementById('imp-status');
+
+  impResultados = [];
+  for (const file of impArquivos) {
+    try {
+      statusEl.textContent = `⏳ Processando ${file.name}...`;
+      const resultado = await analisarDocumento(file, tipo, cliente.nome);
+      const chkKeys = mapResultToChecklist(tipo, resultado);
+      impResultados.push({ arquivo: file.name, tipo, resultado, chkKeys });
+    } catch (e) {
+      impResultados.push({ arquivo: file.name, tipo, resultado: { erro: e.message }, chkKeys: [] });
+    }
+  }
+  statusEl.textContent = `✅ ${impResultados.length} arquivo(s) processado(s).`;
+  render();
+}
+
+function aplicarNoChecklist(idx) {
+  const r = impResultados[idx];
+  if (!r || !impClienteId || !r.chkKeys.length) return;
+  const checklists = DB.get('checklists') || {};
+  const key = impClienteId + '_' + state.competencia;
+  checklists[key] = checklists[key] || {};
+  r.chkKeys.forEach(k => { checklists[key][k] = 'recebido'; });
+  DB.set('checklists', checklists);
+  alert(`✅ ${r.chkKeys.length} item(s) marcados como Recebido no checklist de ${fmtComp(state.competencia)}!`);
+}
+
+// ─── OBRIGAÇÕES ACESSÓRIAS ───
+// Calendário completo de obrigações por regime e prazo
+const OBRIGACOES_CALENDARIO = [
+  // Mensais
+  { cod:'PGDAS-D',  nome:'PGDAS-D — Declaração Mensal Simples',  regime:['Simples Nacional'],               periodicidade:'Mensal',  prazo:'Último dia útil do mês subsequente',    categoria:'Fiscal'      },
+  { cod:'DAS',      nome:'DAS — Documento de Arrecadação Simples', regime:['Simples Nacional'],              periodicidade:'Mensal',  prazo:'Dia 20 do mês subsequente',             categoria:'Fiscal'      },
+  { cod:'DCTF-Web', nome:'DCTF-Web — Débitos e Créditos Trib.',   regime:['Lucro Presumido','Lucro Real'],   periodicidade:'Mensal',  prazo:'Dia 15 do mês subsequente',             categoria:'Trabalhista' },
+  { cod:'GPS',      nome:'GPS — Contribuição Previdenciária',     regime:['todos'],                          periodicidade:'Mensal',  prazo:'Dia 20 do mês subsequente',             categoria:'Trabalhista' },
+  { cod:'FGTS',     nome:'FGTS — Fundo de Garantia',             regime:['todos'],                          periodicidade:'Mensal',  prazo:'Dia 7 do mês subsequente',              categoria:'Trabalhista' },
+  { cod:'SPED-F-M', nome:'SPED Fiscal — EFD ICMS/IPI (mensal)',   regime:['Lucro Presumido','Lucro Real'],   periodicidade:'Mensal',  prazo:'Dia 20 do mês subsequente',             categoria:'Fiscal'      },
+  { cod:'EFD-Contrib',nome:'EFD-Contribuições (PIS/COFINS)',      regime:['Lucro Presumido','Lucro Real'],   periodicidade:'Mensal',  prazo:'Dia 20 do mês subsequente',             categoria:'Fiscal'      },
+  // Anuais
+  { cod:'DEFIS',    nome:'DEFIS — Declaração Informações Simples', regime:['Simples Nacional'],              periodicidade:'Anual',   prazo:'31/03 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'03' },
+  { cod:'DASN-MEI', nome:'DASN — Declaração Anual MEI',           regime:['MEI'],                           periodicidade:'Anual',   prazo:'31/05 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'05' },
+  { cod:'ECD',      nome:'ECD — Escrituração Contábil Digital',   regime:['Lucro Presumido','Lucro Real'],   periodicidade:'Anual',   prazo:'31/07 (ano seguinte)',                  categoria:'Contábil', anoRef:'2025', mesRef:'07' },
+  { cod:'ECF',      nome:'ECF — Escrituração Contábil Fiscal',    regime:['Lucro Presumido','Lucro Real'],   periodicidade:'Anual',   prazo:'31/07 (ano seguinte)',                  categoria:'Contábil', anoRef:'2025', mesRef:'07' },
+  { cod:'SPED-Contrib-A',nome:'SPED Contribuições (anual)',       regime:['Lucro Presumido','Lucro Real'],   periodicidade:'Anual',   prazo:'30/06 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'06' },
+  { cod:'DMED',     nome:'DMED — Declaração Planos de Saúde',     regime:['todos'],                         periodicidade:'Anual',   prazo:'28/02 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'02' },
+  { cod:'DIRF',     nome:'DIRF — Declaração IR Retido',           regime:['todos'],                         periodicidade:'Anual',   prazo:'28/02 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'02' },
+  { cod:'RAIS',     nome:'RAIS — Atividades Sócio-Econômicas',    regime:['todos'],                         periodicidade:'Anual',   prazo:'Março (varia por ano)',                 categoria:'Trabalhista',anoRef:'2025',mesRef:'03' },
+  { cod:'eSocial',  nome:'eSocial — Folha e Trabalhista',         regime:['todos'],                         periodicidade:'Mensal',  prazo:'Dia 7 do mês subsequente',              categoria:'Trabalhista' },
+];
+
+let obgAno = new Date().getFullYear().toString();
+let obgClienteId = null;
+
+function renderObrigacoes() {
+  const clientes = DB.get('clientes') || [];
+  const ativos = clientes.filter(c => c.status === 'Ativo');
+  const anos = ['2024','2025','2026','2027'];
+
+  const selectorOptions = ativos.map(c =>
+    `<option value="${c.id}" ${obgClienteId === c.id ? 'selected' : ''}>#${c.id} — ${c.nome}</option>`
+  ).join('');
+
+  const obgData = DB.get('obrigacoes') || {};
+
+  // Se nenhum cliente selecionado: visão geral de todos por obrigação
+  if (!obgClienteId) {
+    // Mostra resumo das anuais do ano selecionado para toda a carteira
+    const anuais = OBRIGACOES_CALENDARIO.filter(o => o.periodicidade === 'Anual');
+    const resumoRows = anuais.map(obg => {
+      const entregues = ativos.filter(c => {
+        if (!c.regime || (!obg.regime.includes(c.regime) && !obg.regime.includes('todos'))) return false;
+        const k = `${c.id}_${obg.cod}_${obgAno}`;
+        return (obgData[k] || {}).status === 'entregue';
+      });
+      const aplicavel = ativos.filter(c => obg.regime.includes('todos') || obg.regime.includes(c.regime));
+      return `<tr>
+        <td><strong>${obg.cod}</strong></td>
+        <td>${obg.nome}</td>
+        <td><span class="badge badge-${obg.categoria==='Contábil'?'purple':obg.categoria==='Trabalhista'?'blue':'green'}">${obg.categoria}</span></td>
+        <td class="text-muted">${obg.prazo}</td>
+        <td>${aplicavel.length ? `<div class="progress-bar" style="width:80px;display:inline-block"><div class="progress-fill" style="width:${Math.round(entregues.length/aplicavel.length*100)}%"></div></div> <span class="text-sm">${entregues.length}/${aplicavel.length}</span>` : '—'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="obgClienteId='all_${obg.cod}';render()">Ver detalhe</button></td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="card mb-4 flex items-center gap-3" style="padding:14px 20px;flex-wrap:wrap">
+  <span style="font-weight:600">Ano de referência:</span>
+  <select style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px" onchange="obgAno=this.value;render()">
+    ${anos.map(a => `<option ${obgAno===a?'selected':''}>${a}</option>`).join('')}
+  </select>
+  <span style="font-weight:600;margin-left:8px">Cliente:</span>
+  <select style="flex:1;min-width:260px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px" onchange="obgClienteId=this.value;render()">
+    <option value="">— Todos os clientes (visão geral) —</option>
+    ${selectorOptions}
+  </select>
+</div>
+<div class="card mb-4" style="background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff;padding:18px 24px">
+  <h3 style="font-size:15px;margin-bottom:4px">📋 Obrigações Acessórias Anuais — ${obgAno}</h3>
+  <p style="opacity:.8;font-size:12px">Selecione um cliente para controle individual ou visualize a entrega em massa.</p>
+</div>
+<div class="card">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Código</th><th>Obrigação</th><th>Categoria</th><th>Prazo</th><th>Entregues</th><th>Ação</th></tr></thead>
+    <tbody>${resumoRows}</tbody>
+  </table></div>
+</div>`;
+  }
+
+  // Detalhe por cliente
+  const cliente = clientes.find(c => c.id === obgClienteId);
+  if (!cliente) { obgClienteId = null; render(); return ''; }
+
+  const obgFiltradas = OBRIGACOES_CALENDARIO.filter(o =>
+    o.regime.includes('todos') || o.regime.includes(cliente.regime)
+  );
+
+  const anuais    = obgFiltradas.filter(o => o.periodicidade === 'Anual');
+  const mensais   = obgFiltradas.filter(o => o.periodicidade === 'Mensal');
+  const meses     = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  function statusIcon(s) {
+    return s==='entregue'?'✅':s==='em_atraso'?'🔴':s==='nao_se_aplica'?'—':'⏳';
+  }
+
+  // Anuais
+  const anuaisHtml = anuais.map(obg => {
+    const k = `${cliente.id}_${obg.cod}_${obgAno}`;
+    const d = obgData[k] || {};
+    return `<div class="checklist-item">
+      <div style="flex:1">
+        <div class="checklist-item-name"><strong>${obg.cod}</strong> — ${obg.nome}</div>
+        <div class="checklist-item-sub">${obg.prazo} · <span class="badge badge-${obg.categoria==='Contábil'?'purple':obg.categoria==='Trabalhista'?'blue':'green'}" style="font-size:10px">${obg.categoria}</span></div>
+      </div>
+      <select style="border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit;margin-right:8px"
+        onchange="saveObg('${k}','status',this.value)">
+        <option value="pendente"       ${(d.status||'pendente')==='pendente'       ?'selected':''}>⏳ Pendente</option>
+        <option value="entregue"       ${d.status==='entregue'       ?'selected':''}>✅ Entregue</option>
+        <option value="em_atraso"      ${d.status==='em_atraso'      ?'selected':''}>🔴 Em Atraso</option>
+        <option value="nao_se_aplica"  ${d.status==='nao_se_aplica'  ?'selected':''}>— Não se Aplica</option>
+      </select>
+      <input type="date" value="${d.data_entrega||''}" title="Data de entrega"
+        style="border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit"
+        onchange="saveObg('${k}','data_entrega',this.value)">
+    </div>`;
+  }).join('');
+
+  // Mensal grid (checkboxes por mês)
+  const mensaisHtml = mensais.map(obg => {
+    const cells = meses.map((mes, mi) => {
+      const k = `${cliente.id}_${obg.cod}_${obgAno}_${String(mi+1).padStart(2,'0')}`;
+      const d = obgData[k] || {};
+      const s = d.status || 'pendente';
+      const colors = { entregue:'#d1fae5', em_atraso:'#fee2e2', nao_se_aplica:'#f1f5f9', pendente:'#fff' };
+      return `<td style="text-align:center;padding:6px 4px;background:${colors[s]};cursor:pointer;font-size:13px"
+        title="${mes}/${obgAno} — clique para alternar"
+        onclick="toggleObgMes('${k}',this)">${statusIcon(s)}</td>`;
+    }).join('');
+    return `<tr>
+      <td style="font-size:12px;font-weight:600;white-space:nowrap;padding:6px 10px">${obg.cod}</td>
+      <td style="font-size:12px;color:var(--text-muted);padding:6px 10px">${obg.nome.substring(0,40)}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  return `<div class="card mb-4 flex items-center gap-3" style="padding:14px 20px;flex-wrap:wrap">
+  <button class="btn btn-ghost btn-sm" onclick="obgClienteId=null;render()">← Voltar</button>
+  <span style="font-weight:600">Ano:</span>
+  <select style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px" onchange="obgAno=this.value;render()">
+    ${anos.map(a => `<option ${obgAno===a?'selected':''}>${a}</option>`).join('')}
+  </select>
+  <span style="font-weight:600;margin-left:8px">Cliente:</span>
+  <select style="flex:1;min-width:260px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px" onchange="obgClienteId=this.value;render()">
+    <option value="">— Todos —</option>${selectorOptions}
+  </select>
+</div>
+<div class="card mb-4" style="border-left:4px solid var(--primary);padding:14px 20px">
+  <strong>#${cliente.id} — ${cliente.nome}</strong>
+  <span class="text-muted text-sm" style="margin-left:12px">${cliente.regime} · Ano ${obgAno}</span>
+</div>
+
+<div class="card mb-4">
+  <div style="font-weight:700;margin-bottom:8px;font-size:14px">📋 Obrigações Anuais — ${obgAno}</div>
+  <div>${anuaisHtml || '<p class="text-muted text-sm">Nenhuma obrigação anual para este regime.</p>'}</div>
+</div>
+
+<div class="card">
+  <div style="font-weight:700;margin-bottom:8px;font-size:14px">📅 Obrigações Mensais — ${obgAno}</div>
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th>Código</th><th>Obrigação</th>
+      ${meses.map(m => `<th style="text-align:center;font-size:11px">${m}</th>`).join('')}
+    </tr></thead>
+    <tbody>${mensaisHtml}</tbody>
+  </table></div>
+  <div class="mt-2 text-sm text-muted" style="display:flex;gap:14px">
+    <span>✅ Entregue</span><span>⏳ Pendente</span><span>🔴 Em Atraso</span><span>— N/A</span>
+    <span style="margin-left:auto">Clique na célula mensal para alternar status</span>
+  </div>
+</div>`;
+}
+
+function saveObg(key, field, val) {
+  const obgData = DB.get('obrigacoes') || {};
+  obgData[key] = obgData[key] || {};
+  obgData[key][field] = val;
+  DB.set('obrigacoes', obgData);
+}
+
+function toggleObgMes(key, td) {
+  const obgData = DB.get('obrigacoes') || {};
+  obgData[key] = obgData[key] || {};
+  const ciclo = ['pendente','entregue','em_atraso','nao_se_aplica'];
+  const atual = obgData[key].status || 'pendente';
+  const prox = ciclo[(ciclo.indexOf(atual)+1) % ciclo.length];
+  obgData[key].status = prox;
+  DB.set('obrigacoes', obgData);
+  const colors = { entregue:'#d1fae5', em_atraso:'#fee2e2', nao_se_aplica:'#f1f5f9', pendente:'#fff' };
+  const icons  = { entregue:'✅', em_atraso:'🔴', nao_se_aplica:'—', pendente:'⏳' };
+  td.style.background = colors[prox];
+  td.textContent = icons[prox];
+}
+
+// ─── CONFIGURAÇÕES ───
+function renderConfiguracoes() {
+  const apiKey = getApiKey();
+  return `
+<div style="max-width:600px">
+  <div class="card mb-4" style="border-left:4px solid var(--primary)">
+    <h3 style="margin-bottom:4px">⚙️ Configurações do Sistema</h3>
+    <p class="text-muted text-sm">Configurações globais da conta e integrações.</p>
+  </div>
+
+  <div class="card mb-4">
+    <h3 style="margin-bottom:4px">🤖 Google Gemini API</h3>
+    <p class="text-muted text-sm mb-4">Obtenha sua chave gratuita em <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--primary-light)">aistudio.google.com</a></p>
+    <div class="form-group">
+      <label>API Key do Google AI Studio</label>
+      <input type="password" id="cfg-apikey" value="${apiKey}" placeholder="AIzaSy..."
+        style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:monospace;font-size:13px;width:100%">
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+      <button class="btn btn-primary" onclick="salvarApiKey()">💾 Salvar API Key</button>
+      <button class="btn btn-ghost btn-sm" onclick="testarApiKey()">🔍 Testar conexão</button>
+      <span id="cfg-status" class="text-sm"></span>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <h3 style="margin-bottom:12px">📋 Informações do Escritório (Parecer)</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Nome do Escritório</label>
+        <input id="cfg-nome" value="${localStorage.getItem('esc_nome')||'Criscontab & Madeira Contabilidade'}"
+          style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px">
+      </div>
+      <div class="form-group"><label>CNPJ do Escritório</label>
+        <input id="cfg-cnpj" value="${localStorage.getItem('esc_cnpj')||''}"
+          style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px">
+      </div>
+    </div>
+    <button class="btn btn-primary mt-2" onclick="salvarEscritorioInfo()">💾 Salvar</button>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:8px;color:var(--danger)">⚠️ Zona de Perigo</h3>
+    <p class="text-muted text-sm mb-3">Apaga todos os checklists, onboarding e auditoria e recarrega os 87 clientes base.</p>
+    <button class="btn btn-danger btn-sm" onclick="resetarDados()">🔄 Restaurar Dados Base</button>
+  </div>
+</div>`;
+}
+
+function salvarApiKey() {
+  const k = document.getElementById('cfg-apikey').value.trim();
+  localStorage.setItem('gemini_api_key', k);
+  const el = document.getElementById('cfg-status');
+  el.textContent = k ? '✅ API Key salva!' : '❌ Key apagada';
+  el.style.color = k ? 'var(--success)' : 'var(--danger)';
+  setTimeout(() => el.textContent='', 3000);
+}
+
+async function testarApiKey() {
+  const statusEl = document.getElementById('cfg-status');
+  statusEl.textContent = '⏳ Testando...';
+  const apiKey = document.getElementById('cfg-apikey').value.trim();
+  if (!apiKey) { statusEl.textContent = '❌ Insira a key primeiro'; return; }
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ contents:[{parts:[{text:'Responda apenas: OK'}]}] }) }
+    );
+    const d = await res.json();
+    const txt = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    statusEl.style.color = txt ? 'var(--success)' : 'var(--warning)';
+    statusEl.textContent = txt ? '✅ Conexão OK! Gemini respondeu.' : '⚠️ Resposta inesperada';
+  } catch(e) {
+    statusEl.style.color = 'var(--danger)';
+    statusEl.textContent = '❌ Erro: ' + e.message;
+  }
+  setTimeout(() => statusEl.textContent='', 5000);
+}
+
+function salvarEscritorioInfo() {
+  localStorage.setItem('esc_nome', document.getElementById('cfg-nome').value);
+  localStorage.setItem('esc_cnpj', document.getElementById('cfg-cnpj').value);
+  alert('✅ Informações salvas!');
+}
+
+// ─── EVENTS ───
+function attachEvents() {
+  const compSel = document.getElementById('comp-topbar');
+  if (compSel) compSel.value = state.competencia;
+}
+
+// ─── INIT ───
+document.addEventListener('DOMContentLoaded', () => {
+  initDB();
+  document.getElementById('comp-topbar').addEventListener('change', e => {
+    state.competencia = e.target.value;
+    render();
+  });
+  navigate('dashboard');
+});
+
+// ─── PLANO DE CONTAS ───
+let pcView = 'list';   // 'list' | 'detail' | 'historico'
+let pcPlanId = null;   // currently selected plan id
+
+function renderPlanoContas() {
+  const planos = DB.get('planos_contas') || [];
+  const historico = DB.get('plano_historico') || null;
+
+  const topBar = `
+<div class="card mb-4" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);color:#fff;padding:18px 24px">
+  <h2 style="font-size:15px;margin-bottom:4px">📊 Plano de Contas</h2>
+  <p style="opacity:.8;font-size:12px">Importe, gerencie múltiplos planos e exporte no layout do Domínio Único.</p>
+</div>
+<div class="card mb-4" style="padding:14px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+  <button class="btn btn-primary btn-sm" onclick="pcView='list';pcPlanId=null;render()">📋 Meus Planos</button>
+  <button class="btn btn-ghost btn-sm" onclick="pcView='historico';render()">📚 Modelo Histórico</button>
+  <span style="margin-left:auto;display:flex;gap:8px">
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+      ➕ Importar Plano (CSV)
+      <input type="file" accept=".csv,.txt" style="display:none" onchange="importarPlano(this)">
+    </label>
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+      📚 Importar Modelo Histórico (CSV)
+      <input type="file" accept=".csv,.txt" style="display:none" onchange="importarHistorico(this)">
+    </label>
+  </span>
+</div>`;
+
+  if (pcView === 'historico') {
+    if (!historico) return topBar + `<div class="empty-state"><div class="empty-icon">📚</div><p>Nenhum modelo histórico importado.<br>Use o botão "Importar Modelo Histórico (CSV)" acima.</p></div>`;
+    const rows = historico.contas.slice(0,200).map(c => renderContaRow(c)).join('');
+    return `${topBar}
+<div class="card mb-4" style="border-left:4px solid #0f766e;padding:14px 20px;display:flex;align-items:center;gap:10px">
+  <strong>📚 Modelo Histórico — ${historico.nome}</strong>
+  <span class="text-muted text-sm">${historico.contas.length} contas · Importado em ${historico.data}</span>
+  <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportarDominioUnico('historico')">⬇️ Exportar Domínio Único</button>
+</div>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Cód.</th><th>Descrição</th><th>Tipo</th><th>Nível</th><th>Natureza</th></tr></thead>
+  <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Sem contas</td></tr>'}</tbody>
+</table></div></div>`;
+  }
+
+  if (pcView === 'detail' && pcPlanId !== null) {
+    const plano = planos.find(p => p.id === pcPlanId);
+    if (!plano) { pcView='list'; return renderPlanoContas(); }
+    const rows = plano.contas.slice(0,500).map(c => renderContaRow(c)).join('');
+    return `${topBar}
+<div class="card mb-4" style="border-left:4px solid var(--primary);padding:14px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+  <button class="btn btn-ghost btn-sm" onclick="pcView='list';pcPlanId=null;render()">← Voltar</button>
+  <strong>${plano.nome}</strong>
+  <span class="text-muted text-sm">${plano.contas.length} contas · ${plano.data}</span>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <button class="btn btn-ghost btn-sm" onclick="exportarDominioUnico(${pcPlanId})">⬇️ Exportar Domínio Único</button>
+    <button class="btn btn-danger btn-sm" onclick="excluirPlano(${pcPlanId})">🗑️ Excluir</button>
+  </div>
+</div>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Cód.</th><th>Descrição</th><th>Tipo</th><th>Nível</th><th>Natureza</th></tr></thead>
+  <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Sem contas</td></tr>'}</tbody>
+</table></div></div>`;
+  }
+
+  // ── LIST VIEW ──
+  if (!planos.length) return topBar + `<div class="empty-state"><div class="empty-icon">📊</div><p>Nenhum plano de contas importado.<br>Use o botão "Importar Plano (CSV)" acima.</p></div>`;
+
+  const cards = planos.map(p => `
+<div class="card" style="display:flex;align-items:center;gap:14px;padding:16px 20px;margin-bottom:10px;cursor:pointer" onclick="pcPlanId=${p.id};pcView='detail';render()">
+  <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary-light),var(--accent));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📊</div>
+  <div style="flex:1">
+    <div style="font-weight:700">${p.nome}</div>
+    <div class="text-muted text-sm">${p.contas.length} contas · Importado em ${p.data}</div>
+  </div>
+  <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();pcPlanId=${p.id};exportarDominioUnico(${p.id})">⬇️ Exportar</button>
+  <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();excluirPlano(${p.id})">🗑️</button>
+</div>`).join('');
+
+  return `${topBar}${cards}`;
+}
+
+function renderContaRow(c) {
+  const tipo = c.tipo || c.Tipo || c[2] || '';
+  const nivel = c.nivel || c.Nivel || c[3] || '';
+  const natureza = c.natureza || c.Natureza || c[4] || '';
+  const cod  = c.codigo || c.Codigo || c[0] || '';
+  const desc = c.descricao || c.Descricao || c[1] || '';
+  return `<tr>
+    <td style="font-family:monospace;font-size:12px">${cod}</td>
+    <td>${'&nbsp;'.repeat((parseInt(nivel)||1)*2)}${desc}</td>
+    <td><span class="badge badge-${tipo==='S'?'blue':tipo==='A'?'green':'gray'}">${tipo==='S'?'Sintética':tipo==='A'?'Analítica':tipo||'—'}</span></td>
+    <td style="text-align:center">${nivel}</td>
+    <td>${natureza}</td>
+  </tr>`;
+}
+
+function parseContasCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  const sep   = lines[0].includes(';') ? ';' : ',';
+  const header = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g,'').toLowerCase());
+  return lines.slice(1).map(line => {
+    const cols = line.split(sep).map(v => v.trim().replace(/^"|"$/g,''));
+    const obj = {};
+    // Detect columns by header or by position
+    if (header.some(h => h.includes('cod') || h.includes('conta'))) {
+      header.forEach((h,i) => obj[h] = cols[i]);
+      // Normalize key names
+      return {
+        codigo:    obj['codigo'] || obj['cod'] || obj['conta'] || cols[0] || '',
+        descricao: obj['descricao'] || obj['nome'] || obj['description'] || cols[1] || '',
+        tipo:      (obj['tipo'] || cols[2] || '').charAt(0).toUpperCase(),
+        nivel:     obj['nivel'] || obj['level'] || cols[3] || '',
+        natureza:  obj['natureza'] || obj['dc'] || cols[4] || '',
+      };
+    }
+    return { codigo: cols[0]||'', descricao: cols[1]||'', tipo: (cols[2]||'').charAt(0).toUpperCase(), nivel: cols[3]||'', natureza: cols[4]||'' };
+  }).filter(c => c.codigo);
+}
+
+function importarPlano(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const contas = parseContasCSV(e.target.result);
+    const planos = DB.get('planos_contas') || [];
+    const nome   = file.name.replace(/\.(csv|txt)$/i,'');
+    const id     = Date.now();
+    planos.push({ id, nome, contas, data: new Date().toLocaleDateString('pt-BR') });
+    DB.set('planos_contas', planos);
+    pcPlanId = id; pcView = 'detail';
+    render();
+  };
+  reader.readAsText(file, 'UTF-8');
+  input.value = '';
+}
+
+function importarHistorico(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const contas = parseContasCSV(e.target.result);
+    const nome   = file.name.replace(/\.(csv|txt)$/i,'');
+    DB.set('plano_historico', { nome, contas, data: new Date().toLocaleDateString('pt-BR') });
+    pcView = 'historico';
+    render();
+  };
+  reader.readAsText(file, 'UTF-8');
+  input.value = '';
+}
+
+function excluirPlano(id) {
+  if (!confirm('Excluir este plano de contas?')) return;
+  let planos = DB.get('planos_contas') || [];
+  planos = planos.filter(p => p.id !== id);
+  DB.set('planos_contas', planos);
+  pcPlanId = null; pcView = 'list';
+  render();
+}
+
+// ─── EXPORTAR NO LAYOUT DOMÍNIO ÚNICO ───
+// Domínio Único espera: Codigo;Descricao;Tipo(S/A);Nivel;Natureza(D/C/DC)
+function exportarDominioUnico(planIdOrHistorico) {
+  let contas, nome;
+  if (planIdOrHistorico === 'historico') {
+    const h = DB.get('plano_historico');
+    if (!h) return;
+    contas = h.contas; nome = h.nome;
+  } else {
+    const planos = DB.get('planos_contas') || [];
+    const p = planos.find(x => x.id === planIdOrHistorico);
+    if (!p) return;
+    contas = p.contas; nome = p.nome;
+  }
+  // Cabeçalho layout Domínio Único
+  const header = 'CODIGO;DESCRICAO;TIPO;NIVEL;NATUREZA;CONTA_REDUZIDA;CONTA_RESULTADO\r\n';
+  const rows = contas.map(c => {
+    const cod  = (c.codigo||'').replace(/;/g,'');
+    const desc = (c.descricao||'').replace(/;/g,'');
+    const tipo = c.tipo === 'A' ? 'A' : 'S';      // Analítica / Sintética
+    const niv  = c.nivel || '1';
+    const nat  = c.natureza || 'DC';               // Devedora, Credora ou DC
+    return `${cod};${desc};${tipo};${niv};${nat};;`;
+  }).join('\r\n');
+  const blob = new Blob(['\ufeff' + header + rows], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `PlanoContas_DominioUnico_${nome.replace(/\s/g,'_')}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ─── TREINAMENTO DA EQUIPE ───
+const TRILHAS_TREINAMENTO = [
+  {
+    id:'auxiliar', nivel:1, titulo:'📘 Auxiliar Contábil', cor:'#3b82f6',
+    objetivo:'Executar tarefas com precisão e disciplina, sem análise crítica profunda.',
+    criterios:['Não comete erros operacionais recorrentes','Entrega dentro do prazo','Segue padrão sem supervisão constante'],
+    modulos:[
+      { id:'aux1', titulo:'1. Fundamentos Contábeis',
+        conteudo:['O que é contabilidade (ativo, passivo, resultado)','Regime de competência x caixa','Estrutura básica das demonstrações contábeis'],
+        quiz:[
+          { q:'O regime de competência reconhece receitas e despesas:', op:['Na data do pagamento','Na data do fato gerador','Na data do recebimento'], r:1 },
+          { q:'O Ativo representa:', op:['Obrigações da empresa','Bens e direitos da empresa','Resultado do período'], r:1 },
+          { q:'A DRE demonstra:', op:['O resultado econômico do período','A posição patrimonial','O fluxo de caixa'], r:0 },
+        ]
+      },
+      { id:'aux2', titulo:'2. Documentos e Nomenclaturas',
+        conteudo:['Tipos de notas fiscais: entrada e saída (NF-e / NFS-e)','Extratos bancários: leitura e organização','Padrão de nomenclatura: Tipo_Documento_Data_Valor'],
+        quiz:[
+          { q:'Como nomear corretamente um arquivo?', op:['QualquerNome','Tipo_Documento_Data_Valor','DocumentoCliente2024'], r:1 },
+          { q:'NF-e significa:', op:['Nota Fiscal Especial','Nota Fiscal Eletrônica','Nota de Fechamento'], r:1 },
+        ]
+      },
+      { id:'aux3', titulo:'3. Rotinas Operacionais',
+        conteudo:['Importação de dados no sistema','Conferência: valores, datas e sequência','Boas práticas: nunca assumir informação sem validar documento'],
+        quiz:[
+          { q:'Ao receber um documento sem data, devo:', op:['Lançar com data de hoje','Solicitar ao cliente','Ignorar e lançar assim mesmo'], r:1 },
+          { q:'Um lançamento contábil básico exige:', op:['Apenas débito','Débito e crédito em valor igual','Apenas crédito'], r:1 },
+        ]
+      },
+    ]
+  },
+  {
+    id:'assistente', nivel:2, titulo:'📗 Assistente Contábil', cor:'#10b981',
+    objetivo:'Executar com consciência do impacto contábil e identificar inconsistências.',
+    criterios:['Identifica erros antes do analista','Entende o impacto das falhas','Consegue justificar lançamentos'],
+    modulos:[
+      { id:'ass1', titulo:'1. Estrutura Contábil e Classificações',
+        conteudo:['Classificação: ativo, passivo, despesa, receita','Grupos e subgrupos do plano de contas','Diferença entre resultado e patrimônio'],
+        quiz:[
+          { q:'Aluguel pago é classificado como:', op:['Ativo','Despesa','Passivo'], r:1 },
+          { q:'Empréstimo bancário recebido é:', op:['Receita','Despesa','Passivo — obrigação'], r:2 },
+        ]
+      },
+      { id:'ass2', titulo:'2. Integrações Fiscal e Folha',
+        conteudo:['Fiscal: conferir notas emitidas x lançados no sistema','Folha: provisões de férias, 13° e encargos','Identificar divergências entre módulos'],
+        quiz:[
+          { q:'Provisão de férias deve ser registrada:', op:['Apenas na baixa','Mensalmente, quando incorrida','Somente quando paga'], r:1 },
+          { q:'Discrepância entre SPED Fiscal e contabilidade indica:', op:['Normalidade','Possível erro de lançamento','Diferença cambial'], r:1 },
+        ]
+      },
+      { id:'ass3', titulo:'3. Conciliações e Checklist',
+        conteudo:['Conciliação bancária: extrato x livro caixa','Conciliação de cartão de crédito','Preenchimento correto do checklist: Recebido / Pendente / Divergente'],
+        quiz:[
+          { q:'Um valor no extrato sem contrapartida contábil é:', op:['Normal','Pendência a investigar','Lucro extra'], r:1 },
+          { q:'Ao identificar divergência, devo:', op:['Corrigir sem registrar','Registrar apontamento e informar analista','Ignorar se valor pequeno'], r:1 },
+        ]
+      },
+    ]
+  },
+  {
+    id:'analista', nivel:3, titulo:'📙 Analista Contábil', cor:'#f59e0b',
+    objetivo:'Validar, interpretar e gerar posicionamento técnico.',
+    criterios:['Assume carteira de clientes com autonomia','Reduz risco do escritório','Gera valor consultivo'],
+    modulos:[
+      { id:'an1', titulo:'1. Revisão e Fechamento Contábil',
+        conteudo:['Fechamento: amarrações resultado x caixa','Conferência fiscal x contábil','Validar balancete antes do fechamento definitivo'],
+        quiz:[
+          { q:'Antes de fechar o mês devo garantir:', op:['Apenas os lançamentos','Checklist validado + conciliações + apontamentos','Somente o DAS pago'], r:1 },
+          { q:'Diferença entre lucro contábil e saldo bancário deve ser:', op:['Ignorada','Conciliada e explicada','Ajustada arbitrariamente'], r:1 },
+        ]
+      },
+      { id:'an2', titulo:'2. Análise de Demonstrações',
+        conteudo:['Leitura e interpretação da DRE','Análise do Balanço Patrimonial','Identificar variações relevantes mês a mês'],
+        quiz:[
+          { q:'Queda brusca de receita merece:', op:['Ignorar','Registrar apontamento e comunicar cliente','Ajustar para parecer melhor'], r:1 },
+          { q:'O Balanço deve obedecer:', op:['Ativo = Passivo','Ativo = Passivo + Patrimônio Líquido','Receita = Despesa'], r:1 },
+        ]
+      },
+      { id:'an3', titulo:'3. Parecer Técnico e Auditoria',
+        conteudo:['Estrutura: apontamento + impacto + recomendação','Risco fiscal e risco contábil','Regra de ouro: nenhuma contabilidade sem conciliação + checklist + apontamentos'],
+        quiz:[
+          { q:'Um parecer técnico deve conter:', op:['Apenas o problema','Problema + impacto + recomendação','Apenas a recomendação'], r:1 },
+          { q:'Risco fiscal alto significa:', op:['Empresa muito lucrativa','Possibilidade de autuação pela Receita','Saldo de caixa elevado'], r:1 },
+        ]
+      },
+    ]
+  },
+];
+
+let tView='list', tTrilhaId=null, tModuloId=null, tQuizAns={};
+
+function renderTreinamento() {
+  const prog = DB.get('treinamento_prog') || {};
+
+  if (tView==='list') {
+    const cards = TRILHAS_TREINAMENTO.map(t => {
+      const totalQ = t.modulos.reduce((a,m)=>a+(m.quiz?.length||0),0);
+      const doneQ  = t.modulos.reduce((a,m)=>a+(m.quiz?.filter((_,qi)=>prog[t.id+'_'+m.id+'_q'+qi]!==undefined).length||0),0);
+      const pct = totalQ?Math.round(doneQ/totalQ*100):0;
+      return `<div class="card" style="display:flex;align-items:center;gap:16px;padding:18px 22px;margin-bottom:10px;cursor:pointer;border-left:4px solid ${t.cor}" onclick="tTrilhaId='${t.id}';tView='trilha';render()">
+        <div style="font-size:30px">${t.titulo.split(' ')[0]}</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:14px">${t.titulo.replace(/^. /,'')}</div>
+          <div class="text-muted text-sm" style="margin:2px 0">${t.objetivo}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+            <div class="progress-bar" style="flex:1;max-width:180px"><div class="progress-fill" style="width:${pct}%;background:${t.cor}"></div></div>
+            <span class="text-sm">${pct}% concluído</span>
+          </div>
+        </div>
+        <span class="badge" style="background:${t.cor}22;color:${t.cor}">Nível ${t.nivel}</span>
+      </div>`;
+    }).join('');
+    return `
+<div class="card mb-4" style="background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:#fff;padding:18px 24px">
+  <h2 style="font-size:15px;margin-bottom:4px">🎓 Treinamento da Equipe</h2>
+  <p style="opacity:.8;font-size:12px">Trilha de qualificação por nível — baseado no Cronograma de Qualificação de Colaborador</p>
+</div>
+${cards}
+<div class="card" style="padding:14px 18px;background:#f8fafc;border-left:4px solid #10b981;margin-top:4px">
+  <strong>📋 Fluxo Operacional — 10 Etapas obrigatórias</strong>
+  <div class="text-muted text-sm" style="margin-top:6px;line-height:1.9">
+    1 Recebimento → 2 Organização → 3 Checklist → 4 Conferência → 5 Integração de Dados<br>
+    6 Lançamentos → 7 Conciliações → 8 Apontamentos → 9 Envio ao Analista → 10 Retorno ao Cliente
+  </div>
+  <div style="margin-top:8px;font-size:12px;font-weight:600;color:#065f46">
+    ✔ Nenhuma contabilidade é concluída sem: Conciliação + Checklist + Apontamentos
+  </div>
+</div>`;
+  }
+
+  const trilha = TRILHAS_TREINAMENTO.find(t=>t.id===tTrilhaId);
+  if (!trilha) { tView='list'; return renderTreinamento(); }
+
+  if (tView==='trilha') {
+    const modsHtml = trilha.modulos.map(m => {
+      const tot = m.quiz?.length||0;
+      const done = tot?m.quiz.filter((_,qi)=>prog[trilha.id+'_'+m.id+'_q'+qi]!==undefined).length:0;
+      const pct  = tot?Math.round(done/tot*100):0;
+      const acertos = tot?m.quiz.filter((_,qi)=>prog[trilha.id+'_'+m.id+'_q'+qi]===true).length:0;
+      return `<div class="card" style="display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:8px;cursor:pointer" onclick="tModuloId='${m.id}';tView='modulo';render()">
+        <div style="flex:1"><div style="font-weight:600">${m.titulo}</div><div class="text-muted text-sm">${m.conteudo.length} tópicos · ${tot} questões</div></div>
+        ${pct===100?`<span class="badge badge-green">✅ ${acertos}/${tot} certas</span>`:done?`<span class="badge badge-yellow">⏳ ${pct}%</span>`:'<span class="badge badge-gray">Não iniciado</span>'}
+      </div>`;
+    }).join('');
+    return `
+<div class="card mb-4" style="border-left:4px solid ${trilha.cor};padding:14px 20px;display:flex;align-items:center;gap:10px">
+  <button class="btn btn-ghost btn-sm" onclick="tView='list';render()">← Voltar</button>
+  <strong>${trilha.titulo}</strong>
+  <span class="badge" style="background:${trilha.cor}22;color:${trilha.cor}">Nível ${trilha.nivel}</span>
+</div>
+<div class="card mb-4" style="padding:14px 18px;background:#f8fafc">
+  <strong>🎯 Objetivo:</strong> <span class="text-muted">${trilha.objetivo}</span><br><br>
+  <strong>✅ Critérios de evolução:</strong>
+  <ul style="margin:6px 0 0 18px;font-size:13px;color:var(--text-muted)">${trilha.criterios.map(c=>`<li>${c}</li>`).join('')}</ul>
+</div>
+${modsHtml}`;
+  }
+
+  const modulo = trilha.modulos.find(m=>m.id===tModuloId);
+  if (!modulo) { tView='trilha'; return renderTreinamento(); }
+
+  if (tView==='modulo') {
+    return `
+<div class="card mb-4" style="padding:14px 20px;display:flex;align-items:center;gap:10px">
+  <button class="btn btn-ghost btn-sm" onclick="tView='trilha';render()">← Voltar</button>
+  <strong>${modulo.titulo}</strong>
+</div>
+<div class="card mb-4">
+  <div style="font-weight:700;margin-bottom:10px">📚 Conteúdo</div>
+  ${modulo.conteudo.map(c=>`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:${trilha.cor}">▸</span>${c}</div>`).join('')}
+</div>
+${modulo.quiz?.length?`<div class="card">
+  <div style="font-weight:700;margin-bottom:8px">📝 Prova deste módulo — ${modulo.quiz.length} questões</div>
+  <button class="btn btn-primary" onclick="tQuizAns={};tView='quiz';render()">▶ Iniciar Prova</button>
+</div>`:''}`;
+  }
+
+  if (tView==='quiz') {
+    const allDone = modulo.quiz.every((_,i)=>tQuizAns[i]!==undefined);
+    const qHtml = modulo.quiz.map((q,qi)=>{
+      const answered = tQuizAns[qi];
+      return `<div class="card mb-3" style="padding:16px 20px${answered!==undefined?';border-left:4px solid '+(q.r===answered?'#10b981':'#ef4444'):''}">
+        <div style="font-weight:600;margin-bottom:10px">${qi+1}. ${q.q}</div>
+        ${q.op.map((op,oi)=>{
+          let bg='var(--bg)',col='var(--text)';
+          if(answered!==undefined){if(oi===q.r){bg='#d1fae5';col='#065f46';}else if(oi===answered&&answered!==q.r){bg='#fee2e2';col='#991b1b';}}
+          return `<div style="padding:8px 14px;border-radius:8px;background:${bg};color:${col};margin-bottom:6px;cursor:${answered!==undefined?'default':'pointer'};border:1px solid var(--border);font-size:13px"
+            onclick="${answered!==undefined?'':'tQuizAns['+qi+']='+oi+';render()'}">${answered!==undefined&&oi===q.r?'✅ ':answered===oi&&answered!==q.r?'❌ ':''}${op}</div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+    const acertos = allDone?modulo.quiz.filter((_,i)=>tQuizAns[i]===modulo.quiz[i].r).length:0;
+    return `
+<div class="card mb-4" style="padding:14px 20px;display:flex;align-items:center;gap:10px">
+  <button class="btn btn-ghost btn-sm" onclick="tView='modulo';render()">← Voltar ao Conteúdo</button>
+  <strong>📝 ${modulo.titulo}</strong>
+</div>
+${qHtml}
+${allDone?`<div class="card" style="padding:16px 20px;background:#f0fdf4;border-left:4px solid #10b981;display:flex;align-items:center;gap:12px">
+  <strong>Prova concluída!</strong>
+  <span class="text-muted text-sm">${acertos}/${modulo.quiz.length} acertos</span>
+  <span class="badge ${acertos===modulo.quiz.length?'badge-green':acertos>=modulo.quiz.length/2?'badge-yellow':'badge-red'}">${Math.round(acertos/modulo.quiz.length*100)}%</span>
+  <button class="btn btn-success" style="margin-left:auto" onclick="finalizarQuiz('${trilha.id}','${modulo.id}')">💾 Salvar Resultado</button>
+</div>`:''}`;
+  }
+  return '';
+}
+
+function finalizarQuiz(trilhaId, moduloId) {
+  const prog = DB.get('treinamento_prog') || {};
+  const t = TRILHAS_TREINAMENTO.find(x=>x.id===trilhaId);
+  const m = t?.modulos.find(x=>x.id===moduloId);
+  if (!m) return;
+  m.quiz.forEach((q,i)=>{ prog[trilhaId+'_'+moduloId+'_q'+i]=(tQuizAns[i]===q.r); });
+  DB.set('treinamento_prog', prog);
+  tQuizAns={}; tView='trilha'; render();
+}
