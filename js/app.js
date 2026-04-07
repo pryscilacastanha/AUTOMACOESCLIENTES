@@ -364,6 +364,11 @@ function openModal(mode, id=null) {
             <label class="checkbox-item"><input type="checkbox" id="f-tem-caixa" ${c.tem_caixa?'checked':''}> Tem controle de Caixa</label>
             <label class="checkbox-item"><input type="checkbox" id="f-tem-est" ${c.tem_estoque?'checked':''}> Tem controle de Estoque</label>
           </div>
+          <div class="checkbox-group mt-2" style="border-top:1px solid #f1f5f9;padding-top:12px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px">⚖️ Classificação para ITG (impacta o Parecer Técnico)</div>
+            <label class="checkbox-item"><input type="checkbox" id="f-sem-fins" ${c.sem_fins_lucrativos?'checked':''}> Entidade sem fins lucrativos → ITG 2002</label>
+            <label class="checkbox-item"><input type="checkbox" id="f-cooperativa" ${c.cooperativa?'checked':''}> É cooperativa → ITG 2004</label>
+          </div>
           <div class="form-grid form-grid-3 mt-2">
             <div class="form-group"><label>Qtd. de Funcionários</label><input id="f-qtd-func" type="number" value="${c.qtd_funcionarios||''}"></div>
           </div>
@@ -508,6 +513,8 @@ function saveCliente(mode) {
     d_mei_eme: document.getElementById('d-mei-eme').checked,
     d_sn_geral: document.getElementById('d-sn-geral').checked,
     qtd_funcionarios: (document.getElementById('f-qtd-func')||{}).value||'',
+    sem_fins_lucrativos: (document.getElementById('f-sem-fins')||{}).checked||false,
+    cooperativa: (document.getElementById('f-cooperativa')||{}).checked||false,
     criado_em: new Date().toISOString(),
   };
 

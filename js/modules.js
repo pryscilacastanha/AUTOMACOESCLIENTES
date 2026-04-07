@@ -1668,13 +1668,45 @@ function gerarDadosParecer(cliId) {
                 : (pendenciasChk.length > 10 || pendenciasObg.length > 5)  ? 'alto'
                 : 'medio';
 
+  // ── Classificação Normativa ITG / NBC TG (árvore de decisão) ──
+  const itg = (() => {
+    if (cliente.sem_fins_lucrativos) return {
+      norma: 'ITG 2002', emoji: '🏛️',
+      desc: 'Entidade sem Fins Lucrativos',
+      detalhe: 'Aplica-se à entidade que não distribui resultados. Exige demonstrações específicas (DFC, DFPS) e notas explicativas sobre gratuidade.',
+      passos: ['✅ Passo 1: Sem fins lucrativos → ITG 2002'],
+      extra: 'ITG 2000 também se aplica para a escrituração contábil geral.'
+    };
+    if (cliente.cooperativa) return {
+      norma: 'ITG 2004', emoji: '🤝',
+      desc: 'Cooperativa',
+      detalhe: 'Cooperativas têm norma própria. Exige tratamento específico das sobras e perdas e demonstração de resultados por ato cooperativo e não cooperativo.',
+      passos: ['✅ Passo 1: Não é sem fins lucrativos', '✅ Passo 2: É cooperativa → ITG 2004'],
+      extra: 'ITG 2000 aplica-se para a escrituração.'
+    };
+    if (cliente.regime === 'MEI' || cliente.regime === 'Simples Nacional') return {
+      norma: 'ITG 1000', emoji: '🏪',
+      desc: 'Entidade de Pequeno Porte (EP²)',
+      detalhe: 'Empresa pequena e simples enquadrada no Simples Nacional ou MEI. Pode adotar escrituração simplificada conforme ITG 1000 (Resolução CFC n.º 1.418/12).',
+      passos: ['✅ Passo 1: Não é sem fins lucrativos', '✅ Passo 2: Não é cooperativa', '✅ Passo 3: Empresa pequena/simples → ITG 1000'],
+      extra: 'ITG 2000 se aplica paralelamente para garantir integridade da escrituração.'
+    };
+    return {
+      norma: 'NBC TG Completas', emoji: '📚',
+      desc: 'Normas Completas (IFRS / NBC TG)',
+      detalhe: 'A entidade não se enquadra em nenhuma ITG simplificada. Deve adotar as Normas Brasileiras de Contabilidade Técnicas Gerais (NBC TG), equivalentes ao IFRS.',
+      passos: ['✅ Passo 1: Não é sem fins lucrativos', '✅ Passo 2: Não é cooperativa', '✅ Passo 3: Não é empresa pequena/simples', '✅ Passo 4: NBC TG Completas (IFRS)'],
+      extra: 'ITG 2000 aplica-se para a escrituração contábil. Verifique se ITG 1002 é aplicável em casos específicos.'
+    };
+  })();
+
   return {
     cliente, comp,
     pendenciasChk, pendenciasObg,
     pctChk, pctObg,
     totalChk, recebidosChk,
     totalObg, concluidosObg,
-    risco,
+    risco, itg,
     escritorio: localStorage.getItem('esc_nome') || 'Criscontab & Madeira Contabilidade',
     dataGeracao: new Date().toLocaleString('pt-BR'),
   };
@@ -1842,15 +1874,36 @@ function gerarHtmlParecer(d) {
     </div>
   </div>
 
-  <!-- SEÇÃO ONBOARDING -->
+  <!-- SEÇÃO ONBOARDING / CONFORMIDADE INICIAL -->
   <div class="section">
     <div class="section-title">
-      <span>📁 Situação do Onboarding (C-006)</span>
+      <span>📁 Evolução da Conformidade Inicial (C-006)</span>
       <span class="tag" style="background:${d.pendenciasObg.length===0?'#ecfdf5':'#fef2f2'};color:${d.pendenciasObg.length===0?'#065f46':'#991b1b'}">
         ${d.pendenciasObg.length === 0 ? 'Concluído' : d.pendenciasObg.length + ' pendência(s)'}
       </span>
     </div>
     ${obgSection}
+  </div>
+
+  <!-- SEÇÃO CLASSIFICAÇÃO NORMATIVA ITG / NBC TG -->
+  <div class="section" style="border-top:1px solid #e2e8f0">
+    <div class="section-title">
+      <span>⚖️ Classificação Normativa — ITG / NBC TG</span>
+      <span class="tag" style="background:#eff6ff;color:#1d4ed8">${d.itg.norma}</span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:14px;background:#f8fafc;border-radius:10px;padding:16px;border:1px solid #e2e8f0">
+      <div style="font-size:28px;line-height:1">${d.itg.emoji}</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:15px;color:#1e293b;margin-bottom:4px">${d.itg.norma} — ${d.itg.desc}</div>
+        <div style="font-size:12px;color:#475569;line-height:1.6;margin-bottom:10px">${d.itg.detalhe}</div>
+        <div style="margin-bottom:10px">
+          ${d.itg.passos.map(p=>`<div style="font-size:11px;color:#334155;padding:3px 0;line-height:1.5">${p}</div>`).join('')}
+        </div>
+        <div style="background:#eff6ff;border-radius:6px;padding:8px 12px;font-size:11px;color:#1d4ed8">
+          📌 ${d.itg.extra}
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- SEÇÃO CHECKLIST MENSAL -->
