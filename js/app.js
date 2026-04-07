@@ -383,6 +383,7 @@ function openModal(mode, id=null) {
             <label class="checkbox-item"><input type="checkbox" id="d-div-pgfn" ${c.d_div_pgfn?'checked':''}> Dívida sem parcelamento — PGFN</label>
             <label class="checkbox-item"><input type="checkbox" id="d-div-pref" ${c.d_div_pref?'checked':''}> Dívida sem parcelamento — Prefeitura</label>
             <label class="checkbox-item"><input type="checkbox" id="d-div-est" ${c.d_div_est?'checked':''}> Dívida sem parcelamento — Estado</label>
+          </div>
           <div class="checkbox-group">
             <label class="checkbox-item"><input type="checkbox" id="d-mei-eme" ${c.d_mei_eme?'checked':''}> Perdeu condição MEI → Simples</label>
             <label class="checkbox-item"><input type="checkbox" id="d-sn-geral" ${c.d_sn_geral?'checked':''}> Perdeu condição Simples → Regime Geral</label>
