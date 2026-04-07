@@ -41,34 +41,39 @@ function navigate(page, clienteId=null) {
 
 function render() {
   const main = document.getElementById('main-content');
-  const titles = {
-    dashboard:'Dashboard', clientes:'Clientes', checklist:'Checklist Mensal',
-    onboarding:'Onboarding de Clientes', auditoria:'Auditoria & Apontamentos',
-    educacao:'Educação do Cliente', importacao:'Importação com Gemini AI',
-    configuracoes:'Configurações', obrigacoes:'Obrigações Acessórias',
-    planocontas:'Plano de Contas', treinamento:'Treinamento da Equipe',
-    integracao:'Integração — Import & Export',
-    painel:'Painel Global — Entrega de Documentos',
-    controle:'Controle de Clientes — CM Contabilidade'
-  };
-  document.getElementById('topbar-title').textContent = titles[state.page] || '';
-  switch(state.page) {
-    case 'dashboard':     main.innerHTML = renderDashboard(); break;
-    case 'clientes':      main.innerHTML = renderClientes(); break;
-    case 'checklist':     main.innerHTML = renderChecklist(); break;
-    case 'onboarding':    main.innerHTML = renderOnboarding(); break;
-    case 'auditoria':     main.innerHTML = renderAuditoria(); break;
-    case 'educacao':      main.innerHTML = renderEducacao(); break;
-    case 'importacao':    main.innerHTML = renderImportacao(); break;
-    case 'configuracoes': main.innerHTML = renderConfiguracoes(); break;
-    case 'obrigacoes':    main.innerHTML = renderObrigacoes(); break;
-    case 'planocontas':   main.innerHTML = renderPlanoContas(); break;
-    case 'treinamento':   main.innerHTML = renderTreinamento(); break;
-    case 'integracao':    main.innerHTML = renderIntegracao(); break;
-    case 'painel':        main.innerHTML = renderPainelGlobal(); break;
-    case 'controle':      main.innerHTML = renderClientesAvancado(); break;
+  try {
+    const titles = {
+      dashboard:'Dashboard', clientes:'Clientes', checklist:'Checklist Mensal',
+      onboarding:'Onboarding de Clientes', auditoria:'Auditoria & Apontamentos',
+      educacao:'Educação do Cliente', importacao:'Importação com Gemini AI',
+      configuracoes:'Configurações', obrigacoes:'Obrigações Acessórias',
+      planocontas:'Plano de Contas', treinamento:'Treinamento da Equipe',
+      integracao:'Integração — Import & Export',
+      painel:'Painel Global — Entrega de Documentos',
+      controle:'Controle de Clientes — CM Contabilidade'
+    };
+    document.getElementById('topbar-title').textContent = titles[state.page] || '';
+    switch(state.page) {
+      case 'dashboard':     main.innerHTML = renderDashboard(); break;
+      case 'clientes':      main.innerHTML = renderClientes(); break;
+      case 'checklist':     main.innerHTML = renderChecklist(); break;
+      case 'onboarding':    main.innerHTML = renderOnboarding(); break;
+      case 'auditoria':     main.innerHTML = renderAuditoria(); break;
+      case 'educacao':      main.innerHTML = renderEducacao(); break;
+      case 'importacao':    main.innerHTML = renderImportacao(); break;
+      case 'configuracoes': main.innerHTML = renderConfiguracoes(); break;
+      case 'obrigacoes':    main.innerHTML = renderObrigacoes(); break;
+      case 'planocontas':   main.innerHTML = renderPlanoContas(); break;
+      case 'treinamento':   main.innerHTML = renderTreinamento(); break;
+      case 'integracao':    main.innerHTML = renderIntegracao(); break;
+      case 'painel':        main.innerHTML = renderPainelGlobal(); break;
+      case 'controle':      main.innerHTML = renderClientesAvancado(); break;
+    }
+    attachEvents();
+  } catch (err) {
+    console.error('[render] Erro ao renderizar página:', state.page, err);
+    main.innerHTML = `<div class="card" style="color:var(--danger);padding:24px"><strong>Erro ao carregar:</strong> ${err.message}</div>`;
   }
-  attachEvents();
 }
 
 // ─── HELPERS ───
