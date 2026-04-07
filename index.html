@@ -118,21 +118,24 @@
     localStorage.clear();
     location.reload();
   }
-  // Inicialização explícita — chamado APÓS todos os scripts carregados
-  try {
-    bootstrapApp();
-  } catch(e) {
-    console.error('[index.html] bootstrapApp falhou:', e);
-  }
-  // Fallback de segurança — se o seed não populou, força o seed
+  // Inicialização — DOMContentLoaded garante todos os scripts carregados
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      if (typeof bootstrapAppOnce === 'function') bootstrapAppOnce();
+      else if (typeof bootstrapApp === 'function') bootstrapApp();
+    } catch(e) {
+      console.error('[index.html] bootstrapApp falhou:', e);
+    }
+  });
+  // Fallback de segurança — garante seed após load completo
   window.addEventListener('load', () => {
     const el = document.getElementById('gemini-status-sidebar');
-    if (el) el.textContent = getApiKey() ? '🤖 Gemini AI ativo' : '';
+    if (el) el.textContent = (typeof getApiKey === 'function' && getApiKey()) ? '🤖 Gemini AI ativo' : '';
     // Se clientes vazio, tenta seed novamente
     const c = JSON.parse(localStorage.getItem('clientes') || '[]');
     if (c.length === 0 && typeof initSeed === 'function') {
       console.log('[Fallback] Clientes vazio, rodando initSeed...');
-      initDB();
+      if (typeof initDB === 'function') initDB();
       initSeed();
       if (typeof navigate === 'function') navigate('dashboard');
     }

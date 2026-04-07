@@ -443,7 +443,13 @@ function bootstrapApp() {
 }
 
 // ─── INIT ───
-// bootstrapApp() é chamado explicitamente no index.html após todos scripts carregados
+let _bootstrapped = false;
+function bootstrapAppOnce() {
+  if (_bootstrapped) return;
+  _bootstrapped = true;
+  bootstrapApp();
+}
+document.addEventListener('DOMContentLoaded', bootstrapAppOnce);
 
 
 // ─── PLANO DE CONTAS ───
