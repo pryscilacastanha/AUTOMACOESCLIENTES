@@ -249,16 +249,32 @@ function seedClientes() {
   return added;
 }
 
-// ─── Auto-seed on first load ───
-document.addEventListener('DOMContentLoaded', () => {
-  // Wait for DB to initialize first (slight delay)
-  setTimeout(() => {
-    const clientes = DB.get('clientes') || [];
-    if (clientes.length === 0) {
-      seedClientes();
-    }
-    // Always seed DEFIS data (safe — won't overwrite existing)
-    seedDefis();
-  }, 200);
-});
 
+// ─── Auto-seed: called directly when seed.js loads ───
+// (DOMContentLoaded already fired before this script runs at bottom of body)
+function initSeed() {
+  if (typeof DB === 'undefined') {
+    // DB not ready yet — wait and retry
+    window.addEventListener('load', initSeed);
+    return;
+  }
+  const clientes = DB.get('clientes') || [];
+  if (clientes.length === 0) {
+    const n = seedClientes();
+    console.log('[Seed] Clientes carregados:', n);
+  }
+  const nd = seedDefis();
+  if (nd > 0) console.log('[Seed] DEFIS carregados:', nd);
+
+  // Update sidebar count
+  setTimeout(() => {
+    const el = document.getElementById('sidebar-count');
+    if (el) {
+      const total = (DB.get('clientes') || []).length;
+      if (total > 0) el.textContent = total + ' clientes cadastrados';
+    }
+  }, 100);
+}
+
+// Execute immediately — seed.js is after all other scripts in body
+initSeed();
