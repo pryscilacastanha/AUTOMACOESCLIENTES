@@ -443,7 +443,8 @@ function bootstrapApp() {
 }
 
 // ─── INIT ───
-document.addEventListener('DOMContentLoaded', bootstrapApp);
+// bootstrapApp() é chamado explicitamente no index.html após todos scripts carregados
+
 
 // ─── PLANO DE CONTAS ───
 let pcView = 'list';   // 'list' | 'detail' | 'historico'
