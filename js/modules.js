@@ -1623,140 +1623,331 @@ function renderParecerPage() {
   return html;
 }
 
-function gerarTextoParecer(cliId) {
+
+function gerarDadosParecer(cliId) {
   const clientes = DB.get('clientes') || [];
   const cliente = clientes.find(c => c.id === cliId);
-  if (!cliente) return '';
+  if (!cliente) return null;
   const comp = state.competencia;
-  
-  // 1. Dados do Checklist Mensal
+
   const chkAll = DB.get('checklists') || {};
   const chkKey = cliId + '_' + comp;
   const savedChk = chkAll[chkKey] || {};
   const chkTemplate = CHECKLIST_TEMPLATE || [];
 
   const pendenciasChk = [];
+  let totalChk = 0, recebidosChk = 0;
   chkTemplate.forEach(cat => {
     cat.items.forEach(item => {
+      totalChk++;
       const st = savedChk[item.key] || 'nao_enviado';
-      if (st !== 'recebido') pendenciasChk.push({nome: item.nome, cat: cat.cat, status: st});
+      if (st === 'recebido') recebidosChk++;
+      else pendenciasChk.push({nome: item.nome, cat: cat.cat, status: st});
     });
   });
 
-  // 2. Dados de Onboarding (C-006)
   const onboardingInfo = DB.get('onboarding') || {};
   const savedObg = onboardingInfo[cliId] || {};
   const pendenciasObg = [];
+  let totalObg = 0, concluidosObg = 0;
   if (typeof C006_TEMPLATE !== 'undefined') {
     C006_TEMPLATE.forEach(sec => {
       sec.items.forEach(item => {
+        totalObg++;
         const k = sec.section+'_'+item.cod+'_'+item.nome;
         const st = savedObg[k] || 'pendente';
-        if (st !== 'concluido' && st !== 'cliente_nao_possui') {
-          pendenciasObg.push({nome: item.nome, cod: item.cod, cat: sec.section, status: st});
-        }
+        if (st === 'concluido' || st === 'cliente_nao_possui') concluidosObg++;
+        else pendenciasObg.push({nome: item.nome, cod: item.cod, cat: sec.section, status: st});
       });
     });
   }
 
-  const escritorio = localStorage.getItem('esc_nome') || 'Criscontab & Madeira Contabilidade';
-  const dataGeracao = new Date().toLocaleString('pt-BR');
-  const sep = '═'.repeat(60);
-  const sep2 = '─'.repeat(60);
+  const pctChk  = totalChk  > 0 ? Math.round((recebidosChk/totalChk)*100)  : 0;
+  const pctObg  = totalObg  > 0 ? Math.round((concluidosObg/totalObg)*100) : 0;
+  const risco   = pendenciasObg.length === 0 && pendenciasChk.length === 0 ? 'baixo'
+                : (pendenciasChk.length > 10 || pendenciasObg.length > 5)  ? 'alto'
+                : 'medio';
 
-  let texto = `${sep}\n`;
-  texto += `PARECER DE ESCRITURAÇÃO E CONFORMIDADE TÉCNICA\n`;
-  texto += `Emitido em: ${dataGeracao}\n`;
-  texto += `${sep}\n\n`;
-  texto += `Cliente   : ${cliente.nome}\n`;
-  texto += `CNPJ      : ${cliente.cnpj}\n`;
-  texto += `Regime    : ${cliente.regime}\n`;
-  texto += `Escritório: ${escritorio}\n\n`;
-
-  // --- SEÇÃO 1: Onboarding C-006 ---
-  texto += `${sep2}\nSITUAÇÃO DO ONBOARDING (C-006)\n${sep2}\n\n`;
-  if (pendenciasObg.length === 0) {
-    texto += `✅ ONBOARDING DE PARÂMETROS E DOCUMENTOS CONCLUÍDO\nO cliente forneceu todos os documentos iniciais requeridos.\n\n`;
-  } else {
-    texto += `⚠️ ${pendenciasObg.length} ITEM(S) PENDENTE(S) NO ONBOARDING C-006\nPara regularização plena do cadastro, as seguintes pendências devem ser sanadas:\n\n`;
-    pendenciasObg.forEach((p,i) => {
-      texto += `${i+1}. [${p.cod}] ${p.nome}\n   Categoria: ${p.cat}\n   Status   : ${p.status.replace('_',' ')}\n\n`;
-    });
-  }
-
-  // --- SEÇÃO 2: Escrituração Mensal ---
-  texto += `${sep2}\nSITUAÇÃO DA ESCRITURAÇÃO (COMPETÊNCIA: ${fmtComp(comp)})\n${sep2}\n\n`;
-  if (pendenciasChk.length === 0) {
-    texto += `✅ TODOS OS DOCUMENTOS MENSAIS RECEBIDOS\nA escrituração do período pode prosseguir sem ressalvas operacionais.\n\n`;
-  } else {
-    texto += `⚠️ ${pendenciasChk.length} DOCUMENTO(S) MENSAL(IS) PENDENTE(S)\n\n`;
-    pendenciasChk.forEach((p,i) => {
-      texto += `${i+1}. ${p.nome}\n   Categoria: ${p.cat}\n   Status   : ${p.status.replace('_',' ')}\n\n`;
-    });
-  }
-
-  texto += `${sep2}\n${escritorio}\nRelatório do que tem marcado e sinalizado até o momento.\nSistema de Automação Contábil.\n${sep}\n`;
-  
-  return { texto, comp };
+  return {
+    cliente, comp,
+    pendenciasChk, pendenciasObg,
+    pctChk, pctObg,
+    totalChk, recebidosChk,
+    totalObg, concluidosObg,
+    risco,
+    escritorio: localStorage.getItem('esc_nome') || 'Criscontab & Madeira Contabilidade',
+    dataGeracao: new Date().toLocaleString('pt-BR'),
+  };
 }
 
-// Gera e exibe parecer de escrituração na página
+function gerarHtmlParecer(d) {
+  const riscoStyle = {
+    baixo: { cor:'#10b981', bg:'#ecfdf5', label:'✅ BAIXO RISCO',   txt:'Documentação em conformidade.' },
+    medio: { cor:'#f59e0b', bg:'#fffbeb', label:'⚠️ RISCO MÉDIO',   txt:'Pendências devem ser sanadas.' },
+    alto:  { cor:'#ef4444', bg:'#fef2f2', label:'🔴 RISCO ELEVADO', txt:'Regularização urgente necessária.' },
+  }[d.risco] || {};
+
+  const statusBadge = st => {
+    const m = {
+      pendente:    ['#6b7280','#f3f4f6','Pendente'],
+      solicitado:  ['#f59e0b','#fffbeb','Solicitado'],
+      verificar:   ['#8b5cf6','#f5f3ff','Verificar'],
+      nao_enviado: ['#ef4444','#fef2f2','Não Enviado'],
+      incompleto:  ['#f59e0b','#fffbeb','Incompleto'],
+      divergente:  ['#8b5cf6','#f5f3ff','Divergente'],
+    }[st] || ['#6b7280','#f3f4f6',st];
+    return `<span style="background:${m[1]};color:${m[0]};border:1px solid ${m[0]}33;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:600;text-transform:uppercase;white-space:nowrap">${m[2]}</span>`;
+  };
+
+  const obgGroups = {};
+  d.pendenciasObg.forEach(p => { (obgGroups[p.cat] = obgGroups[p.cat]||[]).push(p); });
+
+  const obgSection = d.pendenciasObg.length === 0
+    ? `<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#ecfdf5;border-radius:8px;border:1px solid #a7f3d0">
+        <span style="font-size:22px">✅</span>
+        <div><div style="font-weight:700;color:#065f46">Onboarding Concluído</div>
+        <div style="font-size:12px;color:#047857;margin-top:2px">O cliente forneceu todos os documentos iniciais e parametrizações requeridas.</div></div>
+       </div>`
+    : Object.entries(obgGroups).map(([cat, items]) => `
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #e2e8f0">${cat}</div>
+          ${items.map(p=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:4px">
+              <span style="font-size:11px;color:#94a3b8;min-width:32px;font-family:monospace">${p.cod}</span>
+              <span style="flex:1;font-size:12px;color:#1e293b">${p.nome}</span>
+              ${statusBadge(p.status)}
+            </div>`).join('')}
+        </div>`).join('');
+
+  const chkGroups = {};
+  d.pendenciasChk.forEach(p => { (chkGroups[p.cat] = chkGroups[p.cat]||[]).push(p); });
+
+  const chkSection = d.pendenciasChk.length === 0
+    ? `<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#ecfdf5;border-radius:8px;border:1px solid #a7f3d0">
+        <span style="font-size:22px">✅</span>
+        <div><div style="font-weight:700;color:#065f46">Escrituração Completa</div>
+        <div style="font-size:12px;color:#047857;margin-top:2px">Todos os documentos mensais foram recebidos e estão em conformidade.</div></div>
+       </div>`
+    : Object.entries(chkGroups).map(([cat, items]) => `
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #e2e8f0">${cat}</div>
+          ${items.map(p=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:4px">
+              <span style="flex:1;font-size:12px;color:#1e293b">${p.nome}</span>
+              ${statusBadge(p.status)}
+            </div>`).join('')}
+        </div>`).join('');
+
+  const bar = (pct, cor) => `
+    <div style="background:#e2e8f0;border-radius:99px;height:8px;overflow:hidden;margin-top:4px">
+      <div style="width:${pct}%;background:${cor};height:100%;border-radius:99px;transition:width .4s"></div>
+    </div>`;
+
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Parecer Técnico — ${d.cliente.nome}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',sans-serif; background:#f1f5f9; color:#1e293b; padding:32px 16px; min-height:100vh; }
+  .page { max-width:820px; margin:0 auto; }
+  .header { background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%); border-radius:16px 16px 0 0; padding:32px 36px; color:#fff; position:relative; overflow:hidden; }
+  .header::before { content:''; position:absolute; top:-40px; right:-40px; width:220px; height:220px; background:rgba(255,255,255,.07); border-radius:50%; }
+  .header::after  { content:''; position:absolute; bottom:-60px; right:60px; width:150px; height:150px; background:rgba(255,255,255,.05); border-radius:50%; }
+  .header-brand { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px; opacity:.7; margin-bottom:6px; }
+  .header-title { font-size:22px; font-weight:800; line-height:1.2; margin-bottom:4px; }
+  .header-sub { font-size:13px; opacity:.75; }
+  .header-meta { display:flex; gap:20px; margin-top:20px; flex-wrap:wrap; }
+  .header-meta div { background:rgba(255,255,255,.12); border-radius:8px; padding:8px 14px; font-size:12px; }
+  .header-meta strong { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.5px; opacity:.7; margin-bottom:2px; }
+  .risk-banner { display:flex; align-items:center; gap:14px; padding:16px 24px; background:${riscoStyle.bg}; border:2px solid ${riscoStyle.cor}; border-top:none; }
+  .risk-icon { width:44px; height:44px; border-radius:50%; background:${riscoStyle.cor}; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .risk-label { font-weight:800; font-size:15px; color:${riscoStyle.cor}; }
+  .risk-desc  { font-size:12px; color:#475569; margin-top:2px; }
+  .stats-row { display:grid; grid-template-columns:1fr 1fr; gap:0; border-left:1px solid #e2e8f0; border-right:1px solid #e2e8f0; }
+  .stat-box { padding:20px 24px; background:#fff; border-bottom:1px solid #e2e8f0; }
+  .stat-box:nth-child(1) { border-right:1px solid #e2e8f0; }
+  .stat-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px; }
+  .stat-numbers { display:flex; align-items:baseline; gap:6px; }
+  .stat-big { font-size:28px; font-weight:800; line-height:1; }
+  .stat-of { font-size:13px; color:#94a3b8; }
+  .section { background:#fff; border:1px solid #e2e8f0; border-top:none; padding:24px 28px; }
+  .section-title { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:#1e293b; margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid #f1f5f9; }
+  .section-title .tag { font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; text-transform:uppercase; letter-spacing:.5px; }
+  .footer { background:#f8fafc; border:1px solid #e2e8f0; border-top:none; border-radius:0 0 16px 16px; padding:18px 28px; display:flex; align-items:center; justify-content:space-between; font-size:11px; color:#94a3b8; }
+  .footer strong { color:#475569; }
+  .actions { display:flex; gap:10px; justify-content:flex-end; margin-bottom:16px; }
+  .btn-act { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:none; font-family:inherit; transition:opacity .15s; }
+  .btn-act:hover { opacity:.85; }
+  .btn-print  { background:#1e3a5f; color:#fff; }
+  .btn-copy   { background:#f1f5f9; color:#475569; }
+  @media print {
+    body { background:#fff; padding:0; }
+    .actions { display:none; }
+    .page { max-width:100%; }
+    .header { border-radius:0; }
+    .footer { border-radius:0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="actions">
+    <button class="btn-act btn-copy" onclick="copyReport()">📋 Copiar Texto</button>
+    <button class="btn-act btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
+  </div>
+
+  <!-- CABEÇALHO -->
+  <div class="header">
+    <div class="header-brand">${d.escritorio}</div>
+    <div class="header-title">Parecer de Escrituração e Conformidade Técnica</div>
+    <div class="header-sub">Competência: ${fmtComp(d.comp)} · Gerado em ${d.dataGeracao}</div>
+    <div class="header-meta">
+      <div><strong>Cliente</strong>${d.cliente.nome}</div>
+      <div><strong>CNPJ</strong>${d.cliente.cnpj || '—'}</div>
+      <div><strong>Regime</strong>${d.cliente.regime || '—'}</div>
+      ${d.cliente.responsavel ? `<div><strong>Responsável</strong>${d.cliente.responsavel}</div>` : ''}
+    </div>
+  </div>
+
+  <!-- BANNER DE RISCO -->
+  <div class="risk-banner">
+    <div class="risk-icon">${d.risco === 'baixo' ? '✅' : d.risco === 'medio' ? '⚠️' : '🔴'}</div>
+    <div>
+      <div class="risk-label">${riscoStyle.label}</div>
+      <div class="risk-desc">${riscoStyle.txt} — ${d.pendenciasObg.length} pend. onboarding · ${d.pendenciasChk.length} pend. mensal</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-label">📋 Checklist Mensal — ${fmtComp(d.comp)}</div>
+      <div class="stat-numbers">
+        <span class="stat-big" style="color:${d.pctChk===100?'#10b981':d.pctChk>60?'#f59e0b':'#ef4444'}">${d.pctChk}%</span>
+        <span class="stat-of">${d.recebidosChk} / ${d.totalChk} docs</span>
+      </div>
+      ${bar(d.pctChk, d.pctChk===100?'#10b981':d.pctChk>60?'#f59e0b':'#ef4444')}
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">📁 Onboarding C-006</div>
+      <div class="stat-numbers">
+        <span class="stat-big" style="color:${d.pctObg===100?'#10b981':d.pctObg>60?'#f59e0b':'#ef4444'}">${d.pctObg}%</span>
+        <span class="stat-of">${d.concluidosObg} / ${d.totalObg} itens</span>
+      </div>
+      ${bar(d.pctObg, d.pctObg===100?'#10b981':d.pctObg>60?'#f59e0b':'#ef4444')}
+    </div>
+  </div>
+
+  <!-- SEÇÃO ONBOARDING -->
+  <div class="section">
+    <div class="section-title">
+      <span>📁 Situação do Onboarding (C-006)</span>
+      <span class="tag" style="background:${d.pendenciasObg.length===0?'#ecfdf5':'#fef2f2'};color:${d.pendenciasObg.length===0?'#065f46':'#991b1b'}">
+        ${d.pendenciasObg.length === 0 ? 'Concluído' : d.pendenciasObg.length + ' pendência(s)'}
+      </span>
+    </div>
+    ${obgSection}
+  </div>
+
+  <!-- SEÇÃO CHECKLIST MENSAL -->
+  <div class="section" style="border-top:1px solid #e2e8f0">
+    <div class="section-title">
+      <span>📋 Situação da Escrituração (${fmtComp(d.comp)})</span>
+      <span class="tag" style="background:${d.pendenciasChk.length===0?'#ecfdf5':'#fef2f2'};color:${d.pendenciasChk.length===0?'#065f46':'#991b1b'}">
+        ${d.pendenciasChk.length === 0 ? 'Completo' : d.pendenciasChk.length + ' pendência(s)'}
+      </span>
+    </div>
+    ${chkSection}
+  </div>
+
+  <!-- RODAPÉ -->
+  <div class="footer">
+    <div>Documento gerado automaticamente pelo <strong>Sistema de Automação Contábil</strong></div>
+    <div>${d.dataGeracao}</div>
+  </div>
+</div>
+
+<textarea id="_copy-buffer" style="position:fixed;opacity:0;pointer-events:none"></textarea>
+<script>
+function copyReport() {
+  const lines = [];
+  lines.push('PARECER DE ESCRITURAÇÃO E CONFORMIDADE TÉCNICA');
+  lines.push('Escritório: ${d.escritorio}');
+  lines.push('Competência: ${fmtComp(d.comp)} | Gerado em: ${d.dataGeracao}');
+  lines.push('');
+  lines.push('Cliente: ${d.cliente.nome}');
+  lines.push('CNPJ   : ${d.cliente.cnpj || "—"}');
+  lines.push('Regime : ${d.cliente.regime || "—"}');
+  lines.push('');
+  lines.push('CHECKLIST MENSAL: ${d.pctChk}% (${d.recebidosChk}/${d.totalChk} docs) | Pendentes: ${d.pendenciasChk.length}');
+  lines.push('ONBOARDING C-006: ${d.pctObg}% (${d.concluidosObg}/${d.totalObg} itens) | Pendentes: ${d.pendenciasObg.length}');
+  lines.push('CLASSIFICAÇÃO DE RISCO: ${riscoStyle.label}');
+  const t = document.getElementById('_copy-buffer');
+  t.value = lines.join('\\n');
+  t.select();
+  document.execCommand('copy');
+  alert('Texto copiado!');
+}
+</script>
+</body>
+</html>`;
+}
+
+// Gera e exibe parecer avulso numa popup — chamado pelo botão 📋 no Dashboard
+function emitirParecerAvulso(cliId) {
+  const d = gerarDadosParecer(cliId);
+  if (!d) { alert('Erro ao gerar Parecer Técnico.'); return; }
+  const html = gerarHtmlParecer(d);
+  const w = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
+  if (!w) { alert('Popup bloqueado pelo navegador. Permita popups neste site.'); return; }
+  w.document.write(html);
+  w.document.close();
+}
+
+// Gera e exibe parecer na página de Parecer Técnico (inline)
 function gerarEExibirParecer(cliId) {
-  const result = gerarTextoParecer(cliId);
-  if (!result) return;
-  const { texto, comp } = result;
-  texto += `${sep}\n\n`;
-  texto += `Cliente   : ${cliente.nome}\n`;
-  texto += `CNPJ      : ${cliente.cnpj}\n`;
-  texto += `Regime    : ${cliente.regime}\n`;
-  texto += `Escritório: ${escritorio}\n\n`;
-
-  // --- SEÇÃO 1: Onboarding C-006 ---
-  texto += `${sep2}\nSITUAÇÃO DO ONBOARDING (C-006) | Atualizado em: ${hoje}\n${sep2}\n\n`;
-  if (pendenciasObg.length === 0) {
-    texto += `✅ ONBOARDING DE PARÂMETROS E DOCUMENTOS CONCLUÍDO\nO cliente forneceu todos os documentos iniciais requeridos.\n\n`;
-  } else {
-    texto += `⚠️ ${pendenciasObg.length} ITEM(S) PENDENTE(S) NO ONBOARDING C-006\nPara regularização plena do cadastro, as seguintes pendências devem ser sanadas:\n\n`;
-    pendenciasObg.forEach((p,i) => {
-      texto += `${i+1}. [${p.cod}] ${p.nome}\n   Categoria: ${p.cat}\n   Status   : ${p.status.replace('_',' ')}\n\n`;
-    });
-  }
-
-  // --- SEÇÃO 2: Escrituração Mensal ---
-  texto += `${sep2}\nSITUAÇÃO DA ESCRITURAÇÃO (COMPETÊNCIA: ${fmtComp(comp)})\n${sep2}\n\n`;
-  if (pendenciasChk.length === 0) {
-    texto += `✅ TODOS OS DOCUMENTOS MENSAIS RECEBIDOS\nA escrituração do período pode prosseguir sem ressalvas operacionais.\n\n`;
-  } else {
-    texto += `⚠️ ${pendenciasChk.length} DOCUMENTO(S) MENSAL(IS) PENDENTE(S)\n\n`;
-    pendenciasChk.forEach((p,i) => {
-      texto += `${i+1}. ${p.nome}\n   Categoria: ${p.cat}\n   Status   : ${p.status.replace('_',' ')}\n\n`;
-    });
-  }
-
+  const d = gerarDadosParecer(cliId);
+  if (!d) return;
+  const html = gerarHtmlParecer(d);
+  // Renderiza inline removendo o <html>/<body> wrapper
   const area = document.getElementById('parecer-page-output');
   if (area) {
-    area.innerHTML = `
-    <div class="card mt-4">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <strong>📄 Parecer de Escrituração e Conformidade</strong>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('parecer-gen-txt').textContent);alert('Copiado!')">📋 Copiar</button>
-          <button class="btn btn-ghost btn-sm" onclick="imprimirTexto(document.getElementById('parecer-gen-txt').textContent)">🖨️ Imprimir</button>
-        </div>
-      </div>
-      <pre id="parecer-gen-txt" style="font-family:monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;border:1px solid var(--border)">${texto}</pre>
+    area.innerHTML = `<div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(30,58,95,.08)">
+      <iframe id="parecer-iframe" style="width:100%;border:none;min-height:700px" srcdoc="${html.replace(/"/g,'&quot;')}"></iframe>
     </div>`;
+    // Auto-resize iframe
+    const fr = document.getElementById('parecer-iframe');
+    if (fr) fr.onload = () => { try { fr.style.height = (fr.contentWindow.document.body.scrollHeight + 40) + 'px'; } catch(e){} };
   }
 }
 
-// Gera o parecer textual e imprime imediatamente numa aba
-function emitirParecerAvulso(cliId) {
-  const result = gerarTextoParecer(cliId);
-  if (result && result.texto) {
-    imprimirTexto(result.texto);
-  } else {
-    alert("Erro ao emitir Parecer Técnico.");
-  }
+// Utilitário de impressão de texto legado (para gerarParecer no checklist)
+function imprimirTexto(texto) {
+  const w = window.open('','_blank','width=800,height=600');
+  w.document.write('<pre style="font-family:monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;padding:30px">' + texto + '</pre>');
+  w.document.close();
+  w.print();
+}
+
+// Versão legado — gerarTextoParecer ainda usado por alguns fluxos
+function gerarTextoParecer(cliId) {
+  const d = gerarDadosParecer(cliId);
+  if (!d) return null;
+  const sep = '═'.repeat(60);
+  const sep2 = '─'.repeat(60);
+  let texto = `${sep}\nPARECER DE ESCRITURAÇÃO E CONFORMIDADE TÉCNICA\nEmitido em: ${d.dataGeracao}\n${sep}\n\nCliente   : ${d.cliente.nome}\nCNPJ      : ${d.cliente.cnpj}\nRegime    : ${d.cliente.regime}\nEscritório: ${d.escritorio}\n\n`;
+  texto += `${sep2}\nONBOARDING (C-006): ${d.pctObg}% — ${d.pendenciasObg.length} pendência(s)\n${sep2}\n\n`;
+  if (!d.pendenciasObg.length) texto += '✅ ONBOARDING CONCLUÍDO\n\n';
+  else d.pendenciasObg.forEach((p,i) => { texto += `${i+1}. [${p.cod}] ${p.nome} — ${p.status.replace(/_/g,' ')}\n`; });
+  texto += `\n${sep2}\nESCRITURAÇÃO (${fmtComp(d.comp)}): ${d.pctChk}% — ${d.pendenciasChk.length} pendência(s)\n${sep2}\n\n`;
+  if (!d.pendenciasChk.length) texto += '✅ TODOS OS DOCUMENTOS RECEBIDOS\n\n';
+  else d.pendenciasChk.forEach((p,i) => { texto += `${i+1}. ${p.nome} — ${p.status.replace(/_/g,' ')}\n`; });
+  texto += `\n${sep2}\n${d.escritorio}\nSistema de Automação Contábil.\n${sep}\n`;
+  return { texto, comp: d.comp };
 }
 
 // Gera e exibe análise CPC/ITG na página de parecer
