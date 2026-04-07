@@ -409,24 +409,37 @@ function attachEvents() {
 
 // ─── BOOTSTRAP (orquestrador principal) ───
 function bootstrapApp() {
-  // 1. Inicializa storage (sem seed de clientes)
-  initDB();
-  // 2. Seed de clientes e obrigações (seed.js é a fonte primária)
-  if (typeof initSeed === 'function') {
-    initSeed();
+  try {
+    console.log('[Bootstrap] Iniciando...');
+    // 1. Inicializa storage (sem seed de clientes)
+    initDB();
+    console.log('[Bootstrap] initDB() OK. clientes=', (DB.get('clientes')||[]).length);
+    // 2. Seed de clientes e obrigações (seed.js é a fonte primária)
+    if (typeof initSeed === 'function') {
+      initSeed();
+      console.log('[Bootstrap] initSeed() OK. clientes=', (DB.get('clientes')||[]).length);
+    } else {
+      console.warn('[Bootstrap] initSeed não encontrada!');
+    }
+    // 3. Atualiza contagem no sidebar
+    const countEl = document.getElementById('sidebar-count');
+    if (countEl) {
+      const total = (DB.get('clientes') || []).length;
+      if (total > 0) countEl.textContent = total + ' clientes cadastrados';
+    }
+    // 4. Binds e primeira renderização
+    const compEl = document.getElementById('comp-topbar');
+    if (compEl) {
+      compEl.addEventListener('change', e => {
+        state.competencia = e.target.value;
+        render();
+      });
+    }
+    navigate('dashboard');
+    console.log('[Bootstrap] Completo!');
+  } catch (err) {
+    console.error('[Bootstrap] ERRO:', err);
   }
-  // 3. Atualiza contagem no sidebar
-  const countEl = document.getElementById('sidebar-count');
-  if (countEl) {
-    const total = (DB.get('clientes') || []).length;
-    if (total > 0) countEl.textContent = total + ' clientes cadastrados';
-  }
-  // 4. Binds e primeira renderização
-  document.getElementById('comp-topbar').addEventListener('change', e => {
-    state.competencia = e.target.value;
-    render();
-  });
-  navigate('dashboard');
 }
 
 // ─── INIT ───
