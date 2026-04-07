@@ -118,6 +118,7 @@ function renderDashboard() {
   );
 
   const rows = lista.map(c => {
+    // 1. Checklist progress
     const key = c.id+'_'+state.competencia;
     const chk = checklists[key];
     let progHtml = '<span class="badge badge-gray">Não iniciado</span>';
@@ -127,6 +128,25 @@ function renderDashboard() {
       const pct = Math.round((done/items.length)*100);
       progHtml = `<div style="display:flex;align-items:center"><div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${pct}%"></div></div><span class="text-sm text-muted" style="margin-left:6px">${pct}%</span></div>`;
     }
+    
+    // 2. Onboarding progress
+    const onboarding = DB.get('onboarding') || {};
+    const savedObg = onboarding[c.id] || {};
+    let totalObg = 0;
+    let doneObg = 0;
+    if (typeof C006_TEMPLATE !== 'undefined') {
+      C006_TEMPLATE.forEach(sec => {
+        sec.items.forEach(item => {
+          totalObg++;
+          const k = sec.section+'_'+item.cod+'_'+item.nome;
+          const st = savedObg[k];
+          if (st === 'concluido' || st === 'cliente_nao_possui') doneObg++;
+        });
+      });
+    }
+    const obgPct = totalObg > 0 ? Math.round((doneObg/totalObg)*100) : 0;
+    const obgHtml = `<div style="display:flex;align-items:center"><div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${obgPct}%"></div></div><span class="text-sm text-muted" style="margin-left:6px">${obgPct}%</span></div>`;
+
     return `<tr>
       <td><strong>#${c.id}</strong></td>
       <td>${c.nome}</td>
@@ -134,6 +154,7 @@ function renderDashboard() {
       <td>${regimedIcon(c.regime)}</td>
       <td>${statusBadge(c.status)}</td>
       <td>${progHtml}</td>
+      <td>${obgHtml}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-ghost btn-sm" onclick="openModal('edit','${c.id}')">✏️</button>
         <button class="btn btn-ghost btn-sm" onclick="navigate('checklist');openClienteChecklist('${c.id}')">📋</button>
@@ -180,7 +201,7 @@ ${pendObs.length ? `<div class="card mb-4" style="border-left:4px solid var(--wa
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>#</th><th>Razão Social</th><th>CNPJ</th><th>Regime</th><th>Status</th><th>Checklist</th><th>Ações</th></tr></thead>
+      <thead><tr><th>#</th><th>Razão Social</th><th>CNPJ</th><th>Regime</th><th>Status</th><th>Checklist Mês</th><th>Onboarding</th><th>Ações</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>

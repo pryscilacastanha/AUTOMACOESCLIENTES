@@ -1630,18 +1630,36 @@ function gerarEExibirParecer(cliId) {
   const cliente = clientes.find(c => c.id === cliId);
   if (!cliente) return;
   const comp = state.competencia;
+  
+  // 1. Dados do Checklist Mensal
   const chkAll = DB.get('checklists') || {};
   const chkKey = cliId + '_' + comp;
-  const saved = chkAll[chkKey] || {};
-  const template = CHECKLIST_TEMPLATE || [];
+  const savedChk = chkAll[chkKey] || {};
+  const chkTemplate = CHECKLIST_TEMPLATE || [];
 
-  const pendencias = [];
-  template.forEach(cat => {
+  const pendenciasChk = [];
+  chkTemplate.forEach(cat => {
     cat.items.forEach(item => {
-      const st = saved[item.key] || 'nao_enviado';
-      if (st !== 'recebido') pendencias.push({nome: item.nome, cat: cat.cat, status: st});
+      const st = savedChk[item.key] || 'nao_enviado';
+      if (st !== 'recebido') pendenciasChk.push({nome: item.nome, cat: cat.cat, status: st});
     });
   });
+
+  // 2. Dados de Onboarding (C-006)
+  const onboardingInfo = DB.get('onboarding') || {};
+  const savedObg = onboardingInfo[cliId] || {};
+  const pendenciasObg = [];
+  if (typeof C006_TEMPLATE !== 'undefined') {
+    C006_TEMPLATE.forEach(sec => {
+      sec.items.forEach(item => {
+        const k = sec.section+'_'+item.cod+'_'+item.nome;
+        const st = savedObg[k] || 'pendente';
+        if (st !== 'concluido' && st !== 'cliente_nao_possui') {
+          pendenciasObg.push({nome: item.nome, cod: item.cod, cat: sec.section, status: st});
+        }
+      });
+    });
+  }
 
   const escritorio = localStorage.getItem('esc_nome') || 'Criscontab & Madeira Contabilidade';
   const hoje = new Date().toLocaleDateString('pt-BR');
@@ -1649,30 +1667,43 @@ function gerarEExibirParecer(cliId) {
   const sep2 = '─'.repeat(60);
 
   let texto = `${sep}\n`;
-  texto += `PARECER DE ESCRITURAÇÃO — ${fmtComp(comp).toUpperCase()}\n`;
+  texto += `PARECER DE ESCRITURAÇÃO E CONFORMIDADE TÉCNICA\n`;
   texto += `${sep}\n\n`;
   texto += `Cliente   : ${cliente.nome}\n`;
   texto += `CNPJ      : ${cliente.cnpj}\n`;
   texto += `Regime    : ${cliente.regime}\n`;
   texto += `Escritório: ${escritorio}\n\n`;
-  texto += `${sep2}\nSITUAÇÃO DOCUMENTOS — ${fmtComp(comp)} | Emitido em: ${hoje}\n${sep2}\n\n`;
 
-  if (pendencias.length === 0) {
-    texto += `✅ TODOS OS DOCUMENTOS RECEBIDOS\nA escrituração do período pode prosseguir sem ressalvas.\n`;
+  // --- SEÇÃO 1: Onboarding C-006 ---
+  texto += `${sep2}\nSITUAÇÃO DO ONBOARDING (C-006) | Atualizado em: ${hoje}\n${sep2}\n\n`;
+  if (pendenciasObg.length === 0) {
+    texto += `✅ ONBOARDING DE PARÂMETROS E DOCUMENTOS CONCLUÍDO\nO cliente forneceu todos os documentos iniciais requeridos.\n\n`;
   } else {
-    texto += `⚠️ ${pendencias.length} DOCUMENTO(S) PENDENTE(S)\n\n`;
-    pendencias.forEach((p,i) => {
-      texto += `${i+1}. ${p.nome}\n   Categoria: ${p.cat}\n   Status: ${p.status.replace('_',' ')}\n\n`;
+    texto += `⚠️ ${pendenciasObg.length} ITEM(S) PENDENTE(S) NO ONBOARDING C-006\nPara regularização plena do cadastro, as seguintes pendências devem ser sanadas:\n\n`;
+    pendenciasObg.forEach((p,i) => {
+      texto += `${i+1}. [${p.cod}] ${p.nome}\n   Categoria: ${p.cat}\n   Status   : ${p.status.replace('_',' ')}\n\n`;
     });
   }
-  texto += `\n${sep2}\n${escritorio}\nEmitido em ${hoje} — Sistema de Automação Contábil\n${sep}\n`;
+
+  // --- SEÇÃO 2: Escrituração Mensal ---
+  texto += `${sep2}\nSITUAÇÃO DA ESCRITURAÇÃO (COMPETÊNCIA: ${fmtComp(comp)})\n${sep2}\n\n`;
+  if (pendenciasChk.length === 0) {
+    texto += `✅ TODOS OS DOCUMENTOS MENSAIS RECEBIDOS\nA escrituração do período pode prosseguir sem ressalvas operacionais.\n\n`;
+  } else {
+    texto += `⚠️ ${pendenciasChk.length} DOCUMENTO(S) MENSAL(IS) PENDENTE(S)\n\n`;
+    pendenciasChk.forEach((p,i) => {
+      texto += `${i+1}. ${p.nome}\n   Categoria: ${p.cat}\n   Status   : ${p.status.replace('_',' ')}\n\n`;
+    });
+  }
+
+  texto += `${sep2}\n${escritorio}\nEmitido em ${hoje} — Sistema de Automação Contábil\n${sep}\n`;
 
   const area = document.getElementById('parecer-page-output');
   if (area) {
     area.innerHTML = `
     <div class="card mt-4">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <strong>📄 Parecer de Escrituração — ${fmtComp(comp)}</strong>
+        <strong>📄 Parecer de Escrituração e Conformidade</strong>
         <div style="display:flex;gap:6px">
           <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('parecer-gen-txt').textContent);alert('Copiado!')">📋 Copiar</button>
           <button class="btn btn-ghost btn-sm" onclick="imprimirTexto(document.getElementById('parecer-gen-txt').textContent)">🖨️ Imprimir</button>
@@ -1719,6 +1750,20 @@ function gerarParecerCPC(cliId) {
     const rule = getCPCForItem(k.replace(/_/g,' '), cliente.regime);
     pendencias.push({ nome: k.replace(/_/g,' '), status: v, rule });
   });
+
+  // Coletar pendências de Onboarding (C-006)
+  if (typeof C006_TEMPLATE !== 'undefined') {
+    C006_TEMPLATE.forEach(sec => {
+      sec.items.forEach(item => {
+        const k = sec.section+'_'+item.cod+'_'+item.nome;
+        const st = obgSaved[k] || 'pendente';
+        if (st !== 'concluido' && st !== 'cliente_nao_possui') {
+          const rule = getCPCForItem(item.nome, cliente.regime);
+          pendencias.push({ nome: `(Onboarding) ${item.nome}`, status: st, rule });
+        }
+      });
+    });
+  }
 
   const altoRisco  = pendencias.filter(p => p.rule?.risco === 'alto');
   const medioRisco = pendencias.filter(p => p.rule?.risco === 'medio');
