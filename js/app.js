@@ -156,9 +156,8 @@ function renderDashboard() {
       <td>${progHtml}</td>
       <td>${obgHtml}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-ghost btn-sm" onclick="openModal('edit','${c.id}')">✏️</button>
-        <button class="btn btn-ghost btn-sm" onclick="navigate('checklist');openClienteChecklist('${c.id}')">📋</button>
-        <button class="btn btn-ghost btn-sm" onclick="navigate('onboarding');openClienteOnboarding('${c.id}')">📁</button>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('edit','${c.id}')" title="Dados do Cliente / Onboarding">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="emitirParecerAvulso('${c.id}')" title="Gerar Parecer Técnico / Relatório">📋</button>
       </td>
     </tr>`;
   }).join('');
@@ -282,6 +281,7 @@ function openModal(mode, id=null) {
         <button class="tab-btn" onclick="switchTab(this,'tab-parcelamentos')">Parcelamentos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-trabalhista')">Trabalhista</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-diagnostico')">Diagnóstico</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-onboarding')">Onboarding C-006</button>
       </div>
       <form id="form-cliente">
         <input type="hidden" id="f-id" value="${c.id}">
@@ -383,10 +383,16 @@ function openModal(mode, id=null) {
             <label class="checkbox-item"><input type="checkbox" id="d-div-pgfn" ${c.d_div_pgfn?'checked':''}> Dívida sem parcelamento — PGFN</label>
             <label class="checkbox-item"><input type="checkbox" id="d-div-pref" ${c.d_div_pref?'checked':''}> Dívida sem parcelamento — Prefeitura</label>
             <label class="checkbox-item"><input type="checkbox" id="d-div-est" ${c.d_div_est?'checked':''}> Dívida sem parcelamento — Estado</label>
+          <div class="checkbox-group">
             <label class="checkbox-item"><input type="checkbox" id="d-mei-eme" ${c.d_mei_eme?'checked':''}> Perdeu condição MEI → Simples</label>
             <label class="checkbox-item"><input type="checkbox" id="d-sn-geral" ${c.d_sn_geral?'checked':''}> Perdeu condição Simples → Regime Geral</label>
           </div>
           <div class="form-group mt-2"><label>Observações do Diagnóstico</label><textarea id="f-obs-diag">${c.obs_diag||''}</textarea></div>
+        </div>
+
+        <div id="tab-onboarding" class="tab-panel">
+          <p class="text-muted text-sm mb-4">Checklist de implantação de novos clientes (C-006). As alterações aqui são salvas automaticamente.</p>
+          <div id="obg-modal-content"></div>
         </div>
       </form>
     </div>
@@ -396,6 +402,47 @@ function openModal(mode, id=null) {
     </div>
   </div>
 </div>`;
+
+  // Inject Onboarding sections dynamically only if editing an existing client
+  if (id) {
+    const obgContainer = document.getElementById('obg-modal-content');
+    if (obgContainer) {
+      const onboarding = DB.get('onboarding') || {};
+      const savedObg = onboarding[id] || {};
+      const STATUS_OBG = ['pendente','solicitado','verificar','concluido','cliente_nao_possui'];
+      const statusLabel = {pendente:'Pendente',solicitado:'Solicitado',verificar:'Verificar',concluido:'Concluído',cliente_nao_possui:'Cliente Não Possui'};
+
+      if (typeof C006_TEMPLATE !== 'undefined') {
+        obgContainer.innerHTML = C006_TEMPLATE.map(sec => {
+          const itemsHtml = sec.items.map(item => {
+            const k = sec.section+'_'+item.cod+'_'+item.nome;
+            const val = savedObg[k] || 'pendente';
+            return `<div class="doc-item" style="padding:6px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px">
+              <div class="doc-code" style="font-size:11px;color:#94a3b8;width:30px">${item.cod}</div>
+              <div style="flex:1">
+                <div class="doc-name" style="font-size:12px;font-weight:600">${item.nome}</div>
+                ${item.obs?`<div class="doc-obs" style="font-size:10px;color:#64748b;margin-top:2px">${item.obs}</div>`:''}
+              </div>
+              <select style="border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;font-family:inherit" onchange="saveObgItem('${id}', '${k}', this.value)">
+                ${STATUS_OBG.map(s=>`<option value="${s}" ${val===s?'selected':''}>${statusLabel[s]}</option>`).join('')}
+              </select>
+            </div>`;
+          }).join('');
+          const done = sec.items.filter(i=>{const k=sec.section+'_'+i.cod+'_'+i.nome; return savedObg[k]==='concluido';}).length;
+          return `<div class="card mb-3" style="background:#f8fafc;padding:12px;border:1px solid #e2e8f0;box-shadow:none">
+            <div class="flex justify-between items-center mb-2">
+              <strong style="font-size:13px;color:#334155">${sec.section}</strong>
+              <span class="badge badge-blue">${done}/${sec.items.length} concluídos</span>
+            </div>
+            <div>${itemsHtml}</div>
+          </div>`;
+        }).join('');
+      }
+    }
+  } else {
+    const obgContainer = document.getElementById('obg-modal-content');
+    if (obgContainer) obgContainer.innerHTML = '<div class="empty-state" style="padding:20px;text-align:center"><div style="font-size:24px;margin-bottom:10px">📁</div><p>Cadastre e salve o cliente primeiro para liberar o checklist de Onboarding.</p></div>';
+  }
 }
 
 function closeModal() {
@@ -768,74 +815,12 @@ function imprimirParecer() {
 }
 
 
-// ─── ONBOARDING C-006 ───
-let obgClienteId = null;
-function openClienteOnboarding(id) { obgClienteId = id; navigate('onboarding'); }
-
-function renderOnboarding() {
-  const clientes = DB.get('clientes') || [];
-  const ativos = clientes.filter(c=>c.status==='Ativo'||c.status==='Avaliar');
-  const selectorOptions = ativos.map(c=>
-    `<option value="${c.id}" ${obgClienteId===c.id?'selected':''}>#${c.id} — ${c.nome}</option>`
-  ).join('');
-  const selector = `
-<div class="card mb-4 flex items-center gap-3" style="padding:14px 20px;flex-wrap:wrap">
-  <span style="font-weight:600">Cliente:</span>
-  <select id="obg-sel" style="flex:1;min-width:280px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px" onchange="obgClienteId=this.value;render()">
-    <option value="">— Selecione o cliente —</option>
-    ${selectorOptions}
-  </select>
-</div>`;
-  if (!obgClienteId) return selector + `<div class="empty-state"><div class="empty-icon">📁</div><p>Selecione um cliente para o checklist C-006.</p></div>`;
-
+function saveObgItem(cliId, key, val) {
   const onboarding = DB.get('onboarding') || {};
-  const saved = onboarding[obgClienteId] || {};
-  const STATUS_OBG = ['pendente','solicitado','verificar','concluido','cliente_nao_possui'];
-  const statusLabel = {pendente:'Pendente',solicitado:'Solicitado',verificar:'Verificar',concluido:'Concluído',cliente_nao_possui:'Cliente Não Possui'};
-  const statusBadgeObg = v => {
-    const m={pendente:'badge-gray',solicitado:'badge-yellow',verificar:'badge-yellow',concluido:'badge-green',cliente_nao_possui:'badge-red'};
-    return `<span class="badge ${m[v]||'badge-gray'}">${statusLabel[v]||v}</span>`;
-  };
-
-  const sections = C006_TEMPLATE.map(sec => {
-    const itemsHtml = sec.items.map(item => {
-      const k = sec.section+'_'+item.cod+'_'+item.nome;
-      const val = saved[k] || 'pendente';
-      return `<div class="doc-item">
-        <div class="doc-code">${item.cod}</div>
-        <div style="flex:1">
-          <div class="doc-name">${item.nome}</div>
-          ${item.obs?`<div class="doc-obs">${item.obs}</div>`:''}
-        </div>
-        <select style="border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit" onchange="saveObgItem('${k}',this.value)">
-          ${STATUS_OBG.map(s=>`<option value="${s}" ${val===s?'selected':''}>${statusLabel[s]}</option>`).join('')}
-        </select>
-      </div>`;
-    }).join('');
-    const done = sec.items.filter(i=>{const k=sec.section+'_'+i.cod+'_'+i.nome; return saved[k]==='concluido';}).length;
-    return `<div class="card mb-4">
-      <div class="flex justify-between items-center mb-3">
-        <strong>${sec.section}</strong>
-        <span class="badge badge-blue">${done}/${sec.items.length} concluídos</span>
-      </div>
-      <div>${itemsHtml}</div>
-    </div>`;
-  }).join('');
-
-  const cliente = clientes.find(c=>c.id===obgClienteId);
-  return `${selector}
-<div class="card mb-4" style="border-left:4px solid var(--primary);padding:14px 20px">
-  <strong>#${cliente.id} — ${cliente.nome}</strong>
-  <span class="text-muted text-sm" style="margin-left:12px">${cliente.cnpj} · ${cliente.regime}</span>
-</div>
-${sections}`;
-}
-
-function saveObgItem(key, val) {
-  const onboarding = DB.get('onboarding') || {};
-  onboarding[obgClienteId] = onboarding[obgClienteId] || {};
-  onboarding[obgClienteId][key] = val;
+  onboarding[cliId] = onboarding[cliId] || {};
+  onboarding[cliId][key] = val;
   DB.set('onboarding', onboarding);
+  // Opcional: Atualizar a página de trás se necessário (não faremos render para não fechar o modal)
 }
 
 // ─── Impact map for auto-audit classification ───

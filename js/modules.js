@@ -1623,12 +1623,10 @@ function renderParecerPage() {
   return html;
 }
 
-// Gera e exibe parecer de escrituração na página
-function gerarEExibirParecer(cliId) {
-  // Usa a função existente que gera o texto do parecer
+function gerarTextoParecer(cliId) {
   const clientes = DB.get('clientes') || [];
   const cliente = clientes.find(c => c.id === cliId);
-  if (!cliente) return;
+  if (!cliente) return '';
   const comp = state.competencia;
   
   // 1. Dados do Checklist Mensal
@@ -1662,12 +1660,51 @@ function gerarEExibirParecer(cliId) {
   }
 
   const escritorio = localStorage.getItem('esc_nome') || 'Criscontab & Madeira Contabilidade';
-  const hoje = new Date().toLocaleDateString('pt-BR');
+  const dataGeracao = new Date().toLocaleString('pt-BR');
   const sep = '═'.repeat(60);
   const sep2 = '─'.repeat(60);
 
   let texto = `${sep}\n`;
   texto += `PARECER DE ESCRITURAÇÃO E CONFORMIDADE TÉCNICA\n`;
+  texto += `Emitido em: ${dataGeracao}\n`;
+  texto += `${sep}\n\n`;
+  texto += `Cliente   : ${cliente.nome}\n`;
+  texto += `CNPJ      : ${cliente.cnpj}\n`;
+  texto += `Regime    : ${cliente.regime}\n`;
+  texto += `Escritório: ${escritorio}\n\n`;
+
+  // --- SEÇÃO 1: Onboarding C-006 ---
+  texto += `${sep2}\nSITUAÇÃO DO ONBOARDING (C-006)\n${sep2}\n\n`;
+  if (pendenciasObg.length === 0) {
+    texto += `✅ ONBOARDING DE PARÂMETROS E DOCUMENTOS CONCLUÍDO\nO cliente forneceu todos os documentos iniciais requeridos.\n\n`;
+  } else {
+    texto += `⚠️ ${pendenciasObg.length} ITEM(S) PENDENTE(S) NO ONBOARDING C-006\nPara regularização plena do cadastro, as seguintes pendências devem ser sanadas:\n\n`;
+    pendenciasObg.forEach((p,i) => {
+      texto += `${i+1}. [${p.cod}] ${p.nome}\n   Categoria: ${p.cat}\n   Status   : ${p.status.replace('_',' ')}\n\n`;
+    });
+  }
+
+  // --- SEÇÃO 2: Escrituração Mensal ---
+  texto += `${sep2}\nSITUAÇÃO DA ESCRITURAÇÃO (COMPETÊNCIA: ${fmtComp(comp)})\n${sep2}\n\n`;
+  if (pendenciasChk.length === 0) {
+    texto += `✅ TODOS OS DOCUMENTOS MENSAIS RECEBIDOS\nA escrituração do período pode prosseguir sem ressalvas operacionais.\n\n`;
+  } else {
+    texto += `⚠️ ${pendenciasChk.length} DOCUMENTO(S) MENSAL(IS) PENDENTE(S)\n\n`;
+    pendenciasChk.forEach((p,i) => {
+      texto += `${i+1}. ${p.nome}\n   Categoria: ${p.cat}\n   Status   : ${p.status.replace('_',' ')}\n\n`;
+    });
+  }
+
+  texto += `${sep2}\n${escritorio}\nRelatório do que tem marcado e sinalizado até o momento.\nSistema de Automação Contábil.\n${sep}\n`;
+  
+  return { texto, comp };
+}
+
+// Gera e exibe parecer de escrituração na página
+function gerarEExibirParecer(cliId) {
+  const result = gerarTextoParecer(cliId);
+  if (!result) return;
+  const { texto, comp } = result;
   texto += `${sep}\n\n`;
   texto += `Cliente   : ${cliente.nome}\n`;
   texto += `CNPJ      : ${cliente.cnpj}\n`;
@@ -1696,8 +1733,6 @@ function gerarEExibirParecer(cliId) {
     });
   }
 
-  texto += `${sep2}\n${escritorio}\nEmitido em ${hoje} — Sistema de Automação Contábil\n${sep}\n`;
-
   const area = document.getElementById('parecer-page-output');
   if (area) {
     area.innerHTML = `
@@ -1711,6 +1746,16 @@ function gerarEExibirParecer(cliId) {
       </div>
       <pre id="parecer-gen-txt" style="font-family:monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;border:1px solid var(--border)">${texto}</pre>
     </div>`;
+  }
+}
+
+// Gera o parecer textual e imprime imediatamente numa aba
+function emitirParecerAvulso(cliId) {
+  const result = gerarTextoParecer(cliId);
+  if (result && result.texto) {
+    imprimirTexto(result.texto);
+  } else {
+    alert("Erro ao emitir Parecer Técnico.");
   }
 }
 
