@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Controle Financeiro Contábil</title>
+  <style>
+    body {
+      font-family: Arial;
+      margin: 20px;
+      background: #f5f7fa;
+    }
+
+    h2 {
+      margin-top: 40px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #2f5d8a;
+      color: white;
+    }
+
+    .entrada { background-color: #d4edda; }
+    .saida { background-color: #f8d7da; }
+    .saldo { background-color: #fff3cd; }
+
+    button {
+      padding: 10px;
+      margin: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Controle Financeiro Integrado</h1>
+
+<h2>📘 Reserva de Caixa (Base Contábil)</h2>
+
+<table id="reserva">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Entrada (Débito)</th>
+      <th>Saída (Crédito)</th>
+      <th>Saldo</th>
+      <th>Conta Débito</th>
+      <th>Conta Crédito</th>
+      <th>Histórico</th>
+      <th>Observação</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td contenteditable="true">01/05</td>
+      <td contenteditable="true" class="entrada"></td>
+      <td contenteditable="true" class="saida"></td>
+      <td class="saldo"></td>
+      <td contenteditable="true"></td>
+      <td contenteditable="true"></td>
+      <td contenteditable="true"></td>
+      <td contenteditable="true"></td>
+    </tr>
+  </tbody>
+</table>
+
+<button onclick="addRow('reserva')">+ Adicionar Linha</button>
+
+<h2>💰 Retirada de Lucros</h2>
+
+<table id="retirada">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Entrada</th>
+      <th>Saída (Retirada)</th>
+      <th>Saldo</th>
+      <th>Observação</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td contenteditable="true">01/05</td>
+      <td contenteditable="true" class="entrada"></td>
+      <td contenteditable="true" class="saida"></td>
+      <td class="saldo"></td>
+      <td contenteditable="true"></td>
+    </tr>
+  </tbody>
+</table>
+
+<button onclick="addRow('retirada')">+ Adicionar Linha</button>
+
+<button onclick="calcularSaldo()">Calcular Saldos</button>
+<button onclick="exportarCSV()">Exportar CSV</button>
+
+<script>
+
+function addRow(tableId) {
+  const table = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+  const newRow = table.rows[0].cloneNode(true);
+
+  for (let cell of newRow.cells) {
+    cell.innerText = '';
+  }
+
+  table.appendChild(newRow);
+}
+
+function calcularSaldo() {
+
+  function processarTabela(tableId) {
+    let saldo = 0;
+    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+
+    rows.forEach(row => {
+      let entrada = parseFloat(row.cells[1].innerText) || 0;
+      let saida = parseFloat(row.cells[2].innerText) || 0;
+
+      saldo += entrada - saida;
+      row.cells[3].innerText = saldo.toFixed(2);
+    });
+  }
+
+  processarTabela('reserva');
+  processarTabela('retirada');
+}
+
+function exportarCSV() {
+  let csv = [];
+
+  const rows = document.querySelectorAll("table tr");
+
+  rows.forEach(row => {
+    let cols = row.querySelectorAll("td, th");
+    let linha = [];
+
+    cols.forEach(col => linha.push(col.innerText));
+    csv.push(linha.join(","));
+  });
+
+  let blob = new Blob([csv.join("\n")], { type: 'text/csv' });
+  let a = document.createElement("a");
+
+  a.href = URL.createObjectURL(blob);
+  a.download = "controle_financeiro.csv";
+  a.click();
+}
+
+</script>
+
+</body>
+</html>
