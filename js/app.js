@@ -101,7 +101,7 @@ function clienteNome(id) {
   return c ? c.nome : '—';
 }
 
-// ─── DASHBOARD ───
+// ─── DASHBOARD (UNIFIED) ───
 function renderDashboard() {
   const clientes = DB.get('clientes') || [];
   const checklists = DB.get('checklists') || {};
@@ -111,22 +111,34 @@ function renderDashboard() {
   const chkMes    = Object.keys(checklists).filter(k=>k.endsWith('_'+state.competencia)).length;
   const pendObs   = clientes.filter(c=>c.obs && c.obs.trim() && c.status==='Ativo');
 
-  const rows = clientes.filter(c=>c.status==='Ativo').map(c => {
+  // Filtro de busca
+  const filtro = state.filtro ? state.filtro.toLowerCase() : '';
+  const lista = clientes.filter(c =>
+    !filtro || c.nome.toLowerCase().includes(filtro) || c.cnpj.includes(filtro) || c.id.includes(filtro)
+  );
+
+  const rows = lista.map(c => {
     const key = c.id+'_'+state.competencia;
     const chk = checklists[key];
-    let prog = '—'; let progPct = 0;
+    let progHtml = '<span class="badge badge-gray">Não iniciado</span>';
     if (chk) {
       const items = Object.values(chk);
       const done = items.filter(v=>v==='recebido').length;
-      progPct = Math.round((done/items.length)*100);
-      prog = `<div class="progress-bar" style="width:120px"><div class="progress-fill" style="width:${progPct}%"></div></div><span class="text-sm text-muted" style="margin-left:6px">${progPct}%</span>`;
+      const pct = Math.round((done/items.length)*100);
+      progHtml = `<div style="display:flex;align-items:center"><div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${pct}%"></div></div><span class="text-sm text-muted" style="margin-left:6px">${pct}%</span></div>`;
     }
-    return `<tr onclick="navigate('checklist');openClienteChecklist('${c.id}')" style="cursor:pointer">
+    return `<tr>
       <td><strong>#${c.id}</strong></td>
       <td>${c.nome}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${c.cnpj||'—'}</td>
       <td>${regimedIcon(c.regime)}</td>
-      <td>${prog==='—'?'<span class="badge badge-gray">Não iniciado</span>':`<div style="display:flex;align-items:center">${prog}</div>`}</td>
-      <td>${c.obs?`<span style="color:var(--warning);font-size:12px">⚠️ ${c.obs.substring(0,50)}</span>`:'—'}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td>${progHtml}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="openModal('edit','${c.id}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('checklist');openClienteChecklist('${c.id}')">📋</button>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('onboarding');openClienteOnboarding('${c.id}')">📁</button>
+      </td>
     </tr>`;
   }).join('');
 
@@ -156,16 +168,24 @@ ${pendObs.length ? `<div class="card mb-4" style="border-left:4px solid var(--wa
   </div>`).join('')}
 </div>` : ''}
 <div class="card">
-  <div class="flex justify-between items-center mb-4">
-    <div style="font-weight:700;font-size:15px">📊 Carteira Ativa — ${fmtComp(state.competencia)}</div>
+  <div class="flex justify-between items-center mb-4" style="flex-wrap:wrap;gap:10px">
+    <div style="font-weight:700;font-size:15px">👥 Clientes — ${fmtComp(state.competencia)}</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div class="search-bar" style="width:280px">
+        <span>🔍</span>
+        <input id="search-input" type="text" placeholder="Buscar nome, CNPJ ou código..." value="${state.filtro||''}" oninput="state.filtro=this.value;render()">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('new')">+ Novo</button>
+    </div>
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>#</th><th>Razão Social</th><th>Regime</th><th>Checklist</th><th>Observação</th></tr></thead>
+      <thead><tr><th>#</th><th>Razão Social</th><th>CNPJ</th><th>Regime</th><th>Status</th><th>Checklist</th><th>Ações</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>
-</div>`;
+</div>
+<div id="modal-container"></div>`;
 }
 
 // ─── CLIENTES ───
