@@ -50,7 +50,8 @@ function render() {
       planocontas:'Plano de Contas', treinamento:'Treinamento da Equipe',
       integracao:'Integração — Import & Export',
       painel:'Painel Global — Entrega de Documentos',
-      controle:'Controle de Clientes — CM Contabilidade'
+      controle:'Controle de Clientes — CM Contabilidade',
+      parecer:'Parecer Técnico — Escrituração Contábil'
     };
     document.getElementById('topbar-title').textContent = titles[state.page] || '';
     switch(state.page) {
@@ -68,6 +69,7 @@ function render() {
       case 'integracao':    main.innerHTML = renderIntegracao(); break;
       case 'painel':        main.innerHTML = renderPainelGlobal(); break;
       case 'controle':      main.innerHTML = renderClientesAvancado(); break;
+      case 'parecer':       main.innerHTML = renderParecerPage(); break;
     }
     attachEvents();
   } catch (err) {

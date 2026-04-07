@@ -1535,6 +1535,172 @@ function exportarRelatorioEntrega() {
 }
 
 // ══════════════════════════════════════════════════════════
+// PÁGINA PARECER TÉCNICO — Relatório de Escrituração
+// ══════════════════════════════════════════════════════════
+let parecerClienteId = null;
+
+function renderParecerPage() {
+  const clientes = DB.get('clientes') || [];
+  const ativos = clientes.filter(c => c.status === 'Ativo').sort((a,b) => a.nome.localeCompare(b.nome));
+  const comp = state.competencia;
+
+  // Selector
+  let html = `
+  <div class="card mb-4">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="font-weight:700;font-size:15px">📄 Parecer Técnico sobre Escrituração</div>
+      <select style="flex:1;min-width:280px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px"
+        onchange="parecerClienteId=this.value;render()">
+        <option value="">— Selecione um cliente —</option>
+        ${ativos.map(c => `<option value="${c.id}" ${parecerClienteId===c.id?'selected':''}>#${c.id} — ${c.nome}</option>`).join('')}
+      </select>
+    </div>
+    <p class="text-muted text-sm" style="margin-top:8px">
+      Selecione um cliente para gerar o parecer técnico da competência <strong>${fmtComp(comp)}</strong>.
+      O relatório analisa pendências documentais com base nas normas CPC/ITG e classifica os riscos.
+    </p>
+  </div>`;
+
+  if (!parecerClienteId) {
+    html += `<div class="empty-state"><div class="empty-icon">📄</div><p>Selecione um cliente acima para gerar o parecer técnico.</p></div>`;
+    return html;
+  }
+
+  const cliente = clientes.find(c => c.id === parecerClienteId);
+  if (!cliente) { parecerClienteId = null; return renderParecerPage(); }
+
+  // Info do cliente
+  html += `
+  <div class="card mb-4">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-weight:700;font-size:16px">${cliente.nome}</div>
+        <span class="text-muted text-sm">CNPJ: ${cliente.cnpj} · ${regimedIcon(cliente.regime)}</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="gerarEExibirParecer('${cliente.id}')">📄 Gerar Parecer Escrituração</button>
+        <button class="btn btn-success btn-sm" onclick="gerarEExibirParecerCPC('${cliente.id}')">📋 Análise CPC/ITG</button>
+      </div>
+    </div>
+  </div>`;
+
+  // Resumo do checklist
+  const chkSaved = (DB.get('checklists')||{})[`${cliente.id}_${comp}`] || {};
+  const template = CHECKLIST_TEMPLATE || [];
+  let totalItems = 0, recebidos = 0, pendentes = 0, pendList = [];
+  template.forEach(cat => {
+    cat.items.forEach(item => {
+      totalItems++;
+      const st = chkSaved[item.key] || 'nao_enviado';
+      if (st === 'recebido') recebidos++;
+      else { pendentes++; pendList.push({nome: item.nome, status: st}); }
+    });
+  });
+  const pct = totalItems > 0 ? Math.round((recebidos/totalItems)*100) : 0;
+
+  html += `
+  <div class="card mb-4">
+    <div style="font-weight:700;font-size:14px;margin-bottom:12px">📊 Resumo Documental — ${fmtComp(comp)}</div>
+    <div class="cards-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+      <div class="stat-card"><div class="stat-icon blue">📥</div><div><div class="stat-label">Recebidos</div><div class="stat-value">${recebidos}</div></div></div>
+      <div class="stat-card"><div class="stat-icon red">⏳</div><div><div class="stat-label">Pendentes</div><div class="stat-value">${pendentes}</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">📈</div><div><div class="stat-label">Conformidade</div><div class="stat-value">${pct}%</div></div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>`;
+
+  // Pendências
+  if (pendList.length > 0) {
+    html += `<div class="card mb-4">
+      <div style="font-weight:700;font-size:14px;margin-bottom:12px">⚠️ Pendências (${pendList.length})</div>
+      <table><thead><tr><th>Documento</th><th>Status</th></tr></thead><tbody>
+      ${pendList.map(p => `<tr><td>${p.nome}</td><td><span class="badge badge-${p.status==='incompleto'?'yellow':p.status==='divergente'?'purple':'red'}">${p.status.replace('_',' ')}</span></td></tr>`).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Área do parecer gerado
+  html += `<div id="parecer-page-output"></div>`;
+  return html;
+}
+
+// Gera e exibe parecer de escrituração na página
+function gerarEExibirParecer(cliId) {
+  // Usa a função existente que gera o texto do parecer
+  const clientes = DB.get('clientes') || [];
+  const cliente = clientes.find(c => c.id === cliId);
+  if (!cliente) return;
+  const comp = state.competencia;
+  const chkAll = DB.get('checklists') || {};
+  const chkKey = cliId + '_' + comp;
+  const saved = chkAll[chkKey] || {};
+  const template = CHECKLIST_TEMPLATE || [];
+
+  const pendencias = [];
+  template.forEach(cat => {
+    cat.items.forEach(item => {
+      const st = saved[item.key] || 'nao_enviado';
+      if (st !== 'recebido') pendencias.push({nome: item.nome, cat: cat.cat, status: st});
+    });
+  });
+
+  const escritorio = localStorage.getItem('esc_nome') || 'Criscontab & Madeira Contabilidade';
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const sep = '═'.repeat(60);
+  const sep2 = '─'.repeat(60);
+
+  let texto = `${sep}\n`;
+  texto += `PARECER DE ESCRITURAÇÃO — ${fmtComp(comp).toUpperCase()}\n`;
+  texto += `${sep}\n\n`;
+  texto += `Cliente   : ${cliente.nome}\n`;
+  texto += `CNPJ      : ${cliente.cnpj}\n`;
+  texto += `Regime    : ${cliente.regime}\n`;
+  texto += `Escritório: ${escritorio}\n\n`;
+  texto += `${sep2}\nSITUAÇÃO DOCUMENTOS — ${fmtComp(comp)} | Emitido em: ${hoje}\n${sep2}\n\n`;
+
+  if (pendencias.length === 0) {
+    texto += `✅ TODOS OS DOCUMENTOS RECEBIDOS\nA escrituração do período pode prosseguir sem ressalvas.\n`;
+  } else {
+    texto += `⚠️ ${pendencias.length} DOCUMENTO(S) PENDENTE(S)\n\n`;
+    pendencias.forEach((p,i) => {
+      texto += `${i+1}. ${p.nome}\n   Categoria: ${p.cat}\n   Status: ${p.status.replace('_',' ')}\n\n`;
+    });
+  }
+  texto += `\n${sep2}\n${escritorio}\nEmitido em ${hoje} — Sistema de Automação Contábil\n${sep}\n`;
+
+  const area = document.getElementById('parecer-page-output');
+  if (area) {
+    area.innerHTML = `
+    <div class="card mt-4">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <strong>📄 Parecer de Escrituração — ${fmtComp(comp)}</strong>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('parecer-gen-txt').textContent);alert('Copiado!')">📋 Copiar</button>
+          <button class="btn btn-ghost btn-sm" onclick="imprimirTexto(document.getElementById('parecer-gen-txt').textContent)">🖨️ Imprimir</button>
+        </div>
+      </div>
+      <pre id="parecer-gen-txt" style="font-family:monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;border:1px solid var(--border)">${texto}</pre>
+    </div>`;
+  }
+}
+
+// Gera e exibe análise CPC/ITG na página de parecer
+function gerarEExibirParecerCPC(cliId) {
+  gerarParecerCPC(cliId);
+  // Move o resultado gerado para a área de output da página
+  const cpcEl = document.getElementById('cpc-parecer');
+  const outEl = document.getElementById('parecer-page-output');
+  if (cpcEl && outEl) outEl.appendChild(cpcEl);
+}
+
+// Utilitário para imprimir texto
+function imprimirTexto(texto) {
+  const w = window.open('','_blank','width=800,height=600');
+  w.document.write('<pre style="font-family:monospace;font-size:12px;line-height:1.8;white-space:pre-wrap">' + texto + '</pre>');
+  w.document.close();
+  w.print();
+}
+
+// ══════════════════════════════════════════════════════════
 // ANÁLISE TÉCNICA DE CONFORMIDADE COM CPC — Gerado pelo motor de regras
 // ══════════════════════════════════════════════════════════
 function gerarParecerCPC(cliId) {
