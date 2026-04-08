@@ -540,47 +540,36 @@ function openModal(mode, id=null) {
               <div style="font-size:10px;color:var(--warning);margin-top:2px;font-style:italic">👉 Falta segreg = Risco de fraude/desorganização</div>
             </div>
 
-            <!-- MATURIDADE / ITG -->
+            <!-- MATURIDADE / ITG (DIAGNÓSTICO AUTOMÁTICO) -->
             <div style="flex:2;background:#f0fdff;border:1px solid #7dd3fc;padding:12px;border-radius:8px;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #bae6fd;padding-bottom:8px">
-                <div style="font-weight:700;font-size:14px;color:#0369a1">🚦 Classificação de Maturidade e Enquadramento (NBC/ITG)</div>
-                <div style="background:#0284c7;color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;min-width:180px;text-align:center" id="ci_nivel_display">Nível: A Calcular</div>
+                <div style="font-weight:700;font-size:14px;color:#0369a1">🚦 Classificação Contábil (Enquadramento ITG/NBC)</div>
+                <div style="background:#0284c7;color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;min-width:180px;text-align:center" id="ci_risco_display">Nível de Risco: A Calcular</div>
               </div>
               <div class="form-grid">
-                <div class="form-group form-full"><label>Norma contábil definida (Obrigatória)</label><select id="ci_norma" onchange="updateCiAlerts()">
-                  ${['A Definir','ITG 2002 (Sem fins lucrativos)','ITG 2004 (Cooperativa)','ITG 1000 (Micro/Pequena)','NBC TG 1000 (Pequena/Média)','CPC/IFRS Completos'].map(x=>`<option ${c.ci_norma===x?'selected':''}>${x}</option>`).join('')}
+                <div class="form-group"><label>1. Tipo de Entidade</label><select id="ci_itg_tipo" onchange="runITGDiagnosis()">
+                  ${['Empresa com fins lucrativos','Simples Nacional','Entidade sem fins lucrativos (Terceiro Setor)','Cooperativa'].map(x=>`<option ${c.ci_itg_tipo===x?'selected':''}>${x}</option>`).join('')}
                 </select></div>
-
-                <div class="form-group"><label>Complexidade Operacional</label><select id="ci_nivel_complex" onchange="updateCiAlerts()">
-                  ${['Baixa (Sem est/imob relevante)','Média (Um ou vários fatores mod.)','Alta (Controles múltiplos)'].map(x=>`<option ${c.ci_nivel_complex===x?'selected':''}>${x}</option>`).join('')}
+                <div class="form-group"><label>2. Porte da Empresa</label><select id="ci_itg_porte" onchange="runITGDiagnosis()">
+                  ${['Microempresa (ME)','Empresa de Pequeno Porte (EPP)','Médio Porte','Grande Porte'].map(x=>`<option ${c.ci_itg_porte===x?'selected':''}>${x}</option>`).join('')}
                 </select></div>
-
-                <div class="form-group"><label>Finalidade da Contab.</label><select id="ci_finalidade" onchange="updateCiAlerts()">
-                  ${['Fiscal/obrigatória','Fiscal + suporte básico','Gerencial (Apoio à decisão)','Estratégica (Indicadores)'].map(x=>`<option ${c.ci_finalidade===x?'selected':''}>${x}</option>`).join('')}
+                <div class="form-group form-full"><label>3. Complexidade Operacional</label><select id="ci_itg_complex" onchange="runITGDiagnosis()">
+                  ${['Baixa (Sem estoque relevante, sem financiamento, rotina simples)','Média (Com estoque, controle financeiro ativo, dívidas estruturadas)','Alta (Financiamentos, Crescimento Acelerado, Auditoria)'].map(x=>`<option ${c.ci_itg_complex===x?'selected':''}>${x}</option>`).join('')}
                 </select></div>
-              </div>
-
-              <!-- JUSTIFICATIVA -->
-              <div style="border-top:1px dashed #7dd3fc;padding-top:12px;margin-top:12px;">
-                <label style="font-size:11px;font-weight:700;color:#0ea5e9;display:block;margin-bottom:8px;text-transform:uppercase">🧠 Justificativa Técnica do Enquadramento</label>
-                <div class="form-grid">
-                  <div class="form-group"><label>Porte da empresa</label><select id="ci_just_porte">
-                    ${['ME','EPP','Médio','Grande','Sem fins lucrativos'].map(x=>`<option ${c.ci_just_porte===x?'selected':''}>${x}</option>`).join('')}
-                  </select></div>
-                  <div class="form-group"><label>Estrutura operacional</label><select id="ci_just_est">
-                    ${['Simples','Moderada','Complexa'].map(x=>`<option ${c.ci_just_est===x?'selected':''}>${x}</option>`).join('')}
-                  </select></div>
-                  <div class="form-group form-full"><label>Obrigatoriedades / Motivo da escolha</label><input id="ci_just_motivo" value="${c.ci_just_motivo||''}" placeholder="Ex: Receita br < 4M, prefere ITG 1000"></div>
-                </div>
+                <div class="form-group form-full"><label>4. Finalidade da Contabilidade (Regra de Ouro)</label><select id="ci_itg_finalidade" onchange="runITGDiagnosis()">
+                  ${['Somente Cumprimento Fiscal / Obrigações','Apoio a Tomada de Decisão / Relatórios Gerenciais e Crescimento'].map(x=>`<option ${c.ci_itg_finalidade===x?'selected':''}>${x}</option>`).join('')}
+                </select></div>
               </div>
 
               <!-- ALERTA AUTOMATICO -->
-              <div class="form-group form-full mt-4">
-                <div id="ci_alerta" style="padding:12px;border-radius:6px;background:#fff;border-left:4px solid var(--warning);font-size:12px;color:var(--text);box-shadow:var(--shadow)">
-                  ⚠️ Selecione as classificações acima para conferir os alertas técnicos.
-                </div>
+              <div style="margin-top:16px;">
+                 <label style="font-size:11px;font-weight:700;color:#0ea5e9;display:block;margin-bottom:8px;text-transform:uppercase">🧠 Diagnóstico Automático (Regra Técnica)</label>
+                 <div id="ci_alerta_itg" style="padding:14px;border-radius:6px;background:#fff;border-left:4px solid var(--warning);font-size:13px;color:var(--text);box-shadow:var(--shadow)">
+                   Selecione as variáveis acima para definir a norma contábil aplicável.
+                 </div>
+                 <input type="hidden" id="ci_itg_norma_calc" value="${c.ci_itg_norma_calc||''}">
+                 <input type="hidden" id="ci_itg_risco_calc" value="${c.ci_itg_risco_calc||''}">
               </div>
-
             </div>
           </div>
         </div>
@@ -816,7 +805,7 @@ function openModal(mode, id=null) {
     if (obgContainer) obgContainer.innerHTML = '<div class="empty-state" style="padding:20px;text-align:center"><div style="font-size:24px;margin-bottom:10px">📁</div><p>Cadastre e salve o cliente primeiro para liberar o checklist de Onboarding.</p></div>';
   }
   setTimeout(() => {
-    if(typeof updateCiAlerts === 'function') updateCiAlerts();
+    if(typeof runITGDiagnosis === 'function') runITGDiagnosis();
     if(typeof updateMovFinanceiraAlerts === 'function') updateMovFinanceiraAlerts();
   }, 50);
 }
@@ -903,12 +892,12 @@ function saveCliente(mode) {
     ci_doc_chk: (document.getElementById('ci_doc_chk')||{}).value,
     ci_proc_rotina: (document.getElementById('ci_proc_rotina')||{}).value,
     ci_proc_seg: (document.getElementById('ci_proc_seg')||{}).value,
-    ci_norma: (document.getElementById('ci_norma')||{}).value,
-    ci_just_porte: (document.getElementById('ci_just_porte')||{}).value,
-    ci_just_est: (document.getElementById('ci_just_est')||{}).value,
-    ci_just_motivo: (document.getElementById('ci_just_motivo')||{}).value,
-    ci_nivel_complex: (document.getElementById('ci_nivel_complex')||{}).value,
-    ci_finalidade: (document.getElementById('ci_finalidade')||{}).value,
+    ci_itg_tipo: (document.getElementById('ci_itg_tipo')||{}).value,
+    ci_itg_porte: (document.getElementById('ci_itg_porte')||{}).value,
+    ci_itg_complex: (document.getElementById('ci_itg_complex')||{}).value,
+    ci_itg_finalidade: (document.getElementById('ci_itg_finalidade')||{}).value,
+    ci_itg_norma_calc: (document.getElementById('ci_itg_norma_calc')||{}).value,
+    ci_itg_risco_calc: (document.getElementById('ci_itg_risco_calc')||{}).value,
     ...(() => {
         let mf = {};
         ['ob_simples','ob_alto_vol','ob_transf','cc_maq','cc_corp','cc_antec','cc_multi',
@@ -957,39 +946,80 @@ function saveCliente(mode) {
   render();
 }
 
-window.updateCiAlerts = function() {
-  const norma = document.getElementById('ci_norma')?.value || '';
-  const complex = document.getElementById('ci_nivel_complex')?.value || '';
-  const fin = document.getElementById('ci_finalidade')?.value || '';
-  const divAlerta = document.getElementById('ci_alerta');
-  const divNivel = document.getElementById('ci_nivel_display');
-  if(!divAlerta) return;
+window.runITGDiagnosis = () => {
+    const tipo = document.getElementById('ci_itg_tipo')?.value || '';
+    const porte = document.getElementById('ci_itg_porte')?.value || '';
+    const complex = document.getElementById('ci_itg_complex')?.value || '';
+    const finalidade = document.getElementById('ci_itg_finalidade')?.value || '';
 
-  // Nível de Maturidade
-  let nivel = '🔴 1 - Informal';
-  if (fin.includes('Gerencial') || fin.includes('Estratégica')) {
-    nivel = fin.includes('Estratégica') ? '🔵 4 - Estratégico' : '🟢 3 - Estruturado';
-  } else if (fin.includes('suporte')) {
-    nivel = '🟡 2 - Em estruturação';
-  }
-  if(divNivel) divNivel.innerHTML = `Maturidade: ${nivel}`;
+    let norma = 'A Definir';
+    let riscoColor = '#94a3b8';
+    let risco = 'A Definir';
+    
+    // Motor de Decisão base regra de ouro do Escritório
+    if (tipo === 'Cooperativa') {
+        norma = 'ITG 2004 (+ ITG 2000)';
+        risco = '🔴 Alto'; riscoColor = 'var(--danger)';
+    } else if (tipo.includes('Entidade sem fins')) {
+        if (complex.includes('Alta') || porte.includes('Médio') || porte.includes('Grande')) {
+             norma = 'ITG 2002 + NBC TG (Complementar)';
+             risco = '🔴 Alto'; riscoColor = 'var(--danger)';
+        } else {
+             norma = 'ITG 2002';
+             risco = '🟡 Médio'; riscoColor = 'var(--warning)';
+        }
+    } else if (tipo === 'Simples Nacional') {
+        if (complex.includes('Baixa') && finalidade.includes('Cumprimento')) {
+             norma = 'ITG 1000';
+             risco = '🟢 Baixo'; riscoColor = 'var(--success-dark)';
+        } else {
+             norma = 'NBC TG';
+             risco = complex.includes('Alta') ? '🔴 Alto' : '🟡 Médio'; 
+             riscoColor = complex.includes('Alta') ? 'var(--danger)' : 'var(--warning)';
+        }
+    } else if (tipo.includes('Empresa com fins')) {
+        if (complex.includes('Alta')) {
+             norma = 'NBC TG Completas';
+             risco = '🔴 Alto'; riscoColor = 'var(--danger)';
+        } else if (complex.includes('Média')) {
+             norma = 'ITG 1000 ou NBC TG (Avaliar)';
+             risco = '🟡 Médio'; riscoColor = 'var(--warning)';
+        } else {
+             if(finalidade.includes('Apoio a Tomada')) {
+                 norma = 'Migrar para NBC TG';
+                 risco = '🟡 Médio'; riscoColor = 'var(--warning)';
+             } else {
+                 norma = 'ITG 1000';
+                 risco = '🟢 Baixo'; riscoColor = 'var(--success-dark)';
+             }
+        }
+    }
 
-  // Alerta Coerência
-  let msg = `<b>📌 Impactos Gerais da Escolha:</b> Necessidade rigorosa de aderência às orientações da norma ${norma.split(' ')[0]}.`;
-  let hasAlert = false;
-  if (norma.includes('ITG 1000') && complex.includes('Alta')) {
-     msg += `<br><br>⚠️ <b>Aviso de Risco:</b> Empresa de alta complexidade usando ITG 1000 (Simplificado). Recomendada migração para NBC TG 1000.`;
-     hasAlert = true;
-  }
-  if (norma.includes('Completos') && complex.includes('Baixa')) {
-     msg += `<br><br>⚠️ <b>Aviso de Risco:</b> Excesso operacional usando exigência IFRS em empresa com estrutura de complexidade baixa.`;
-     hasAlert = true;
-  }
-  if (norma.includes('2002') && fin.includes('Estratégica')) {
-     msg += `<br><br>💡 <b>Dica:</b> Entidade sem fins lucrativos estruturada deve apresentar notas explicativas completas.`;
-  }
-  divAlerta.innerHTML = msg;
-  divAlerta.style.borderLeftColor = hasAlert ? 'var(--danger)' : '#0ea5e9';
+    // Grava nos campos dinâmicos pro BD e pro Parecer Técnico
+    const nf = document.getElementById('ci_itg_norma_calc');
+    const rf = document.getElementById('ci_itg_risco_calc');
+    if(nf) nf.value = norma;
+    if(rf) rf.value = risco;
+
+    const divAlerta = document.getElementById('ci_alerta_itg');
+    const divRisco = document.getElementById('ci_risco_display');
+    if(!divAlerta) return;
+
+    if(divRisco) { divRisco.innerHTML = `Nível de Risco: ${risco}`; divRisco.style.background = riscoColor; }
+
+    let msg = `<b style="font-size:14px;color:var(--primary-dark)">🎯 Norma Recomendada: ${norma}</b> <br><br>`;
+    msg += `<b>📌 Base Estratégica:</b> Aplicabilidade obrigatória complementar da <b>ITG 2000</b> (Escrituração Central). <br>`;
+    
+    // Alertas de risco consultivo
+    if (complex.includes('Alta') && finalidade.includes('Cumprimento')) {
+         msg += `<br>🚨 <b>Sinal Vermelho Automático:</b> Cliente de Alta Complexidade classificado apenas para Cumprimento Fiscal! <b>Há forte risco operacional!</b> Evitar ITG 1000.`;
+    }
+    if (tipo !== 'Cooperativa' && norma.includes('ITG 1000') && (complex.includes('Média') || finalidade.includes('Apoio a Tomada'))) {
+         msg += `<br>💡 <b>Orientação Consultiva:</b> Usar contabilidade gerencial. Pergunte-se "Essa contab é pros sócios ou pro fisco?". Migre para NBC TG.`;
+    }
+
+    divAlerta.innerHTML = msg;
+    divAlerta.style.borderLeftColor = riscoColor;
 };
 
 window.updateMovFinanceiraAlerts = () => {
@@ -1303,6 +1333,16 @@ function gerarParecer() {
   if (cliente.erp)         texto += `Sistema ERP  : ${cliente.erp}\n`;
   texto += `Bancos       : ${bancosList}\n`;
   texto += `Parcelamentos: ${parcList}\n`;
+
+  if (cliente.ci_itg_norma_calc) {
+     texto += `\nDIAGNÓSTICO CONTÁBIL (ENQUADRAMENTO TÉCNICO)\n${sep2}\n`;
+     texto += `Entidade     : ${cliente.ci_itg_tipo || '—'} (${cliente.ci_itg_porte || '—'})\n`;
+     texto += `Complexidade : ${cliente.ci_itg_complex || '—'}\n`;
+     texto += `Finalidade   : ${cliente.ci_itg_finalidade || '—'}\n`;
+     texto += `==> Norma Aplicável Recomendada : ${cliente.ci_itg_norma_calc}\n`;
+     texto += `==> Risco Técnico Operacional   : ${cliente.ci_itg_risco_calc || '—'}\n`;
+  }
+
   texto += `\nSITUAÇÃO DOCUMENTOS — ${fmtComp(state.competencia)} | Emitido em: ${hoje}\n${sep2}\n`;
 
   if (!Object.keys(saved).length) {
