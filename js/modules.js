@@ -163,6 +163,14 @@ function renderObrigacoes() {
     );
   }
 
+  // Filtros Individuais
+  const fltCod = (window.filtroCod||'').toLowerCase();
+  const fltEmp = (window.filtroEmp||'').toLowerCase();
+  const fltCnpj= (window.filtroCnpj||'').toLowerCase();
+  if (fltCod) ativos = ativos.filter(c => (c.id+'').includes(fltCod));
+  if (fltEmp) ativos = ativos.filter(c => c.nome.toLowerCase().includes(fltEmp));
+  if (fltCnpj) ativos = ativos.filter(c => c.cnpj && c.cnpj.replace(/\\D/g,'').includes(fltCnpj.replace(/\\D/g,'')));
+
   // Filtro Status 2022
   if (window.filtroSt2022) {
     ativos = ativos.filter(c => {
@@ -217,7 +225,6 @@ function renderObrigacoes() {
         <td style="text-align:center;padding:12px 8px;font-size:12px"><strong>${c.id}</strong></td>
         <td style="font-size:11px;font-weight:600;white-space:nowrap;padding:12px 8px">${c.nome}</td>
         <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;padding:12px 8px">${c.cnpj||c.cpf||''}</td>
-        <td style="padding:12px 8px"><input type="text" value="${e.resp || ''}" onblur="saveEntregaBase(${c.id}, 'resp', this.value)" style="width:60px;font-size:11px;padding:4px;border:none;background:transparent"></td>
         <td style="padding:12px 8px"><input type="text" value="${e.documentacao || ''}" onblur="saveEntregaBase(${c.id}, 'documentacao', this.value)" placeholder="C:\\PRYSCILA\\..." style="width:100%;min-width:150px;font-size:11px;padding:4px;border:none;background:transparent"></td>
         ${renderDropdown('2022')}
         ${renderDropdown('2023')}
@@ -258,11 +265,10 @@ function renderObrigacoes() {
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead style="position:sticky;top:0;background:#f8fafc;color:#64748b;z-index:2;border-bottom:2px solid #e2e8f0">
         <tr>
-          <th style="padding:12px 8px;text-align:center;font-weight:700">CÓD</th>
-          <th style="padding:12px 8px;text-align:left;font-weight:700">EMPRESA</th>
-          <th style="padding:12px 8px;text-align:left;font-weight:700">CNPJ</th>
-          <th style="padding:12px 8px;text-align:left;font-weight:700">RESP</th>
-          <th style="padding:12px 8px;text-align:left;font-weight:700">DOCUMENTAÇÃO</th>
+          <th style="padding:12px 8px;text-align:center;font-weight:700">CÓD<br><input style="width:50px;font-size:10px;padding:2px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroCod||''}" oninput="window.filtroCod=this.value;render()"></th>
+          <th style="padding:12px 8px;text-align:left;font-weight:700">EMPRESA<br><input style="width:100%;font-size:10px;padding:2px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroEmp||''}" oninput="window.filtroEmp=this.value;render()"></th>
+          <th style="padding:12px 8px;text-align:left;font-weight:700">CNPJ<br><input style="width:100%;font-size:10px;padding:2px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroCnpj||''}" oninput="window.filtroCnpj=this.value;render()"></th>
+          <th style="padding:12px 8px;text-align:left;font-weight:700">DOCUMENTAÇÃO<br>&nbsp;</th>
           <th style="padding:12px 8px;text-align:left;min-width:160px">${buildHeaderFilter('2022', window.filtroSt2022)}</th>
           <th style="padding:12px 8px;text-align:left;min-width:160px">${buildHeaderFilter('2023', window.filtroSt2023)}</th>
         </tr>

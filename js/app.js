@@ -269,6 +269,123 @@ function openModal(mode, id=null) {
     return `<label class="checkbox-item"><input type="checkbox" name="banco" value="${b.cod}" ${checked}> ${b.cod} — ${b.nome}</label>`;
   }).join('');
 
+  const getDiag = (key) => typeof c[key] === 'object' ? c[key] : { status: c[key] ? 'Pendente' : 'Regular', comp: '' };
+  const d_sped_f = getDiag('d_sped_f');
+  const d_sped_c = getDiag('d_sped_c');
+  const d_ecd = getDiag('d_ecd');
+  const d_ecf = getDiag('d_ecf');
+  const d_defis = getDiag('d_defis');
+  const d_dasnmei = getDiag('d_dasnmei');
+  const d_simples = getDiag('d_simples');
+
+  const d_div_rfb = getDiag('d_div_rfb');
+  const d_div_pgfn = getDiag('d_div_pgfn');
+  const d_div_est = getDiag('d_div_est');
+  const d_div_pref = getDiag('d_div_pref');
+
+  const getObj = (key) => typeof c[key] === 'object' && c[key] !== null ? c[key] : {};
+
+  const sumParc = ['parc_mei','parc_sn','parc_rfb','parc_pgfn','parc_est','parc_mun'].reduce((acc,k)=>{
+      const s = getObj(k).status||'';
+      if(s.includes('Em dia')||s.includes('Atrasado')||s.includes('Risco')) acc.ativos++;
+      if(s.includes('Atrasado')||s.includes('Risco')) acc.atraso++;
+      const v = parseFloat((getObj(k).valor||'').replace(/[^\\d,]/g,'').replace(',','.')) || 0;
+      acc.valor += v;
+      return acc;
+  }, {ativos:0, atraso:0, valor:0});
+  
+  const sumDeb = ['deb_rfb','deb_pgfn','deb_est','deb_mun'].reduce((acc,k)=>{
+      const v = parseFloat((getObj(k).valor||'').replace(/[^\\d,]/g,'').replace(',','.')) || 0;
+      return acc + v;
+  }, 0);
+  
+  const totalValStr = (sumParc.valor + sumDeb).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  let sitGeral = sumDeb > 100000 || sumParc.atraso > 0 ? '🔴 Crítica' : (sumDeb > 0 || sumParc.atraso > 0 ? '🟡 Atenção' : '🟢 Controlada');
+
+  const renderDebito = (key, label) => {
+    const o = getObj(key);
+    return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;box-shadow:var(--shadow);font-size:12px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9;padding-bottom:6px">
+        <strong style="color:var(--primary-dark)">${label}</strong>
+        <select id="${key}_status" style="padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border)">
+          ${['🔵 Não avaliado','🔴 Não regularizado','🟡 Em regularização','🟢 Regularizado','🔵 Monitorado','⚫ Não se aplica'].map(x=>`<option ${o.status===x?'selected':''}>${x}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Existe débito?</label><select id="${key}_existe">${['N/A','Sim','Não'].map(x=>`<option ${o.existe===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Valor Estimado</label><input id="${key}_valor" value="${o.valor||''}" placeholder="R$"></div>
+        <div class="form-group"><label>Origem (Tributo)</label><input id="${key}_origem" value="${o.origem||''}" placeholder="Ex: PIS/COFINS"></div>
+        <div class="form-group"><label>Situação</label><select id="${key}_sit">${['N/A','Em aberto','Em cobrança','Inscrito em dívida ativa'].map(x=>`<option ${o.sit===x?'selected':''}>${x}</option>`).join('')}</select></div>
+      </div>
+      <div style="border-top:1px dashed #e2e8f0;padding-top:8px">
+        <label style="font-weight:700;color:var(--text-muted);font-size:10px;text-transform:uppercase">Impacto Contábil e Fiscal</label>
+        <div class="form-grid" style="margin-top:6px">
+          <div class="form-group"><label>Contabilizado?</label><select id="${key}_contab">${['Não verificado','Sim','Não'].map(x=>`<option ${o.contab===x?'selected':''}>${x}</option>`).join('')}</select></div>
+          <div class="form-group"><label>Reconhecimento</label><select id="${key}_tipo">${['N/A','Passivo tributário','Provisão'].map(x=>`<option ${o.tipo===x?'selected':''}>${x}</option>`).join('')}</select></div>
+          <div class="form-group"><label>Afeta certidão?</label><select id="${key}_cnd">${['N/A','Sim','Não'].map(x=>`<option ${o.cnd===x?'selected':''}>${x}</option>`).join('')}</select></div>
+          <div class="form-group"><label>Risco Fiscal</label><select id="${key}_risco">${['N/A','Baixo','Médio','Alto'].map(x=>`<option ${o.risco===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+         <button type="button" class="btn btn-ghost btn-sm" style="flex:1;font-size:11px" onclick="alert('Funcionalidade de API técnica em elaboração!')">🔍 Consultar</button>
+         <button type="button" class="btn btn-ghost btn-sm" style="flex:1;font-size:11px" onclick="alert('Regularização automática em elaboração!')">⚙️ Regularizar</button>
+      </div>
+    </div>`;
+  };
+
+  const renderParcelamento = (key, label) => {
+    const o = getObj(key);
+    return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;box-shadow:var(--shadow);font-size:12px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9;padding-bottom:6px">
+        <strong style="color:var(--primary-dark)">${label}</strong>
+        <select id="${key}_status" style="padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border)">
+          ${['🔵 Não avaliado','🟢 Em dia','🟡 Atrasado','🔴 Risco Cancelamento','⚫ Não se aplica'].map(x=>`<option ${o.status===x?'selected':''}>${x}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Nº Parcelamento</label><input id="${key}_num" value="${o.num||''}"></div>
+        <div class="form-group"><label>Data Adesão</label><input type="date" id="${key}_data" value="${o.data||''}"></div>
+        <div class="form-group"><label>Valor Consol.</label><input id="${key}_valor" value="${o.valor||''}" placeholder="R$"></div>
+        <div class="form-group"><label>Parcelas (At/Tot)</label><div style="display:flex;gap:4px"><input id="${key}_p_atual" value="${o.p_atual||''}" style="width:50%" placeholder="Nº"> <input id="${key}_p_total" value="${o.p_total||''}" style="width:50%" placeholder="Tot"></div></div>
+      </div>
+      
+      <div class="form-group" style="margin-top:2px"><label>Pendência de Regularização</label><select id="${key}_pend">
+         ${['Nenhuma','Não aderiu ao parcelamento','Parcelamento cancelado','Parcelas em atraso','Divergência de saldo','Débito não identificado'].map(x=>`<option ${o.pend===x?'selected':''}>${x}</option>`).join('')}
+      </select></div>
+
+      <div style="border-top:1px dashed #e2e8f0;padding-top:8px">
+        <label style="font-weight:700;color:var(--text-muted);font-size:10px;text-transform:uppercase">Impacto Contábil</label>
+        <div class="form-grid" style="margin-top:6px">
+          <div class="form-group"><label>Contabilizado?</label><select id="${key}_contab">${['Não verificado','Sim','Não'].map(x=>`<option ${o.contab===x?'selected':''}>${x}</option>`).join('')}</select></div>
+          <div class="form-group"><label>Reconhecimento</label><select id="${key}_tipo">${['N/A','Parcelamento a pagar','Empréstimos'].map(x=>`<option ${o.tipo===x?'selected':''}>${x}</option>`).join('')}</select></div>
+          <div class="form-group"><label>Atualizou Juros?</label><select id="${key}_encargos">${['N/A','Sim','Não'].map(x=>`<option ${o.encargos===x?'selected':''}>${x}</option>`).join('')}</select></div>
+          <div class="form-group"><label>Classificação</label><select id="${key}_prazo">${['N/A','Curto Prazo','Longo Prazo','Ambos'].map(x=>`<option ${o.prazo===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+         <button type="button" class="btn btn-ghost btn-sm" style="flex:1;font-size:11px" onclick="alert('Em desenvolvimento via RPA')">📄 Emitir Guias</button>
+         <button type="button" class="btn btn-ghost btn-sm" style="flex:1;font-size:11px" onclick="alert('Em desenvolvimento via webhook')">📈 Lançar Contab</button>
+      </div>
+    </div>`;
+  };
+
+  const renderDiagRow = (key, label, obj) => {
+    return `<div style="display:flex;gap:4px;align-items:center;margin-bottom:8px">
+      <div style="width:130px;font-size:11px;font-weight:600">${label}</div>
+      <select id="${key}-st" style="width:120px;font-size:10px;padding:4px;border:1px solid #ccc;border-radius:4px;outline:none">
+        <option value="Pendente" ${obj.status==='Pendente'?'selected':''}>🔴 Pendente</option>
+        <option value="Em andamento" ${obj.status==='Em andamento'?'selected':''}>🟡 Em andamento</option>
+        <option value="Regular" ${obj.status==='Regular'?'selected':''}>🟢 Regular</option>
+        <option value="Não se aplica" ${obj.status==='Não se aplica'?'selected':''}>⚫ Não se aplica</option>
+      </select>
+      <input id="${key}-comp" value="${obj.comp||''}" placeholder="Período/Comp." style="flex:1;font-size:10px;padding:4px;border:1px solid #ccc;border-radius:4px;outline:none">
+    </div>`;
+  };
+
+  const countPendents = [d_sped_f, d_sped_c, d_ecd, d_ecf, d_defis, d_dasnmei, d_simples, d_div_rfb, d_div_pgfn, d_div_est, d_div_pref].filter(x=>x.status==='Pendente').length;
+  const risco = countPendents > 5 ? 'Alto' : countPendents > 0 ? 'Médio' : 'Baixo';
+  const riscoColor = risco === 'Alto' ? '#ef4444' : risco === 'Médio' ? '#eab308' : '#22c55e';
+
   document.getElementById('modal-container').innerHTML = `
 <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
@@ -277,14 +394,15 @@ function openModal(mode, id=null) {
       <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="tabs" id="modal-tabs">
+      <div class="tabs" id="modal-tabs" style="overflow-x:auto;white-space:nowrap;padding-bottom:5px">
         <button class="tab-btn active" onclick="switchTab(this,'tab-geral')">Dados Gerais</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-controles')">Controles Internos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-onboarding')">Validação de Documentos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-integracoes')">Integrações</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-bancos')">Bancos</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-parcelamentos')">Parcelamentos</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-parcelamentos')">Situação Fiscal Passivos e Parcelamentos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-trabalhista')">Trabalhista</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-diagnostico')">Diagnóstico</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-diagnostico')">Pendências e Regularidade</button>
       </div>
       <form id="form-cliente">
         <input type="hidden" id="f-id" value="${c.id}">
@@ -313,19 +431,161 @@ function openModal(mode, id=null) {
             <div class="form-group"><label>Qtd. de Funcionários</label><input id="f-qtd-func" type="number" value="${c.qtd_funcionarios||''}"></div>
             <div class="form-group"><label>Qtd. de Sócios</label><input id="f-socios" type="number" value="${c.qtd_socios||''}"></div>
           </div>
-          <div class="checkbox-group mt-2" style="border-top:1px solid #f1f5f9;padding-top:12px;margin-bottom:12px">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px">⚖️ Classificação para ITG (impacta o Parecer Técnico)</div>
-            <label class="checkbox-item"><input type="checkbox" id="f-sem-fins" ${c.sem_fins_lucrativos?'checked':''}> Entidade sem fins lucrativos → ITG 2002</label>
-            <label class="checkbox-item"><input type="checkbox" id="f-cooperativa" ${c.cooperativa?'checked':''}> É cooperativa → ITG 2004</label>
+          <div class="form-grid form-grid-3 mt-2" style="border-top:1px solid #f1f5f9;padding-top:12px">
+            <div class="form-group"><label>Responsável / Sócio</label><input id="f-resp" value="${c.responsavel||''}"></div>
+            <div class="form-group"><label>WhatsApp</label><input id="f-wapp" value="${c.whatsapp||''}"></div>
+            <div class="form-group"><label>E-mail</label><input id="f-email" value="${c.email||''}"></div>
           </div>
           <div class="form-group form-full mt-2"><label>Observações Gerais</label><textarea id="f-obs">${c.obs||''}</textarea></div>
         </div>
 
+        <div id="tab-controles" class="tab-panel">
+          <div style="display:flex;gap:16px;margin-bottom:20px;">
+            <!-- ESTOQUE -->
+            <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border)">
+              <div style="font-weight:700;margin-bottom:8px;font-size:12px;color:var(--primary-dark)">1. Estoque</div>
+              <div class="form-group"><label>Possui controle?</label><select id="ci_est_possui">
+                ${['Não se aplica','Sim','Não','Parcial'].map(x=>`<option ${c.ci_est_possui===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Tipo</label><select id="ci_est_tipo">
+                ${['N/A','Manual (planilha)','Sistema integrado','Não possui'].map(x=>`<option ${c.ci_est_tipo===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Inventário periódico?</label><select id="ci_est_inv">
+                ${['N/A','Sim','Não'].map(x=>`<option ${c.ci_est_inv===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Frequência</label><select id="ci_est_freq">
+                ${['N/A','Mensal','Trimestral','Anual'].map(x=>`<option ${c.ci_est_freq===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Integra fiscal/contábil?</label><select id="ci_est_integra">
+                ${['N/A','Sim','Não'].map(x=>`<option ${c.ci_est_integra===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div style="font-size:10px;color:var(--danger);margin-top:6px;font-style:italic">👉 Sem controle = Risco SPED Fiscal</div>
+            </div>
+
+            <!-- CAIXA -->
+            <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border)">
+              <div style="font-weight:700;margin-bottom:8px;font-size:12px;color:var(--primary-dark)">2. Caixa e Bancos</div>
+              <div class="form-group"><label>Controle de caixa?</label><select id="ci_cx_possui">
+                ${['Não se aplica','Sim','Não'].map(x=>`<option ${c.ci_cx_possui===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Tipo</label><select id="ci_cx_tipo">
+                ${['N/A','Caixa diário','Fluxo de caixa projetado','Extrato bancário apenas'].map(x=>`<option ${c.ci_cx_tipo===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Conciliação bancária?</label><select id="ci_cx_concil">
+                ${['N/A','Sim','Não'].map(x=>`<option ${c.ci_cx_concil===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Frequência</label><select id="ci_cx_freq">
+                ${['N/A','Diária','Semanal','Mensal'].map(x=>`<option ${c.ci_cx_freq===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Separação PF x PJ?</label><select id="ci_cx_sep">
+                ${['N/A','Sim','Não'].map(x=>`<option ${c.ci_cx_sep===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div style="font-size:10px;color:var(--danger);margin-top:6px;font-style:italic">👉 Sem separar = Contabilidade vira estimativa</div>
+            </div>
+
+            <!-- BENS -->
+            <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border)">
+              <div style="font-weight:700;margin-bottom:8px;font-size:12px;color:var(--primary-dark)">3. Controle de Bens</div>
+              <div class="form-group"><label>Possui controle?</label><select id="ci_bens_possui">
+                ${['Não se aplica','Sim','Não'].map(x=>`<option ${c.ci_bens_possui===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Registro individualizado?</label><select id="ci_bens_reg">
+                ${['N/A','Sim','Não'].map(x=>`<option ${c.ci_bens_reg===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Controla depreciação?</label><select id="ci_bens_depr">
+                ${['N/A','Sim','Não'].map(x=>`<option ${c.ci_bens_depr===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Inventário físico?</label><select id="ci_bens_inv">
+                ${['N/A','Sim','Não'].map(x=>`<option ${c.ci_bens_inv===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Atualização</label><select id="ci_bens_freq">
+                ${['N/A','Mensal','Anual','Não atualizado'].map(x=>`<option ${c.ci_bens_freq===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div style="font-size:10px;color:var(--warning);margin-top:6px;font-style:italic">👉 Sem controle = ECD/balanço distorcidos</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:16px;margin-bottom:20px;">
+            <!-- DOCS E PROC -->
+            <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border);display:flex;flex-direction:column;gap:8px">
+              <div style="font-weight:700;font-size:12px;color:var(--primary-dark)">4. Docs e Processos</div>
+              <div class="form-group"><label>Doc. Organiz?</label><select id="ci_doc_org">
+                ${['Sim','Não','Parcial'].map(x=>`<option ${c.ci_doc_org===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Formato envio</label><select id="ci_doc_forma">
+                ${['Digital','Físico','Ambos'].map(x=>`<option ${c.ci_doc_forma===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Padrão envio</label><select id="ci_doc_padrao">
+                ${['Mensal estruturado','Envio solto'].map(x=>`<option ${c.ci_doc_padrao===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Checklist do cliente?</label><select id="ci_doc_chk">
+                ${['Sim','Não'].map(x=>`<option ${c.ci_doc_chk===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px" class="form-group"><label>Rotina financeira definida?</label><select id="ci_proc_rotina">
+                ${['Sim','Não'].map(x=>`<option ${c.ci_proc_rotina===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Segregação funções?</label><select id="ci_proc_seg">
+                ${['Sim','Não'].map(x=>`<option ${c.ci_proc_seg===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div style="font-size:10px;color:var(--warning);margin-top:2px;font-style:italic">👉 Falta segreg = Risco de fraude/desorganização</div>
+            </div>
+
+            <!-- MATURIDADE / ITG -->
+            <div style="flex:2;background:#f0fdff;border:1px solid #7dd3fc;padding:12px;border-radius:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #bae6fd;padding-bottom:8px">
+                <div style="font-weight:700;font-size:14px;color:#0369a1">🚦 Classificação de Maturidade e Enquadramento (NBC/ITG)</div>
+                <div style="background:#0284c7;color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;min-width:180px;text-align:center" id="ci_nivel_display">Nível: A Calcular</div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group form-full"><label>Norma contábil definida (Obrigatória)</label><select id="ci_norma" onchange="updateCiAlerts()">
+                  ${['A Definir','ITG 2002 (Sem fins lucrativos)','ITG 2004 (Cooperativa)','ITG 1000 (Micro/Pequena)','NBC TG 1000 (Pequena/Média)','CPC/IFRS Completos'].map(x=>`<option ${c.ci_norma===x?'selected':''}>${x}</option>`).join('')}
+                </select></div>
+
+                <div class="form-group"><label>Complexidade Operacional</label><select id="ci_nivel_complex" onchange="updateCiAlerts()">
+                  ${['Baixa (Sem est/imob relevante)','Média (Um ou vários fatores mod.)','Alta (Controles múltiplos)'].map(x=>`<option ${c.ci_nivel_complex===x?'selected':''}>${x}</option>`).join('')}
+                </select></div>
+
+                <div class="form-group"><label>Finalidade da Contab.</label><select id="ci_finalidade" onchange="updateCiAlerts()">
+                  ${['Fiscal/obrigatória','Fiscal + suporte básico','Gerencial (Apoio à decisão)','Estratégica (Indicadores)'].map(x=>`<option ${c.ci_finalidade===x?'selected':''}>${x}</option>`).join('')}
+                </select></div>
+              </div>
+
+              <!-- JUSTIFICATIVA -->
+              <div style="border-top:1px dashed #7dd3fc;padding-top:12px;margin-top:12px;">
+                <label style="font-size:11px;font-weight:700;color:#0ea5e9;display:block;margin-bottom:8px;text-transform:uppercase">🧠 Justificativa Técnica do Enquadramento</label>
+                <div class="form-grid">
+                  <div class="form-group"><label>Porte da empresa</label><select id="ci_just_porte">
+                    ${['ME','EPP','Médio','Grande','Sem fins lucrativos'].map(x=>`<option ${c.ci_just_porte===x?'selected':''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Estrutura operacional</label><select id="ci_just_est">
+                    ${['Simples','Moderada','Complexa'].map(x=>`<option ${c.ci_just_est===x?'selected':''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group form-full"><label>Obrigatoriedades / Motivo da escolha</label><input id="ci_just_motivo" value="${c.ci_just_motivo||''}" placeholder="Ex: Receita br < 4M, prefere ITG 1000"></div>
+                </div>
+              </div>
+
+              <!-- ALERTA AUTOMATICO -->
+              <div class="form-group form-full mt-4">
+                <div id="ci_alerta" style="padding:12px;border-radius:6px;background:#fff;border-left:4px solid var(--warning);font-size:12px;color:var(--text);box-shadow:var(--shadow)">
+                  ⚠️ Selecione as classificações acima para conferir os alertas técnicos.
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
         <div id="tab-integracoes" class="tab-panel">
           <div class="form-grid">
-            <div class="form-group form-full"><label>Sistema ERP / Contábil</label><select id="f-erp">
-              ${['Domínio Único','Alterdata','Questor','TecWeb','Conta Azul','Omie','Bling','Manual','Outro'].map(e=>`<option ${c.erp===e?'selected':''}>${e}</option>`).join('')}
-            </select></div>
+            <div class="form-group form-full">
+              <label>ERP - Financeiro utilizado pela Empresa</label>
+              <div style="display:flex;gap:12px;align-items:center">
+                <select id="f-erp" style="flex:1" onchange="document.getElementById('f-erp-nome').style.display=(this.value==='Outro'||this.value==='Manual')?'block':'none'">
+                  ${['Domínio','Alterdata','Questor','TecWeb','Conta Azul','Omie','Bling','SCI','Emissão de Nota no Portal da prefeitura','Emissão da Nota no portal Nacional','Manual','Outro'].map(e=>`<option ${c.erp===e||(c.erp==='Domínio Único'&&e==='Domínio')?'selected':''}>${e}</option>`).join('')}
+                </select>
+                <input id="f-erp-nome" value="${c.erp_nome||''}" placeholder="Nome do sistema / Informação Adicional..." style="flex:1;display:${['Outro','Manual'].includes(c.erp)?'block':'none'};border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;">
+              </div>
+            </div>
           </div>
           <div class="form-group mt-2 form-full">
             <label>🗂️ Link da Pasta no Google Drive (documentos do cliente)</label>
@@ -341,11 +601,6 @@ function openModal(mode, id=null) {
               <label class="checkbox-item"><input type="checkbox" id="f-fin" ${c.financeiro_integrado?'checked':''}> Módulo Financeiro integrado</label>
             </div>
           </div>
-          <div class="form-grid form-grid-3 mt-2">
-            <div class="form-group"><label>Responsável / Sócio</label><input id="f-resp" value="${c.responsavel||''}"></div>
-            <div class="form-group"><label>WhatsApp</label><input id="f-wapp" value="${c.whatsapp||''}"></div>
-            <div class="form-group"><label>E-mail</label><input id="f-email" value="${c.email||''}"></div>
-          </div>
         </div>
 
         <div id="tab-bancos" class="tab-panel">
@@ -356,13 +611,49 @@ function openModal(mode, id=null) {
           <div class="form-group mt-2"><label>Outro banco (nome)</label><input id="f-banco-outro" value="${c.banco_outro||''}" placeholder="Banco Sicredi, Cresol..."></div>
         </div>
 
-        <div id="tab-parcelamentos" class="tab-panel">
-          <p class="text-muted text-sm mb-4">Marque os parcelamentos fiscais ativos. O checklist irá incluir a guia correspondente no Passivo.</p>
-          <div class="checkbox-group">
-            <label class="checkbox-item"><input type="checkbox" id="f-parc-fed" ${c.parc_federal?'checked':''}> Parcelamento Receita Federal (RFB)</label>
-            <label class="checkbox-item"><input type="checkbox" id="f-parc-est" ${c.parc_estadual?'checked':''}> Parcelamento Receita Estadual (SEFAZ)</label>
-            <label class="checkbox-item"><input type="checkbox" id="f-parc-pref" ${c.parc_pref?'checked':''}> Parcelamento Prefeitura (ISS / Município)</label>
-            <label class="checkbox-item"><input type="checkbox" id="f-parc-pgfn" ${c.parc_pgfn?'checked':''}> Parcelamento Procuradoria — PGFN / DU</label>
+        <div id="tab-parcelamentos" class="tab-panel" style="background:#f1f5f9;padding:12px;border-radius:10px">
+          <!-- TOPO RESUMO -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:20px;display:flex;gap:16px;align-items:center;box-shadow:var(--shadow)">
+             <div style="flex:1;text-align:center;border-right:1px solid #e2e8f0;padding-right:16px">
+                <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:var(--text-muted)">Débitos e Passivos Totais</div>
+                <div style="font-size:22px;font-weight:800;color:var(--text)">${totalValStr}</div>
+             </div>
+             <div style="flex:1;text-align:center;border-right:1px solid #e2e8f0;padding-right:16px">
+                <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:var(--text-muted)">Parcelamentos Ativos</div>
+                <div style="font-size:22px;font-weight:800;color:var(--primary)">${sumParc.ativos}</div>
+             </div>
+             <div style="flex:1;text-align:center;border-right:1px solid #e2e8f0;padding-right:16px">
+                <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:var(--text-muted)">Parecelamentos em Atraso</div>
+                <div style="font-size:22px;font-weight:800;color:var(--warning)">${sumParc.atraso}</div>
+             </div>
+             <div style="flex:1;text-align:center;">
+                <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:var(--text-muted)">Situação Global</div>
+                <div style="font-size:16px;font-weight:800;color:${sitGeral.includes('Crítica')?'var(--danger)':(sitGeral.includes('Atenção')?'var(--warning)':'var(--success)')}">${sitGeral}</div>
+             </div>
+          </div>
+
+          <!-- PATERCER -->
+          <div style="border:1px dashed #cbd5e1;background:#fff;border-radius:8px;padding:12px;margin-bottom:20px;">
+             <label style="font-weight:700;font-size:12px;color:var(--primary-dark);margin-bottom:8px;display:block">📌 Parecer Estratégico do Escritório</label>
+             <textarea id="parc_parecer" style="width:100%;min-height:50px;border:none;resize:none;font-size:13px;color:var(--text-muted);outline:none" placeholder="Situação Atual: Cliente possui débitos em... | Risco: Fiscal Alto... | Recomendação: Regularizar via parcelamento...">${c.parc_parecer||''}</textarea>
+          </div>
+
+          <h3 style="font-size:14px;color:var(--text);margin-bottom:12px;border-bottom:2px solid #e2e8f0;padding-bottom:6px">💣 Débitos Identificados (Sem Parcelamento)</h3>
+          <div class="cards-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+             ${renderDebito('deb_rfb', 'Receita Federal (RFB)')}
+             ${renderDebito('deb_pgfn', 'Procuradoria Geral (PGFN)')}
+             ${renderDebito('deb_est', 'Receita Estadual (SEFAZ)')}
+             ${renderDebito('deb_mun', 'Prefeitura (Município)')}
+          </div>
+
+          <h3 style="font-size:14px;color:var(--text);margin-top:24px;margin-bottom:12px;border-bottom:2px solid #e2e8f0;padding-bottom:6px">📦 Parcelamentos Ativos e Encargos</h3>
+          <div class="cards-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+             ${renderParcelamento('parc_mei', 'MEI')}
+             ${renderParcelamento('parc_sn', 'Simples Nacional')}
+             ${renderParcelamento('parc_rfb', 'RFB Geral')}
+             ${renderParcelamento('parc_pgfn', 'PGFN')}
+             ${renderParcelamento('parc_est', 'Estado')}
+             ${renderParcelamento('parc_mun', 'Município')}
           </div>
         </div>
 
@@ -374,25 +665,42 @@ function openModal(mode, id=null) {
         </div>
 
         <div id="tab-diagnostico" class="tab-panel">
-          <p class="text-muted text-sm mb-4">Diagnóstico inicial — conforme modelo C-006 do escritório.</p>
-          <div class="checkbox-group">
-            <label class="checkbox-item"><input type="checkbox" id="d-sintegra" ${c.d_sintegra?'checked':''}> Falta entrega Sintegra</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-dime" ${c.d_dime?'checked':''}> Falta entrega DIME</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-simples" ${c.d_simples?'checked':''}> Falta entrega Simples Nacional (PGDAS)</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-sped-f" ${c.d_sped_f?'checked':''}> Falta entrega SPED Fiscal</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-sped-c" ${c.d_sped_c?'checked':''}> Falta entrega SPED Contribuições</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-ecd" ${c.d_ecd?'checked':''}> ECD entregue no ano anterior</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-ecf" ${c.d_ecf?'checked':''}> ECF entregue no ano anterior</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-div-rfb" ${c.d_div_rfb?'checked':''}> Dívida sem parcelamento — RFB</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-div-pgfn" ${c.d_div_pgfn?'checked':''}> Dívida sem parcelamento — PGFN</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-div-pref" ${c.d_div_pref?'checked':''}> Dívida sem parcelamento — Prefeitura</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-div-est" ${c.d_div_est?'checked':''}> Dívida sem parcelamento — Estado</label>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:16px;display:flex;gap:20px;align-items:center">
+            <div style="min-width:100px;text-align:center;border-right:1px solid #e2e8f0;padding-right:16px">
+              <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Pendências</div>
+              <div style="font-size:22px;font-weight:bold;color:#334155">${countPendents}</div>
+            </div>
+            <div style="min-width:100px;text-align:center">
+              <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Risco Fiscal</div>
+              <div style="font-size:16px;font-weight:bold;color:${riscoColor}">${risco}</div>
+            </div>
+            <div style="flex:1;margin-left:20px">
+              <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:4px">Última Competência Analisada</div>
+              <input id="f-ultima-comp" value="${c.d_ultima_comp||''}" placeholder="Ex: Fev/2026" style="width:100%;max-width:200px;font-size:12px;padding:6px;border:1px solid #ccc;border-radius:4px;outline:none">
+            </div>
           </div>
-          <div class="checkbox-group">
-            <label class="checkbox-item"><input type="checkbox" id="d-mei-eme" ${c.d_mei_eme?'checked':''}> Perdeu condição MEI → Simples</label>
-            <label class="checkbox-item"><input type="checkbox" id="d-sn-geral" ${c.d_sn_geral?'checked':''}> Perdeu condição Simples → Regime Geral</label>
+
+          <div style="display:flex;gap:24px">
+            <div style="flex:1">
+              <h4 style="margin-bottom:12px;font-size:12px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;text-transform:uppercase;color:#475569">Obrigações Acessórias</h4>
+              ${renderDiagRow('d_sped_f', 'SPED Fiscal', d_sped_f)}
+              ${renderDiagRow('d_sped_c', 'SPED Contribuições', d_sped_c)}
+              ${renderDiagRow('d_ecd', 'ECD', d_ecd)}
+              ${renderDiagRow('d_ecf', 'ECF', d_ecf)}
+              ${renderDiagRow('d_defis', 'DEFIS', d_defis)}
+              ${renderDiagRow('d_dasnmei', 'DASNMEI', d_dasnmei)}
+              ${renderDiagRow('d_simples', 'PGDAS', d_simples)}
+            </div>
+            <div style="flex:1">
+              <h4 style="margin-bottom:12px;font-size:12px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;text-transform:uppercase;color:#475569">Situação Fiscal / Débitos</h4>
+              ${renderDiagRow('d_div_rfb', 'Dívida RFB', d_div_rfb)}
+              ${renderDiagRow('d_div_pgfn', 'Dívida PGFN', d_div_pgfn)}
+              ${renderDiagRow('d_div_est', 'Dívida Estadual', d_div_est)}
+              ${renderDiagRow('d_div_pref', 'Dívida Municipal', d_div_pref)}
+            </div>
           </div>
-          <div class="form-group mt-2"><label>Observações do Diagnóstico</label><textarea id="f-obs-diag">${c.obs_diag||''}</textarea></div>
+
+          <div class="form-group mt-4"><label>Observações do Diagnóstico</label><textarea id="f-obs-diag" style="min-height:70px;border-radius:6px">${c.obs_diag||''}</textarea></div>
         </div>
 
         <div id="tab-onboarding" class="tab-panel">
@@ -448,6 +756,8 @@ function openModal(mode, id=null) {
     const obgContainer = document.getElementById('obg-modal-content');
     if (obgContainer) obgContainer.innerHTML = '<div class="empty-state" style="padding:20px;text-align:center"><div style="font-size:24px;margin-bottom:10px">📁</div><p>Cadastre e salve o cliente primeiro para liberar o checklist de Onboarding.</p></div>';
   }
+  
+  setTimeout(updateCiAlerts, 50);
 }
 
 function closeModal() {
@@ -476,6 +786,7 @@ function saveCliente(mode) {
     tipo_operacao: document.getElementById('f-tipo').value,
     complexidade: document.getElementById('f-comp').value,
     erp: document.getElementById('f-erp').value,
+    erp_nome: (document.getElementById('f-erp-nome')||{}).value||'',
     drive_url: (document.getElementById('f-drive')||{}).value||'',
     responsavel: document.getElementById('f-resp').value,
     whatsapp: document.getElementById('f-wapp').value,
@@ -496,22 +807,75 @@ function saveCliente(mode) {
     parc_estadual: document.getElementById('f-parc-est').checked,
     parc_pref: document.getElementById('f-parc-pref').checked,
     parc_pgfn: document.getElementById('f-parc-pgfn').checked,
-    d_sintegra: document.getElementById('d-sintegra').checked,
-    d_dime: document.getElementById('d-dime').checked,
-    d_simples: document.getElementById('d-simples').checked,
-    d_sped_f: document.getElementById('d-sped-f').checked,
-    d_sped_c: document.getElementById('d-sped-c').checked,
-    d_ecd: document.getElementById('d-ecd').checked,
-    d_ecf: document.getElementById('d-ecf').checked,
-    d_div_rfb: document.getElementById('d-div-rfb').checked,
-    d_div_pgfn: document.getElementById('d-div-pgfn').checked,
-    d_div_pref: document.getElementById('d-div-pref').checked,
-    d_div_est: document.getElementById('d-div-est').checked,
-    d_mei_eme: document.getElementById('d-mei-eme').checked,
-    d_sn_geral: document.getElementById('d-sn-geral').checked,
+    d_simples: { status: document.getElementById('d_simples-st').value, comp: document.getElementById('d_simples-comp').value },
+    d_sped_f: { status: document.getElementById('d_sped_f-st').value, comp: document.getElementById('d_sped_f-comp').value },
+    d_sped_c: { status: document.getElementById('d_sped_c-st').value, comp: document.getElementById('d_sped_c-comp').value },
+    d_ecd: { status: document.getElementById('d_ecd-st').value, comp: document.getElementById('d_ecd-comp').value },
+    d_ecf: { status: document.getElementById('d_ecf-st').value, comp: document.getElementById('d_ecf-comp').value },
+    d_defis: { status: document.getElementById('d_defis-st').value, comp: document.getElementById('d_defis-comp').value },
+    d_dasnmei: { status: document.getElementById('d_dasnmei-st').value, comp: document.getElementById('d_dasnmei-comp').value },
+    d_div_rfb: { status: document.getElementById('d_div_rfb-st').value, comp: document.getElementById('d_div_rfb-comp').value },
+    d_div_pgfn: { status: document.getElementById('d_div_pgfn-st').value, comp: document.getElementById('d_div_pgfn-comp').value },
+    d_div_est: { status: document.getElementById('d_div_est-st').value, comp: document.getElementById('d_div_est-comp').value },
+    d_div_pref: { status: document.getElementById('d_div_pref-st').value, comp: document.getElementById('d_div_pref-comp').value },
+    d_ultima_comp: document.getElementById('f-ultima-comp').value,
     qtd_funcionarios: (document.getElementById('f-qtd-func')||{}).value||'',
-    sem_fins_lucrativos: (document.getElementById('f-sem-fins')||{}).checked||false,
-    cooperativa: (document.getElementById('f-cooperativa')||{}).checked||false,
+    sem_fins_lucrativos: false,
+    cooperativa: false,
+
+    // -- CONTROLES INTERNOS E ITG --
+    ci_est_possui: (document.getElementById('ci_est_possui')||{}).value,
+    ci_est_tipo: (document.getElementById('ci_est_tipo')||{}).value,
+    ci_est_inv: (document.getElementById('ci_est_inv')||{}).value,
+    ci_est_freq: (document.getElementById('ci_est_freq')||{}).value,
+    ci_est_integra: (document.getElementById('ci_est_integra')||{}).value,
+    ci_cx_possui: (document.getElementById('ci_cx_possui')||{}).value,
+    ci_cx_tipo: (document.getElementById('ci_cx_tipo')||{}).value,
+    ci_cx_concil: (document.getElementById('ci_cx_concil')||{}).value,
+    ci_cx_freq: (document.getElementById('ci_cx_freq')||{}).value,
+    ci_cx_sep: (document.getElementById('ci_cx_sep')||{}).value,
+    ci_bens_possui: (document.getElementById('ci_bens_possui')||{}).value,
+    ci_bens_reg: (document.getElementById('ci_bens_reg')||{}).value,
+    ci_bens_depr: (document.getElementById('ci_bens_depr')||{}).value,
+    ci_bens_inv: (document.getElementById('ci_bens_inv')||{}).value,
+    ci_bens_freq: (document.getElementById('ci_bens_freq')||{}).value,
+    ci_doc_org: (document.getElementById('ci_doc_org')||{}).value,
+    ci_doc_forma: (document.getElementById('ci_doc_forma')||{}).value,
+    ci_doc_padrao: (document.getElementById('ci_doc_padrao')||{}).value,
+    ci_doc_chk: (document.getElementById('ci_doc_chk')||{}).value,
+    ci_proc_rotina: (document.getElementById('ci_proc_rotina')||{}).value,
+    ci_proc_seg: (document.getElementById('ci_proc_seg')||{}).value,
+    ci_norma: (document.getElementById('ci_norma')||{}).value,
+    ci_just_porte: (document.getElementById('ci_just_porte')||{}).value,
+    ci_just_est: (document.getElementById('ci_just_est')||{}).value,
+    ci_just_motivo: (document.getElementById('ci_just_motivo')||{}).value,
+    ci_nivel_complex: (document.getElementById('ci_nivel_complex')||{}).value,
+    ci_finalidade: (document.getElementById('ci_finalidade')||{}).value,
+    // --- PARCELAMENTOS E DEBITOS ---
+    parc_parecer: (document.getElementById('parc_parecer')||{}).value||'',
+    ...(() => {
+        const getObjVal = (id) => (document.getElementById(id)||{}).value||'';
+        const parc_keys = ['parc_mei','parc_sn','parc_rfb','parc_pgfn','parc_est','parc_mun'];
+        let extras = {};
+        parc_keys.forEach(k => {
+          extras[k] = {
+            status: getObjVal(`${k}_status`), num: getObjVal(`${k}_num`), data: getObjVal(`${k}_data`),
+            valor: getObjVal(`${k}_valor`), p_atual: getObjVal(`${k}_p_atual`), p_total: getObjVal(`${k}_p_total`),
+            pend: getObjVal(`${k}_pend`), contab: getObjVal(`${k}_contab`), tipo: getObjVal(`${k}_tipo`),
+            encargos: getObjVal(`${k}_encargos`), prazo: getObjVal(`${k}_prazo`)
+          };
+        });
+        const deb_keys = ['deb_rfb','deb_pgfn','deb_est','deb_mun'];
+        deb_keys.forEach(k => {
+          extras[k] = {
+            status: getObjVal(`${k}_status`), existe: getObjVal(`${k}_existe`), valor: getObjVal(`${k}_valor`),
+            origem: getObjVal(`${k}_origem`), sit: getObjVal(`${k}_sit`), contab: getObjVal(`${k}_contab`),
+            tipo: getObjVal(`${k}_tipo`), cnd: getObjVal(`${k}_cnd`), risco: getObjVal(`${k}_risco`)
+          };
+        });
+        return extras;
+    })(),
+
     criado_em: new Date().toISOString(),
   };
 
@@ -525,6 +889,41 @@ function saveCliente(mode) {
   closeModal();
   render();
 }
+
+window.updateCiAlerts = function() {
+  const norma = document.getElementById('ci_norma')?.value || '';
+  const complex = document.getElementById('ci_nivel_complex')?.value || '';
+  const fin = document.getElementById('ci_finalidade')?.value || '';
+  const divAlerta = document.getElementById('ci_alerta');
+  const divNivel = document.getElementById('ci_nivel_display');
+  if(!divAlerta) return;
+
+  // Nível de Maturidade
+  let nivel = '🔴 1 - Informal';
+  if (fin.includes('Gerencial') || fin.includes('Estratégica')) {
+    nivel = fin.includes('Estratégica') ? '🔵 4 - Estratégico' : '🟢 3 - Estruturado';
+  } else if (fin.includes('suporte')) {
+    nivel = '🟡 2 - Em estruturação';
+  }
+  if(divNivel) divNivel.innerHTML = `Maturidade: ${nivel}`;
+
+  // Alerta Coerência
+  let msg = `<b>📌 Impactos Gerais da Escolha:</b> Necessidade rigorosa de aderência às orientações da norma ${norma.split(' ')[0]}.`;
+  let hasAlert = false;
+  if (norma.includes('ITG 1000') && complex.includes('Alta')) {
+     msg += `<br><br>⚠️ <b>Aviso de Risco:</b> Empresa de alta complexidade usando ITG 1000 (Simplificado). Recomendada migração para NBC TG 1000.`;
+     hasAlert = true;
+  }
+  if (norma.includes('Completos') && complex.includes('Baixa')) {
+     msg += `<br><br>⚠️ <b>Aviso de Risco:</b> Excesso operacional usando exigência IFRS em empresa com estrutura de complexidade baixa.`;
+     hasAlert = true;
+  }
+  if (norma.includes('2002') && fin.includes('Estratégica')) {
+     msg += `<br><br>💡 <b>Dica:</b> Entidade sem fins lucrativos estruturada deve apresentar notas explicativas completas.`;
+  }
+  divAlerta.innerHTML = msg;
+  divAlerta.style.borderLeftColor = hasAlert ? 'var(--danger)' : '#0ea5e9';
+};
 
 // ─── CHECKLIST ───
 let chkClienteId = null;

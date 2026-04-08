@@ -1,4 +1,4 @@
-﻿// ─── CLIENTES_SEED está definido em seed.js (fonte única de dados) ───
+// ─── CLIENTES_SEED está definido em seed.js (fonte única de dados) ───
 
 // ─── BANCOS FEBRABAN + BANRISUL ───
 const BANCOS = [
@@ -121,14 +121,7 @@ const C006_TEMPLATE = [
     {cod:"1398", nome:"Parecer", obs:"Elaborado pelo escritório"},
     {cod:"1399", nome:"Cartão CNPJ", obs:"Via site de consulta de CNPJ"},
   ]},
-  { section:"Parcelamentos em Andamento", items:[
-    {cod:"3502", nome:"Documento Parcelamento MEI", obs:""},
-    {cod:"3503", nome:"Documento Parcelamento Simples Nacional — RFB", obs:""},
-    {cod:"3504", nome:"Documento Parcelamento PJ Geral — RFB", obs:""},
-    {cod:"3505", nome:"Documento Parcelamento Procuradoria — DU", obs:""},
-    {cod:"3506", nome:"Documento Parcelamento Estado", obs:""},
-    {cod:"3507", nome:"Documento Parcelamento Município", obs:""},
-  ]},
+
   { section:"Parametrizações do Sistema", items:[
     {cod:"3601", nome:"ÚNICO — Cadastrar Empresa", obs:""},
     {cod:"3602", nome:"ÚNICO — Cadastrar Sócios", obs:""},
