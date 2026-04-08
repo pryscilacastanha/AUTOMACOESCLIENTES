@@ -146,6 +146,30 @@ window.filtroObrigacoes = window.filtroObrigacoes || '';
 window.filtroSt2022 = window.filtroSt2022 || '';
 window.filtroSt2023 = window.filtroSt2023 || '';
 
+window.applyObgFilters = () => {
+    const glb = (window.filtroObrigacoes||'').toLowerCase();
+    const cod = (window.filtroCod||'').toLowerCase();
+    const emp = (window.filtroEmp||'').toLowerCase();
+    const cnpj = (window.filtroCnpj||'').toLowerCase().replace(/\\D/g, '');
+    
+    document.querySelectorAll('.obrigacao-row').forEach(tr => {
+       const dCod = tr.getAttribute('data-cod').toLowerCase();
+       const dEmp = tr.getAttribute('data-emp');
+       const dCnpj = tr.getAttribute('data-cnpj').replace(/\\D/g, '');
+       const dResp = tr.getAttribute('data-resp'); // se usarmos
+       
+       let show = true;
+       // Global
+       if(glb && !dEmp.includes(glb) && !dCod.includes(glb) && !dCnpj.includes(glb) && !(dResp && dResp.includes(glb))) show = false;
+       // Individuais
+       if(cod && !dCod.includes(cod)) show = false;
+       if(emp && !dEmp.includes(emp)) show = false;
+       if(cnpj && !dCnpj.includes(cnpj)) show = false;
+       
+       tr.style.display = show ? '' : 'none';
+    });
+};
+
 function renderObrigacoes() {
   const clientes = DB.get('clientes') || [];
   const entregas = DB.get('entregas_ecd') || {};
@@ -221,7 +245,7 @@ function renderObrigacoes() {
     };
 
     return `
-      <tr style="border-bottom:1px solid var(--border)">
+      <tr class="obrigacao-row" data-cod="${c.id}" data-emp="${c.nome.toLowerCase()}" data-cnpj="${c.cnpj||''}" data-resp="${e.resp?.toLowerCase()||''}" style="border-bottom:1px solid var(--border)">
         <td style="text-align:center;padding:12px 8px;font-size:12px"><strong>${c.id}</strong></td>
         <td style="font-size:11px;font-weight:600;white-space:nowrap;padding:12px 8px">${c.nome}</td>
         <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;padding:12px 8px">${c.cnpj||c.cpf||''}</td>
@@ -253,9 +277,9 @@ function renderObrigacoes() {
     <p style="opacity:.85;font-size:12px">Controle de envio e documentação.</p>
   </div>
   <div>
-    <input type="text" placeholder="🔍 Filtrar por código, empresa, cnpj ou resp..." 
+    <input type="text" placeholder="🔍 Filtrar por código, empresa, cnpj..." 
       value="${window.filtroObrigacoes}" 
-      oninput="window.filtroObrigacoes=this.value;render()" 
+      oninput="window.filtroObrigacoes=this.value; window.applyObgFilters()" 
       style="padding:8px 14px;border-radius:20px;border:none;outline:none;font-size:13px;width:300px;color:#333">
   </div>
 </div>
@@ -265,9 +289,9 @@ function renderObrigacoes() {
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead style="position:sticky;top:0;background:#f8fafc;color:#64748b;z-index:2;border-bottom:2px solid #e2e8f0">
         <tr>
-          <th style="padding:12px 8px;text-align:center;font-weight:700">CÓD<br><input style="width:50px;font-size:10px;padding:2px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroCod||''}" oninput="window.filtroCod=this.value;render()"></th>
-          <th style="padding:12px 8px;text-align:left;font-weight:700">EMPRESA<br><input style="width:100%;font-size:10px;padding:2px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroEmp||''}" oninput="window.filtroEmp=this.value;render()"></th>
-          <th style="padding:12px 8px;text-align:left;font-weight:700">CNPJ<br><input style="width:100%;font-size:10px;padding:2px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroCnpj||''}" oninput="window.filtroCnpj=this.value;render()"></th>
+          <th style="padding:12px 8px;text-align:center;font-weight:700">CÓD<br><input style="width:100%;min-width:30px;max-width:50px;font-size:10px;padding:4px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroCod||''}" oninput="window.filtroCod=this.value; window.applyObgFilters()"></th>
+          <th style="padding:12px 8px;text-align:left;font-weight:700">EMPRESA<br><input style="width:100%;min-width:120px;font-size:10px;padding:4px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroEmp||''}" oninput="window.filtroEmp=this.value; window.applyObgFilters()"></th>
+          <th style="padding:12px 8px;text-align:left;font-weight:700">CNPJ<br><input style="width:100%;min-width:120px;font-size:10px;padding:4px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroCnpj||''}" oninput="window.filtroCnpj=this.value; window.applyObgFilters()"></th>
           <th style="padding:12px 8px;text-align:left;font-weight:700">DOCUMENTAÇÃO<br>&nbsp;</th>
           <th style="padding:12px 8px;text-align:left;min-width:160px">${buildHeaderFilter('2022', window.filtroSt2022)}</th>
           <th style="padding:12px 8px;text-align:left;min-width:160px">${buildHeaderFilter('2023', window.filtroSt2023)}</th>

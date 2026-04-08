@@ -398,7 +398,6 @@ function openModal(mode, id=null) {
         <button class="tab-btn active" onclick="switchTab(this,'tab-geral')">Dados Gerais</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-controles')">Controles Internos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-onboarding')">Validação de Documentos</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-integracoes')">Integrações</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-bancos')">Bancos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-parcelamentos')">Situação Fiscal Passivos e Parcelamentos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-trabalhista')">Trabalhista</button>
@@ -435,6 +434,17 @@ function openModal(mode, id=null) {
             <div class="form-group"><label>Responsável / Sócio</label><input id="f-resp" value="${c.responsavel||''}"></div>
             <div class="form-group"><label>WhatsApp</label><input id="f-wapp" value="${c.whatsapp||''}"></div>
             <div class="form-group"><label>E-mail</label><input id="f-email" value="${c.email||''}"></div>
+          </div>
+          <div class="form-grid mt-2" style="border-top:1px solid #f1f5f9;padding-top:12px">
+            <div class="form-group form-full">
+              <label>ERP - Financeiro utilizado pela Empresa</label>
+              <div style="display:flex;gap:12px;align-items:center">
+                <select id="f-erp" style="flex:1" onchange="document.getElementById('f-erp-nome').style.display=(this.value==='Outro'||this.value==='Manual')?'block':'none'">
+                  ${['Domínio','Alterdata','Questor','TecWeb','Conta Azul','Omie','Bling','SCI','Emissão de Nota no Portal da prefeitura','Emissão da Nota no portal Nacional','Manual','Outro'].map(e=>`<option ${c.erp===e||(c.erp==='Domínio Único'&&e==='Domínio')?'selected':''}>${e}</option>`).join('')}
+                </select>
+                <input id="f-erp-nome" value="${c.erp_nome||''}" placeholder="Nome do sistema / Informação Adicional..." style="flex:1;display:${['Outro','Manual'].includes(c.erp)?'block':'none'};border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;">
+              </div>
+            </div>
           </div>
           <div class="form-group form-full mt-2"><label>Observações Gerais</label><textarea id="f-obs">${c.obs||''}</textarea></div>
         </div>
@@ -571,34 +581,6 @@ function openModal(mode, id=null) {
                 </div>
               </div>
 
-            </div>
-          </div>
-        </div>
-
-        <div id="tab-integracoes" class="tab-panel">
-          <div class="form-grid">
-            <div class="form-group form-full">
-              <label>ERP - Financeiro utilizado pela Empresa</label>
-              <div style="display:flex;gap:12px;align-items:center">
-                <select id="f-erp" style="flex:1" onchange="document.getElementById('f-erp-nome').style.display=(this.value==='Outro'||this.value==='Manual')?'block':'none'">
-                  ${['Domínio','Alterdata','Questor','TecWeb','Conta Azul','Omie','Bling','SCI','Emissão de Nota no Portal da prefeitura','Emissão da Nota no portal Nacional','Manual','Outro'].map(e=>`<option ${c.erp===e||(c.erp==='Domínio Único'&&e==='Domínio')?'selected':''}>${e}</option>`).join('')}
-                </select>
-                <input id="f-erp-nome" value="${c.erp_nome||''}" placeholder="Nome do sistema / Informação Adicional..." style="flex:1;display:${['Outro','Manual'].includes(c.erp)?'block':'none'};border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;">
-              </div>
-            </div>
-          </div>
-          <div class="form-group mt-2 form-full">
-            <label>🗂️ Link da Pasta no Google Drive (documentos do cliente)</label>
-            <div style="display:flex;gap:8px;align-items:center">
-              <input id="f-drive" value="${c.drive_url||''}" placeholder="https://drive.google.com/drive/folders/..." style="flex:1;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px">
-              ${c.drive_url ? `<a href="${c.drive_url}" target="_blank" class="btn btn-ghost btn-sm">🔗 Abrir</a>` : ''}
-            </div>
-          </div>
-          <div class="form-group mt-2"><label>Integrações Ativas</label>
-            <div class="checkbox-group">
-              <label class="checkbox-item"><input type="checkbox" id="f-fiscal" ${c.fiscal_integrado?'checked':''}> Módulo Fiscal integrado</label>
-              <label class="checkbox-item"><input type="checkbox" id="f-folha" ${c.folha_integrada?'checked':''}> Módulo Folha integrado</label>
-              <label class="checkbox-item"><input type="checkbox" id="f-fin" ${c.financeiro_integrado?'checked':''}> Módulo Financeiro integrado</label>
             </div>
           </div>
         </div>
@@ -797,9 +779,6 @@ function saveCliente(mode) {
     qtd_socios: document.getElementById('f-socios').value,
     obs: document.getElementById('f-obs').value,
     obs_diag: document.getElementById('f-obs-diag').value,
-    fiscal_integrado: document.getElementById('f-fiscal').checked,
-    folha_integrada: document.getElementById('f-folha').checked,
-    financeiro_integrado: document.getElementById('f-fin').checked,
     tem_prolabore: document.getElementById('f-tem-prol').checked,
     tem_folha: document.getElementById('f-tem-folha').checked,
     bancos, banco_outro: document.getElementById('f-banco-outro').value,
