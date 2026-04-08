@@ -310,7 +310,13 @@ function openModal(mode, id=null) {
             <div class="form-group"><label>Inscrição Municipal</label><input id="f-im" value="${c.im||''}"></div>
             <div class="form-group"><label>Inscrição Estadual</label><input id="f-ie" value="${c.ie||''}"></div>
             <div class="form-group"><label>Faturamento Médio Mensal</label><input id="f-fat" value="${c.fat_medio||''}" placeholder="R$ 0,00"></div>
+            <div class="form-group"><label>Qtd. de Funcionários</label><input id="f-qtd-func" type="number" value="${c.qtd_funcionarios||''}"></div>
             <div class="form-group"><label>Qtd. de Sócios</label><input id="f-socios" type="number" value="${c.qtd_socios||''}"></div>
+          </div>
+          <div class="checkbox-group mt-2" style="border-top:1px solid #f1f5f9;padding-top:12px;margin-bottom:12px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px">⚖️ Classificação para ITG (impacta o Parecer Técnico)</div>
+            <label class="checkbox-item"><input type="checkbox" id="f-sem-fins" ${c.sem_fins_lucrativos?'checked':''}> Entidade sem fins lucrativos → ITG 2002</label>
+            <label class="checkbox-item"><input type="checkbox" id="f-cooperativa" ${c.cooperativa?'checked':''}> É cooperativa → ITG 2004</label>
           </div>
           <div class="form-group form-full mt-2"><label>Observações Gerais</label><textarea id="f-obs">${c.obs||''}</textarea></div>
         </div>
@@ -364,16 +370,6 @@ function openModal(mode, id=null) {
           <div class="checkbox-group">
             <label class="checkbox-item"><input type="checkbox" id="f-tem-folha" ${c.tem_folha?'checked':''}> Tem funcionários ativos (gera checklist de Folha)</label>
             <label class="checkbox-item"><input type="checkbox" id="f-tem-prol" ${c.tem_prolabore?'checked':''}> Sócios retiram Pró-labore</label>
-            <label class="checkbox-item"><input type="checkbox" id="f-tem-caixa" ${c.tem_caixa?'checked':''}> Tem controle de Caixa</label>
-            <label class="checkbox-item"><input type="checkbox" id="f-tem-est" ${c.tem_estoque?'checked':''}> Tem controle de Estoque</label>
-          </div>
-          <div class="checkbox-group mt-2" style="border-top:1px solid #f1f5f9;padding-top:12px">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px">⚖️ Classificação para ITG (impacta o Parecer Técnico)</div>
-            <label class="checkbox-item"><input type="checkbox" id="f-sem-fins" ${c.sem_fins_lucrativos?'checked':''}> Entidade sem fins lucrativos → ITG 2002</label>
-            <label class="checkbox-item"><input type="checkbox" id="f-cooperativa" ${c.cooperativa?'checked':''}> É cooperativa → ITG 2004</label>
-          </div>
-          <div class="form-grid form-grid-3 mt-2">
-            <div class="form-group"><label>Qtd. de Funcionários</label><input id="f-qtd-func" type="number" value="${c.qtd_funcionarios||''}"></div>
           </div>
         </div>
 
@@ -493,8 +489,6 @@ function saveCliente(mode) {
     fiscal_integrado: document.getElementById('f-fiscal').checked,
     folha_integrada: document.getElementById('f-folha').checked,
     financeiro_integrado: document.getElementById('f-fin').checked,
-    tem_caixa: document.getElementById('f-tem-caixa').checked,
-    tem_estoque: document.getElementById('f-tem-est').checked,
     tem_prolabore: document.getElementById('f-tem-prol').checked,
     tem_folha: document.getElementById('f-tem-folha').checked,
     bancos, banco_outro: document.getElementById('f-banco-outro').value,
