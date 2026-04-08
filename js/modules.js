@@ -135,185 +135,128 @@ const OBRIGACOES_CALENDARIO = [
   // Anuais
   { cod:'DEFIS',    nome:'DEFIS — Declaração Informações Simples', regime:['Simples Nacional'],              periodicidade:'Anual',   prazo:'31/03 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'03' },
   { cod:'DASN-MEI', nome:'DASN — Declaração Anual MEI',           regime:['MEI'],                           periodicidade:'Anual',   prazo:'31/05 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'05' },
-  { cod:'ECD',      nome:'ECD — Escrituração Contábil Digital',   regime:['Lucro Presumido','Lucro Real'],   periodicidade:'Anual',   prazo:'31/07 (ano seguinte)',                  categoria:'Contábil', anoRef:'2025', mesRef:'07' },
-  { cod:'ECF',      nome:'ECF — Escrituração Contábil Fiscal',    regime:['Lucro Presumido','Lucro Real'],   periodicidade:'Anual',   prazo:'31/07 (ano seguinte)',                  categoria:'Contábil', anoRef:'2025', mesRef:'07' },
-  { cod:'SPED-Contrib-A',nome:'SPED Contribuições (anual)',       regime:['Lucro Presumido','Lucro Real'],   periodicidade:'Anual',   prazo:'30/06 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'06' },
-  { cod:'DMED',     nome:'DMED — Declaração Planos de Saúde',     regime:['todos'],                         periodicidade:'Anual',   prazo:'28/02 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'02' },
   { cod:'DIRF',     nome:'DIRF — Declaração IR Retido',           regime:['todos'],                         periodicidade:'Anual',   prazo:'28/02 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'02' },
   { cod:'RAIS',     nome:'RAIS — Atividades Sócio-Econômicas',    regime:['todos'],                         periodicidade:'Anual',   prazo:'Março (varia por ano)',                 categoria:'Trabalhista',anoRef:'2025',mesRef:'03' },
-  { cod:'eSocial',  nome:'eSocial — Folha e Trabalhista',         regime:['todos'],                         periodicidade:'Mensal',  prazo:'Dia 7 do mês subsequente',              categoria:'Trabalhista' },
+  { cod:'eSocial',  nome:'eSocial — Folha e Trabalhista',         regime:['todos'],                         periodicidade:'Mensal',  prazo:'Dia 7 do mês subsequente',              categoria:'Trabalhista' }
 ];
 
-let obgAno = new Date().getFullYear().toString();
-let obgClienteId = null;
+let obgAno = "2023"; // Ano principal para visualização (pode ser 2022, 2023)
 
 function renderObrigacoes() {
   const clientes = DB.get('clientes') || [];
-  const ativos = clientes.filter(c => c.status === 'Ativo');
-  const anos = ['2024','2025','2026','2027'];
+  const ativos = clientes.filter(c => c.status === 'Ativo').sort((a,b)=>parseInt(a.id)-parseInt(b.id));
+  const entregas = DB.get('entregas_ecd') || {};
 
-  const selectorOptions = ativos.map(c =>
-    `<option value="${c.id}" ${obgClienteId === c.id ? 'selected' : ''}>#${c.id} — ${c.nome}</option>`
-  ).join('');
+  let rows = ativos.map(c => {
+    const e = entregas[c.id] || { anos: { '2022':{}, '2023':{}, '2024':{} }, resp: 'Aliny', constituicao: '' };
+    
+    const renderAno = (ano) => {
+      const a = e.anos[ano] || {};
+      const status = a.status || 'Pendente';
+      const docs = a.docs || [];
+      const bgColor = status.includes('Transmitida') ? 'var(--success)' : status.includes('Fechada') ? '#86efac' : status.includes('Sem Lançamento') ? '#64748b' : '#cbd5e1';
+      const color = status==='Pendente' ? '#333' : '#fff';
 
-  const obgData = DB.get('obrigacoes') || {};
+      const tagsHtml = docs.map(d => `<span class="badge" style="font-size:9px;background:#e2e8f0;color:#333;margin:1px">${d}</span>`).join('');
 
-  // Se nenhum cliente selecionado: visão geral de todos por obrigação
-  if (!obgClienteId) {
-    // Mostra resumo das anuais do ano selecionado para toda a carteira
-    const anuais = OBRIGACOES_CALENDARIO.filter(o => o.periodicidade === 'Anual');
-    const resumoRows = anuais.map(obg => {
-      const entregues = ativos.filter(c => {
-        if (!c.regime || (!obg.regime.includes(c.regime) && !obg.regime.includes('todos'))) return false;
-        const k = `${c.id}_${obg.cod}_${obgAno}`;
-        return (obgData[k] || {}).status === 'entregue';
-      });
-      const aplicavel = ativos.filter(c => obg.regime.includes('todos') || obg.regime.includes(c.regime));
-      return `<tr>
-        <td><strong>${obg.cod}</strong></td>
-        <td>${obg.nome}</td>
-        <td><span class="badge badge-${obg.categoria==='Contábil'?'purple':obg.categoria==='Trabalhista'?'blue':'green'}">${obg.categoria}</span></td>
-        <td class="text-muted">${obg.prazo}</td>
-        <td>${aplicavel.length ? `<div class="progress-bar" style="width:80px;display:inline-block"><div class="progress-fill" style="width:${Math.round(entregues.length/aplicavel.length*100)}%"></div></div> <span class="text-sm">${entregues.length}/${aplicavel.length}</span>` : '—'}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="obgClienteId='all_${obg.cod}';render()">Ver detalhe</button></td>
-      </tr>`;
-    }).join('');
+      return `
+        <td style="min-width:140px">
+          <select style="border:none;background:${bgColor};color:${color};font-size:11px;padding:4px;border-radius:4px;width:100%;font-weight:bold" onchange="saveEntrega(${c.id}, '${ano}', 'status', this.value)">
+            <option value="Pendente" ${status==='Pendente'?'selected':''}>Pendente</option>
+            <option value="Transmitida" ${status==='Transmitida'?'selected':''}>Transmitida</option>
+            <option value="Fechada sem ECD" ${status==='Fechada sem ECD'?'selected':''}>Fechada sem ECD</option>
+            <option value="Sem Lançamento p/ ${ano}" ${status.includes('Sem Lançamento')?'selected':''}>Sem Lançamento p/ ${ano}</option>
+          </select>
+        </td>
+        <td style="min-width:180px">
+          <div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">${tagsHtml}</div>
+          <button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="editDocs(${c.id}, '${ano}')">+ Docs</button>
+        </td>
+        <td style="min-width:140px">
+          <input type="text" placeholder="Data Hora" value="${a.dataHora || ''}" onblur="saveEntrega(${c.id}, '${ano}', 'dataHora', this.value)" style="width:100%;font-size:10px;padding:4px;border:1px solid var(--border);border-radius:4px">
+        </td>
+        <td style="min-width:160px">
+          <input type="text" placeholder="HASH do Recibo" value="${a.hash || ''}" onblur="saveEntrega(${c.id}, '${ano}', 'hash', this.value)" style="width:100%;font-size:10px;padding:4px;border:1px solid var(--border);border-radius:4px">
+        </td>
+      `;
+    };
 
-    return `<div class="card mb-4 flex items-center gap-3" style="padding:14px 20px;flex-wrap:wrap">
-  <span style="font-weight:600">Ano de referência:</span>
-  <select style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px" onchange="obgAno=this.value;render()">
-    ${anos.map(a => `<option ${obgAno===a?'selected':''}>${a}</option>`).join('')}
-  </select>
-  <span style="font-weight:600;margin-left:8px">Cliente:</span>
-  <select style="flex:1;min-width:260px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px" onchange="obgClienteId=this.value;render()">
-    <option value="">— Todos os clientes (visão geral) —</option>
-    ${selectorOptions}
-  </select>
-</div>
-<div class="card mb-4" style="background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff;padding:18px 24px">
-  <h3 style="font-size:15px;margin-bottom:4px">📋 Obrigações Acessórias Anuais — ${obgAno}</h3>
-  <p style="opacity:.8;font-size:12px">Selecione um cliente para controle individual ou visualize a entrega em massa.</p>
-</div>
-<div class="card">
-  <div class="table-wrap"><table>
-    <thead><tr><th>Código</th><th>Obrigação</th><th>Categoria</th><th>Prazo</th><th>Entregues</th><th>Ação</th></tr></thead>
-    <tbody>${resumoRows}</tbody>
-  </table></div>
-</div>`;
-  }
-
-  // Detalhe por cliente
-  const cliente = clientes.find(c => c.id === obgClienteId);
-  if (!cliente) { obgClienteId = null; render(); return ''; }
-
-  const obgFiltradas = OBRIGACOES_CALENDARIO.filter(o =>
-    o.regime.includes('todos') || o.regime.includes(cliente.regime)
-  );
-
-  const anuais    = obgFiltradas.filter(o => o.periodicidade === 'Anual');
-  const mensais   = obgFiltradas.filter(o => o.periodicidade === 'Mensal');
-  const meses     = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-
-  function statusIcon(s) {
-    return s==='entregue'?'✅':s==='em_atraso'?'🔴':s==='nao_se_aplica'?'—':'⏳';
-  }
-
-  // Anuais
-  const anuaisHtml = anuais.map(obg => {
-    const k = `${cliente.id}_${obg.cod}_${obgAno}`;
-    const d = obgData[k] || {};
-    return `<div class="checklist-item">
-      <div style="flex:1">
-        <div class="checklist-item-name"><strong>${obg.cod}</strong> — ${obg.nome}</div>
-        <div class="checklist-item-sub">${obg.prazo} · <span class="badge badge-${obg.categoria==='Contábil'?'purple':obg.categoria==='Trabalhista'?'blue':'green'}" style="font-size:10px">${obg.categoria}</span></div>
-      </div>
-      <select style="border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit;margin-right:8px"
-        onchange="saveObg('${k}','status',this.value)">
-        <option value="pendente"       ${(d.status||'pendente')==='pendente'       ?'selected':''}>⏳ Pendente</option>
-        <option value="entregue"       ${d.status==='entregue'       ?'selected':''}>✅ Entregue</option>
-        <option value="em_atraso"      ${d.status==='em_atraso'      ?'selected':''}>🔴 Em Atraso</option>
-        <option value="nao_se_aplica"  ${d.status==='nao_se_aplica'  ?'selected':''}>— Não se Aplica</option>
-      </select>
-      <input type="date" value="${d.data_entrega||''}" title="Data de entrega"
-        style="border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit"
-        onchange="saveObg('${k}','data_entrega',this.value)">
-    </div>`;
+    return `
+      <tr>
+        <td style="text-align:center;padding:4px"><strong>${c.id}</strong></td>
+        <td style="font-size:11px;font-weight:600;white-space:nowrap;padding:4px">${c.nome}</td>
+        <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;padding:4px">${c.cnpj||c.cpf||''}</td>
+        <td style="padding:4px"><input type="text" value="${e.resp || ''}" onblur="saveEntregaBase(${c.id}, 'resp', this.value)" style="width:60px;font-size:11px;padding:2px"></td>
+        <td style="font-size:11px;padding:4px">${e.constituicao || '01/01/2000'}</td>
+        ${renderAno('2022')}
+        ${renderAno('2023')}
+      </tr>
+    `;
   }).join('');
 
-  // Mensal grid (checkboxes por mês)
-  const mensaisHtml = mensais.map(obg => {
-    const cells = meses.map((mes, mi) => {
-      const k = `${cliente.id}_${obg.cod}_${obgAno}_${String(mi+1).padStart(2,'0')}`;
-      const d = obgData[k] || {};
-      const s = d.status || 'pendente';
-      const colors = { entregue:'#d1fae5', em_atraso:'#fee2e2', nao_se_aplica:'#f1f5f9', pendente:'#fff' };
-      return `<td style="text-align:center;padding:6px 4px;background:${colors[s]};cursor:pointer;font-size:13px"
-        title="${mes}/${obgAno} — clique para alternar"
-        onclick="toggleObgMes('${k}',this)">${statusIcon(s)}</td>`;
-    }).join('');
-    return `<tr>
-      <td style="font-size:12px;font-weight:600;white-space:nowrap;padding:6px 10px">${obg.cod}</td>
-      <td style="font-size:12px;color:var(--text-muted);padding:6px 10px">${obg.nome.substring(0,40)}</td>
-      ${cells}
-    </tr>`;
-  }).join('');
-
-  return `<div class="card mb-4 flex items-center gap-3" style="padding:14px 20px;flex-wrap:wrap">
-  <button class="btn btn-ghost btn-sm" onclick="obgClienteId=null;render()">← Voltar</button>
-  <span style="font-weight:600">Ano:</span>
-  <select style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px" onchange="obgAno=this.value;render()">
-    ${anos.map(a => `<option ${obgAno===a?'selected':''}>${a}</option>`).join('')}
-  </select>
-  <span style="font-weight:600;margin-left:8px">Cliente:</span>
-  <select style="flex:1;min-width:260px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px" onchange="obgClienteId=this.value;render()">
-    <option value="">— Todos —</option>${selectorOptions}
-  </select>
-</div>
-<div class="card mb-4" style="border-left:4px solid var(--primary);padding:14px 20px">
-  <strong>#${cliente.id} — ${cliente.nome}</strong>
-  <span class="text-muted text-sm" style="margin-left:12px">${cliente.regime} · Ano ${obgAno}</span>
+  return `
+<div class="card mb-4" style="background:linear-gradient(135deg,#312e81,#4338ca);color:#fff;padding:18px 24px">
+  <h3 style="font-size:16px;margin-bottom:4px">📋 Controle de Entregas (ECD e DEFIS)</h3>
+  <p style="opacity:.85;font-size:12px">Controle unificado de status anuais, envio de SPED e HASH dos recibos.</p>
 </div>
 
-<div class="card mb-4">
-  <div style="font-weight:700;margin-bottom:8px;font-size:14px">📋 Obrigações Anuais — ${obgAno}</div>
-  <div>${anuaisHtml || '<p class="text-muted text-sm">Nenhuma obrigação anual para este regime.</p>'}</div>
-</div>
-
-<div class="card">
-  <div style="font-weight:700;margin-bottom:8px;font-size:14px">📅 Obrigações Mensais — ${obgAno}</div>
-  <div class="table-wrap"><table>
-    <thead><tr>
-      <th>Código</th><th>Obrigação</th>
-      ${meses.map(m => `<th style="text-align:center;font-size:11px">${m}</th>`).join('')}
-    </tr></thead>
-    <tbody>${mensaisHtml}</tbody>
-  </table></div>
-  <div class="mt-2 text-sm text-muted" style="display:flex;gap:14px">
-    <span>✅ Entregue</span><span>⏳ Pendente</span><span>🔴 Em Atraso</span><span>— N/A</span>
-    <span style="margin-left:auto">Clique na célula mensal para alternar status</span>
+<div class="card" style="padding:0">
+  <div class="table-wrap" style="overflow-x:auto;max-height:65vh">
+    <table style="width:max-content;border-collapse:collapse;font-size:12px">
+      <thead style="position:sticky;top:0;background:var(--bg-side);color:#fff;z-index:2">
+        <tr>
+          <th style="padding:10px">Cód</th>
+          <th style="padding:10px">Empresa</th>
+          <th style="padding:10px">CNPJ</th>
+          <th style="padding:10px">Resp</th>
+          <th style="padding:10px">Const.</th>
+          <th style="background:#1e1b4b;padding:10px">ANO 2022</th>
+          <th style="background:#1e1b4b;padding:10px">Documentos Servidor</th>
+          <th style="background:#1e1b4b;padding:10px">Data Entrega/Hora</th>
+          <th style="background:#1e1b4b;padding:10px">HASH (2022)</th>
+          <th style="background:#312e81;padding:10px">ANO 2023</th>
+          <th style="background:#312e81;padding:10px">Documentos Servidor</th>
+          <th style="background:#312e81;padding:10px">Data Entrega/Hora</th>
+          <th style="background:#312e81;padding:10px">HASH (2023)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
   </div>
 </div>`;
 }
 
-function saveObg(key, field, val) {
-  const obgData = DB.get('obrigacoes') || {};
-  obgData[key] = obgData[key] || {};
-  obgData[key][field] = val;
-  DB.set('obrigacoes', obgData);
+function saveEntrega(clienteId, ano, campo, valor) {
+  const entregas = DB.get('entregas_ecd') || {};
+  if (!entregas[clienteId]) entregas[clienteId] = { anos: { '2022':{}, '2023':{}, '2024':{} } };
+  if (!entregas[clienteId].anos[ano]) entregas[clienteId].anos[ano] = {};
+  
+  entregas[clienteId].anos[ano][campo] = valor;
+  DB.set('entregas_ecd', entregas);
+  // Opcional: render(); 
 }
 
-function toggleObgMes(key, td) {
-  const obgData = DB.get('obrigacoes') || {};
-  obgData[key] = obgData[key] || {};
-  const ciclo = ['pendente','entregue','em_atraso','nao_se_aplica'];
-  const atual = obgData[key].status || 'pendente';
-  const prox = ciclo[(ciclo.indexOf(atual)+1) % ciclo.length];
-  obgData[key].status = prox;
-  DB.set('obrigacoes', obgData);
-  const colors = { entregue:'#d1fae5', em_atraso:'#fee2e2', nao_se_aplica:'#f1f5f9', pendente:'#fff' };
-  const icons  = { entregue:'✅', em_atraso:'🔴', nao_se_aplica:'—', pendente:'⏳' };
-  td.style.background = colors[prox];
-  td.textContent = icons[prox];
+function saveEntregaBase(clienteId, campo, valor) {
+  const entregas = DB.get('entregas_ecd') || {};
+  if (!entregas[clienteId]) entregas[clienteId] = { anos: { '2022':{}, '2023':{}, '2024':{} } };
+  
+  entregas[clienteId][campo] = valor;
+  DB.set('entregas_ecd', entregas);
+}
+
+window.editDocs = function(clienteId, ano) {
+  const entregas = DB.get('entregas_ecd') || {};
+  const current = (entregas[clienteId]?.anos[ano]?.docs) || [];
+  
+  const opts = ['BP', 'DRE', 'DLPA', 'Notas Explicativas', 'Arquivo SPED SCI', 'Recibo de Transmissão', 'Arquivo Validado ECD', 'ECF'];
+  const p = prompt('Docs para o ano ' + ano + ' (Separe por vírgula):\nEx: ' + opts.slice(0,4).join(', '), current.join(', '));
+  if (p !== null) {
+    const arr = p.split(',').map(s=>s.trim()).filter(s=>s);
+    saveEntrega(clienteId, ano, 'docs', arr);
+    render();
+  }
 }
 
 // ─── CONFIGURAÇÕES ───
