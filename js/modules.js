@@ -137,37 +137,79 @@ const OBRIGACOES_CALENDARIO = [
   { cod:'DASN-MEI', nome:'DASN — Declaração Anual MEI',           regime:['MEI'],                           periodicidade:'Anual',   prazo:'31/05 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'05' },
   { cod:'DIRF',     nome:'DIRF — Declaração IR Retido',           regime:['todos'],                         periodicidade:'Anual',   prazo:'28/02 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'02' },
   { cod:'RAIS',     nome:'RAIS — Atividades Sócio-Econômicas',    regime:['todos'],                         periodicidade:'Anual',   prazo:'Março (varia por ano)',                 categoria:'Trabalhista',anoRef:'2025',mesRef:'03' },
-  { cod:'eSocial',  nome:'eSocial — Folha e Trabalhista',         regime:['todos'],                         periodicidade:'Mensal',  prazo:'Dia 7 do mês subsequente',              categoria:'Trabalhista' }
+  { cod:'eSocial',  nome:'eSocial — Folha e Trabalhista',         regime:['todos'],                         periodicidade:'Mensal',  prazo:window.filtroObrigacoes = window.filtroObrigacoes || '';
+window.filtroCod = window.filtroCod || '';
+window.filtroEmp = window.filtroEmp || '';
+window.filtroCnpj = window.filtroCnpj || '';
+window.filtroRegime = window.filtroRegime || '';
+window.filtroStGeral = window.filtroStGeral || '';
+
+window.statusOptionsGlobal = [
+    { label: 'Transmitida', color: '#dcfce3', text: '#166534' },
+    { label: 'Em andamento', color: '#fef08a', text: '#854d0e' },
+    { label: 'Pendente', color: '#fee2e2', text: '#991b1b' },
+    { label: 'Não aplicável', color: '#f1f5f9', text: '#64748b' }
 ];
-
-let obgAno = "2023"; // Ano principal para visualização (pode ser 2022, 2023)
-
-window.filtroObrigacoes = window.filtroObrigacoes || '';
-window.filtroSt2022 = window.filtroSt2022 || '';
-window.filtroSt2023 = window.filtroSt2023 || '';
 
 window.applyObgFilters = () => {
     const glb = (window.filtroObrigacoes||'').toLowerCase();
     const cod = (window.filtroCod||'').toLowerCase();
     const emp = (window.filtroEmp||'').toLowerCase();
-    const cnpj = (window.filtroCnpj||'').toLowerCase().replace(/\\D/g, '');
+    const cnpj = (window.filtroCnpj||'').toLowerCase().replace(/\D/g, '');
+    const reg = window.filtroRegime || '';
+    const stG = window.filtroStGeral || '';
     
     document.querySelectorAll('.obrigacao-row').forEach(tr => {
        const dCod = tr.getAttribute('data-cod').toLowerCase();
        const dEmp = tr.getAttribute('data-emp');
-       const dCnpj = tr.getAttribute('data-cnpj').replace(/\\D/g, '');
-       const dResp = tr.getAttribute('data-resp'); // se usarmos
+       const dCnpj = tr.getAttribute('data-cnpj').replace(/\D/g, '');
+       const dReg = tr.getAttribute('data-regime') || '';
+       const dStGeral = tr.getAttribute('data-stgeral') || '';
        
        let show = true;
-       // Global
-       if(glb && !dEmp.includes(glb) && !dCod.includes(glb) && !dCnpj.includes(glb) && !(dResp && dResp.includes(glb))) show = false;
-       // Individuais
+       if(glb && !dEmp.includes(glb) && !dCod.includes(glb) && !dCnpj.includes(glb)) show = false;
        if(cod && !dCod.includes(cod)) show = false;
        if(emp && !dEmp.includes(emp)) show = false;
        if(cnpj && !dCnpj.includes(cnpj)) show = false;
+       if(reg && dReg !== reg) show = false;
+       if(stG && dStGeral !== stG) show = false;
        
        tr.style.display = show ? '' : 'none';
     });
+};
+
+function saveEntrega(clienteId, tipo, ano, campo, valor) {
+  const entregas = DB.get('entregas_ecd') || {};
+  const k = tipo === 'ecd' ? 'anos' : 'defis_anos';
+  if (!entregas[clienteId]) entregas[clienteId] = {};
+  if (!entregas[clienteId][k]) entregas[clienteId][k] = {};
+  if (!entregas[clienteId][k][ano]) entregas[clienteId][k][ano] = {};
+  entregas[clienteId][k][ano][campo] = valor;
+  DB.set('entregas_ecd', entregas);
+}
+
+function saveEntregaBase(clienteId, campo, valor) {
+  const entregas = DB.get('entregas_ecd') || {};
+  if (!entregas[clienteId]) entregas[clienteId] = {};
+  entregas[clienteId][campo] = valor;
+  DB.set('entregas_ecd', entregas);
+}
+
+window.updateStatusGeral = (cliId) => {
+   const tr = document.querySelector(`.obrigacao-row[data-cod="${cliId}"]`);
+   if(!tr) return;
+   const selects = tr.querySelectorAll('select.sel-status');
+   let pends = 0;
+   selects.forEach(s => {
+       if(s.value === 'Pendente' || s.value === 'Em andamento') pends++;
+   });
+   const td = tr.querySelector('.td-status-geral');
+   if(td) {
+       if (pends === 0) { td.innerHTML = '🟢 Regular'; td.style.color = 'var(--success-dark)'; tr.setAttribute('data-stgeral', 'Regular'); }
+       else if (pends === 1) { td.innerHTML = '🟡 Atenção'; td.style.color = 'var(--warning-dark)'; tr.setAttribute('data-stgeral', 'Atenção'); }
+       else { td.innerHTML = '🔴 Irregular'; td.style.color = 'var(--danger)'; tr.setAttribute('data-stgeral', 'Irregular'); }
+   }
+   if(typeof window.applyObgFilters === 'function') window.applyObgFilters();
 };
 
 function renderObrigacoes() {
@@ -176,125 +218,125 @@ function renderObrigacoes() {
 
   let ativos = clientes.filter(c => c.status === 'Ativo').sort((a,b)=>parseInt(a.id)-parseInt(b.id));
 
-  // Filtro de Busca Global
-  if (window.filtroObrigacoes) {
-    const term = window.filtroObrigacoes.toLowerCase();
-    ativos = ativos.filter(c => 
-      c.nome.toLowerCase().includes(term) || 
-      (c.id+'').includes(term) ||
-      (c.cnpj && c.cnpj.includes(term)) ||
-      (entregas[c.id] && entregas[c.id].resp && entregas[c.id].resp.toLowerCase().includes(term))
-    );
-  }
-
-  // Filtros Individuais
-  const fltCod = (window.filtroCod||'').toLowerCase();
-  const fltEmp = (window.filtroEmp||'').toLowerCase();
-  const fltCnpj= (window.filtroCnpj||'').toLowerCase();
-  if (fltCod) ativos = ativos.filter(c => (c.id+'').includes(fltCod));
-  if (fltEmp) ativos = ativos.filter(c => c.nome.toLowerCase().includes(fltEmp));
-  if (fltCnpj) ativos = ativos.filter(c => c.cnpj && c.cnpj.replace(/\\D/g,'').includes(fltCnpj.replace(/\\D/g,'')));
-
-  // Filtro Status 2022
-  if (window.filtroSt2022) {
-    ativos = ativos.filter(c => {
-      const st = entregas[c.id]?.anos?.['2022']?.status || '';
-      return window.filtroSt2022 === 'Pendente' ? (!st) : st === window.filtroSt2022;
-    });
-  }
-
-  // Filtro Status 2023
-  if (window.filtroSt2023) {
-    ativos = ativos.filter(c => {
-      const st = entregas[c.id]?.anos?.['2023']?.status || '';
-      return window.filtroSt2023 === 'Pendente' ? (!st) : st === window.filtroSt2023;
-    });
-  }
-
-  const statusOptions = [
-    { label: 'Em andamento', color: '#fef08a', text: '#854d0e' },
-    { label: 'Por realizar', color: '#fee2e2', text: '#991b1b' },
-    { label: 'Fechada sem ECD', color: '#dcfce3', text: '#166534' },
-    { label: 'Solicitar certificado Empresa', color: '#b91c1c', text: '#fff' },
-    { label: 'Solicitar NIRE', color: '#78350f', text: '#fff' },
-    { label: 'Transmitida', color: '#166534', text: '#fff' },
-    { label: 'Sem Lançamento', color: '#334155', text: '#fff' },
-    { label: 'Entrega pela Cris', color: '#15803d', text: '#fff' },
-    { label: 'Em processo de validação', color: '#e9d5ff', text: '#6b21a8' }
-  ];
-
   let rows = ativos.map(c => {
-    const e = entregas[c.id] || { anos: { '2022':{}, '2023':{} }, resp: '', documentacao: '' };
+    const e = entregas[c.id] || { anos: {}, defis_anos: {}, resp: '', documentacao: '' };
     
-    const renderDropdown = (ano) => {
-      const a = e.anos[ano] || {};
-      const status = a.status || '';
-      const opt = statusOptions.find(o => o.label === status) || { color:'#e2e8f0', text:'#333'};
+    const getAutoStatus = (tipo) => {
+        if (tipo === 'ecd') return c.regime === 'Simples Nacional' ? 'Não aplicável' : 'Pendente';
+        if (tipo === 'defis') return c.regime === 'Simples Nacional' ? 'Pendente' : 'Não aplicável';
+        return 'Pendente';
+    };
+
+    let pends = 0;
+
+    const renderDropdown = (tipo, ano) => {
+      const k = tipo === 'ecd' ? 'anos' : 'defis_anos';
+      const a = e[k]?.[ano] || {};
+      let status = a.status || '';
       
-      const optionsHtml = `<option value="" data-bg="#e2e8f0" data-tc="#333">Selecione...</option>` + statusOptions.map(o => 
+      if (!status) status = getAutoStatus(tipo);
+      
+      if (!window.statusOptionsGlobal.find(x => x.label === status)) {
+         if (status.includes('Fechada') || status.includes('Não')) status = 'Não aplicável';
+         else if (status.includes('Transmitida')) status = 'Transmitida';
+         else if (status.includes('andamento') || status.includes('validação')) status = 'Em andamento';
+         else status = 'Pendente';
+      }
+
+      if (status === 'Pendente' || status === 'Em andamento') pends++;
+      
+      const opt = window.statusOptionsGlobal.find(o => o.label === status) || { color:'#e2e8f0', text:'#64748b'};
+      
+      const optionsHtml = window.statusOptionsGlobal.map(o => 
         `<option value="${o.label}" data-bg="${o.color}" data-tc="${o.text}" ${status===o.label?'selected':''}>${o.label}</option>`
       ).join('');
 
       return `
-        <td style="min-width:160px;padding:4px">
-          <select style="border:1px solid #ccc;background:${opt.color};color:${opt.text};font-size:11px;padding:6px;border-radius:12px;width:100%;font-weight:bold;outline:none;cursor:pointer" onchange="saveEntrega(${c.id}, '${ano}', 'status', this.value); this.style.background = this.options[this.selectedIndex].getAttribute('data-bg'); this.style.color = this.options[this.selectedIndex].getAttribute('data-tc');">
+        <td style="min-width:130px;padding:4px;border-left:1px solid rgba(0,0,0,0.05)">
+          <select class="sel-status" style="border:1px solid #ccc;background:${opt.color};color:${opt.text};font-size:11px;padding:6px;border-radius:12px;width:100%;font-weight:bold;outline:none;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.05)" 
+                  onchange="saveEntrega(${c.id}, '${tipo}', '${ano}', 'status', this.value); this.style.background=this.options[this.selectedIndex].getAttribute('data-bg'); this.style.color=this.options[this.selectedIndex].getAttribute('data-tc'); window.updateStatusGeral(${c.id})">
             ${optionsHtml}
           </select>
         </td>
       `;
     };
 
+    const stGeral = pends === 0 ? '🟢 Regular' : pends === 1 ? '🟡 Atenção' : '🔴 Irregular';
+    const stGeralStr = pends === 0 ? 'Regular' : pends === 1 ? 'Atenção' : 'Irregular';
+    const stColor = pends === 0 ? 'var(--success-dark)' : pends === 1 ? 'var(--warning-dark)' : 'var(--danger)';
+
     return `
-      <tr class="obrigacao-row" data-cod="${c.id}" data-emp="${c.nome.toLowerCase()}" data-cnpj="${c.cnpj||''}" data-resp="${e.resp?.toLowerCase()||''}" style="border-bottom:1px solid var(--border)">
-        <td style="text-align:center;padding:12px 8px;font-size:12px"><strong>${c.id}</strong></td>
-        <td style="font-size:11px;font-weight:600;white-space:nowrap;padding:12px 8px">${c.nome}</td>
-        <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;padding:12px 8px">${c.cnpj||c.cpf||''}</td>
-        <td style="padding:12px 8px"><input type="text" value="${e.documentacao || ''}" onblur="saveEntregaBase(${c.id}, 'documentacao', this.value)" placeholder="C:\\PRYSCILA\\..." style="width:100%;min-width:150px;font-size:11px;padding:4px;border:none;background:transparent"></td>
-        ${renderDropdown('2022')}
-        ${renderDropdown('2023')}
+      <tr class="obrigacao-row" data-cod="${c.id}" data-emp="${c.nome.toLowerCase()}" data-cnpj="${c.cnpj||''}" data-regime="${c.regime||''}" data-stgeral="${stGeralStr}" style="border-bottom:1px solid var(--border);transition:all 0.2s;background:#fff">
+        <td style="text-align:center;padding:12px 8px;font-size:12px;background:#f8fafc;border-right:1px solid #e2e8f0"><strong>${c.id}</strong></td>
+        <td style="font-size:11px;font-weight:700;white-space:nowrap;padding:12px 8px;color:var(--text);border-right:1px solid #e2e8f0">${c.nome}</td>
+        <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;padding:12px 8px;border-right:1px solid #e2e8f0">${c.cnpj||c.cpf||''}</td>
+        <td style="font-size:10px;padding:12px 8px;white-space:nowrap;font-weight:600;border-right:1px solid #cbd5e1">
+           <span style="background:#e2e8f0;padding:4px 8px;border-radius:4px;color:#475569;display:inline-block;width:100%;text-align:center">${c.regime||'Não definido'}</span>
+        </td>
+        ${renderDropdown('ecd', '2022')}
+        ${renderDropdown('ecd', '2023')}
+        ${renderDropdown('ecd', '2024')}
+        ${renderDropdown('ecd', '2025')}
+        ${renderDropdown('defis', '2023')}
+        ${renderDropdown('defis', '2024')}
+        ${renderDropdown('defis', '2025')}
+        <td class="td-status-geral" style="text-align:center;font-weight:800;font-size:12px;color:${stColor};border-left:1px solid #cbd5e1;background:#f8fafc">${stGeral}</td>
       </tr>
     `;
   }).join('');
 
-  // Dropdown para usar nos headers
-  const buildHeaderFilter = (ano, valorFiltro) => {
-    let opts = `<option value="">Todos</option><option value="Pendente" ${valorFiltro==='Pendente'?'selected':''}>⏳ Pendentes</option>`;
-    statusOptions.forEach(o => {
-      opts += `<option value="${o.label}" ${valorFiltro===o.label?'selected':''}>${o.label}</option>`;
-    });
-    return `
-      <div style="font-weight:700;margin-bottom:4px">ANO ${ano}</div>
-      <select style="width:100%;font-size:10px;padding:2px;border:1px solid #ccc;border-radius:4px;background:#fff;color:#333;font-weight:normal" onchange="window.filtroSt${ano}=this.value;render()">
-        ${opts}
-      </select>
-    `;
-  };
-
   return `
-<div class="card mb-4 flex justify-between items-center" style="background:#3b406e;color:#fff;padding:18px 24px;flex-wrap:wrap;gap:16px">
-  <div>
-    <h3 style="font-size:16px;margin-bottom:4px">📋 Demandas e Entregas</h3>
-    <p style="opacity:.85;font-size:12px">Controle de envio e documentação.</p>
+<div class="card mb-4" style="background:linear-gradient(135deg, #1e293b, #334155);color:#fff;padding:20px 24px;border-radius:12px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1)">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+    <div>
+      <h3 style="font-size:18px;margin-bottom:6px;display:flex;align-items:center;gap:8px">📋 Painel Estratégico de Entregas</h3>
+      <p style="opacity:.85;font-size:12px;font-weight:300">Automação de inteligência fiscal: O sistema sugere as obrigações (ECD/DEFIS) e avalia o risco lendo o Regime Tributário.</p>
+    </div>
+    <div style="flex:1;min-width:300px;display:flex;gap:12px;justify-content:flex-end">
+      <input type="text" placeholder="🔍 Buscar empresa, cnpj ou código..." 
+        value="${window.filtroObrigacoes}" 
+        oninput="window.filtroObrigacoes=this.value; window.applyObgFilters()" 
+        style="padding:10px 16px;border-radius:8px;border:none;outline:none;font-size:13px;width:100%;max-width:350px;color:#333;box-shadow:0 2px 4px rgba(0,0,0,0.1)">
+    </div>
   </div>
-  <div>
-    <input type="text" placeholder="🔍 Filtrar por código, empresa, cnpj..." 
-      value="${window.filtroObrigacoes}" 
-      oninput="window.filtroObrigacoes=this.value; window.applyObgFilters()" 
-      style="padding:8px 14px;border-radius:20px;border:none;outline:none;font-size:13px;width:300px;color:#333">
+  
+  <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px">
+     <select onchange="window.filtroRegime=this.value;window.applyObgFilters()" style="padding:8px 12px;border-radius:6px;border:none;font-size:12px;color:#333;font-weight:600;min-width:160px;cursor:pointer">
+       <option value="">📂 Qualquer Regime</option>
+       <option value="Simples Nacional" ${window.filtroRegime==='Simples Nacional'?'selected':''}>Simples Nacional</option>
+       <option value="Lucro Presumido" ${window.filtroRegime==='Lucro Presumido'?'selected':''}>Lucro Presumido</option>
+       <option value="Lucro Real" ${window.filtroRegime==='Lucro Real'?'selected':''}>Lucro Real</option>
+     </select>
+     <select onchange="window.filtroStGeral=this.value;window.applyObgFilters()" style="padding:8px 12px;border-radius:6px;border:none;font-size:12px;color:#333;font-weight:600;min-width:160px;cursor:pointer">
+       <option value="">🚦 Qualquer Status Geral</option>
+       <option value="Regular" ${window.filtroStGeral==='Regular'?'selected':''}>🟢 Regular</option>
+       <option value="Atenção" ${window.filtroStGeral==='Atenção'?'selected':''}>🟡 Atenção</option>
+       <option value="Irregular" ${window.filtroStGeral==='Irregular'?'selected':''}>🔴 Irregular</option>
+     </select>
   </div>
 </div>
 
-<div class="card" style="padding:0">
+<div class="card" style="padding:0;border:none;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1)">
   <div class="table-wrap" style="overflow-x:auto;max-height:65vh">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead style="position:sticky;top:0;background:#f8fafc;color:#64748b;z-index:2;border-bottom:2px solid #e2e8f0">
-        <tr>
-          <th style="padding:12px 8px;text-align:center;font-weight:700">CÓD<br><input style="width:100%;min-width:30px;max-width:50px;font-size:10px;padding:4px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroCod||''}" oninput="window.filtroCod=this.value; window.applyObgFilters()"></th>
-          <th style="padding:12px 8px;text-align:left;font-weight:700">EMPRESA<br><input style="width:100%;min-width:120px;font-size:10px;padding:4px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroEmp||''}" oninput="window.filtroEmp=this.value; window.applyObgFilters()"></th>
-          <th style="padding:12px 8px;text-align:left;font-weight:700">CNPJ<br><input style="width:100%;min-width:120px;font-size:10px;padding:4px;font-weight:normal;border:1px solid #ccc;border-radius:4px" value="${window.filtroCnpj||''}" oninput="window.filtroCnpj=this.value; window.applyObgFilters()"></th>
-          <th style="padding:12px 8px;text-align:left;font-weight:700">DOCUMENTAÇÃO<br>&nbsp;</th>
-          <th style="padding:12px 8px;text-align:left;min-width:160px">${buildHeaderFilter('2022', window.filtroSt2022)}</th>
-          <th style="padding:12px 8px;text-align:left;min-width:160px">${buildHeaderFilter('2023', window.filtroSt2023)}</th>
+      <thead style="position:sticky;top:0;z-index:2">
+        <tr style="background:#f1f5f9;color:#475569;border-bottom:none">
+          <th rowspan="2" style="padding:12px 8px;text-align:center;font-weight:800;border-right:1px solid #e2e8f0;background:#f8fafc">CÓD</th>
+          <th rowspan="2" style="padding:12px 8px;text-align:left;font-weight:800;min-width:200px;border-right:1px solid #e2e8f0;background:#f8fafc">EMPRESA</th>
+          <th rowspan="2" style="padding:12px 8px;text-align:left;font-weight:800;min-width:140px;border-right:1px solid #e2e8f0;background:#f8fafc">CNPJ</th>
+          <th rowspan="2" style="padding:12px 8px;text-align:center;font-weight:800;min-width:130px;border-right:2px solid #cbd5e1;background:#f8fafc">REGIME TRIBUTÁRIO</th>
+          <th colspan="4" style="text-align:center;padding:10px;background:#e2e8f0;color:#334155;border-right:2px solid #cbd5e1;font-weight:800;letter-spacing:0.5px">📁 OBRIGAÇÕES CONTÁBEIS (ECD)</th>
+          <th colspan="3" style="text-align:center;padding:10px;background:#fef08a;color:#854d0e;border-right:2px solid #cbd5e1;font-weight:800;letter-spacing:0.5px">📁 SIMPLES NACIONAL (DEFIS)</th>
+          <th rowspan="2" style="padding:12px 8px;text-align:center;font-weight:800;min-width:120px;background:#f8fafc">STATUS GERAL</th>
+        </tr>
+        <tr style="background:#f8fafc;color:#64748b;border-bottom:2px solid #cbd5e1">
+          <th style="padding:8px 4px;text-align:center;font-size:10px;border-left:1px solid rgba(0,0,0,0.05)">ECD 2022</th>
+          <th style="padding:8px 4px;text-align:center;font-size:10px;border-left:1px solid rgba(0,0,0,0.05)">ECD 2023</th>
+          <th style="padding:8px 4px;text-align:center;font-size:10px;border-left:1px solid rgba(0,0,0,0.05)">ECD 2024</th>
+          <th style="padding:8px 4px;text-align:center;font-size:10px;border-left:1px solid rgba(0,0,0,0.05);border-right:2px solid #cbd5e1">ECD 2025</th>
+          <th style="padding:8px 4px;text-align:center;font-size:10px;border-left:1px solid rgba(0,0,0,0.05);background:#fef9c3;color:#854d0e">DEFIS 2023</th>
+          <th style="padding:8px 4px;text-align:center;font-size:10px;border-left:1px solid rgba(0,0,0,0.05);background:#fef9c3;color:#854d0e">DEFIS 2024</th>
+          <th style="padding:8px 4px;text-align:center;font-size:10px;border-left:1px solid rgba(0,0,0,0.05);background:#fef9c3;color:#854d0e;border-right:2px solid #cbd5e1">DEFIS 2025</th>
         </tr>
       </thead>
       <tbody>
@@ -303,24 +345,6 @@ function renderObrigacoes() {
     </table>
   </div>
 </div>`;
-}
-
-function saveEntrega(clienteId, ano, campo, valor) {
-  const entregas = DB.get('entregas_ecd') || {};
-  if (!entregas[clienteId]) entregas[clienteId] = { anos: { '2022':{}, '2023':{}, '2024':{} } };
-  if (!entregas[clienteId].anos[ano]) entregas[clienteId].anos[ano] = {};
-  
-  entregas[clienteId].anos[ano][campo] = valor;
-  DB.set('entregas_ecd', entregas);
-  // Opcional: render(); 
-}
-
-function saveEntregaBase(clienteId, campo, valor) {
-  const entregas = DB.get('entregas_ecd') || {};
-  if (!entregas[clienteId]) entregas[clienteId] = { anos: { '2022':{}, '2023':{}, '2024':{} } };
-  
-  entregas[clienteId][campo] = valor;
-  DB.set('entregas_ecd', entregas);
 }
 
 window.editDocs = function(clienteId, ano) {
