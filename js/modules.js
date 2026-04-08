@@ -145,7 +145,7 @@ const OBRIGACOES_CALENDARIO = [
 ];
 
 let obgAno = new Date().getFullYear().toString();
-// obgClienteId já declarado em app.js — reutilizamos a mesma variável
+let obgClienteId = null;
 
 function renderObrigacoes() {
   const clientes = DB.get('clientes') || [];
