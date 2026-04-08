@@ -112,6 +112,8 @@
 <script src="js/app.js"></script>
 <script src="js/modules.js"></script>
 <script src="js/seed.js"></script>
+<script src="js/chat-agent.js"></script>
+<link rel="stylesheet" href="css/chat.css">
 <script>
   function resetarDados() {
     if (!confirm('Apagar todos os dados operacionais e recarregar base dos clientes?')) return;
@@ -141,5 +143,19 @@
     }
   });
 </script>
+  <!-- AI Chat Agent Widget -->
+  <button class="ai-chat-btn" onclick="AI_AGENT.toggle()">🤖</button>
+  <div class="ai-chat-window" id="ai-chat-window">
+    <div class="ai-chat-header">
+      <div class="title">🤖 Criscontab AI</div>
+      <button class="ai-chat-close" onclick="AI_AGENT.toggle()">✖</button>
+    </div>
+    <div class="ai-chat-messages" id="ai-chat-messages"></div>
+    <div class="ai-chat-input">
+      <input type="text" id="ai-chat-input-text" placeholder="Pergunte algo à IA..." onkeypress="if(event.key==='Enter') AI_AGENT.sendMessage()">
+      <button id="ai-chat-submit" onclick="AI_AGENT.sendMessage()">Enviar</button>
+    </div>
+  </div>
+
 </body>
 </html>
