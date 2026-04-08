@@ -143,12 +143,16 @@ const OBRIGACOES_CALENDARIO = [
 let obgAno = "2023"; // Ano principal para visualização (pode ser 2022, 2023)
 
 window.filtroObrigacoes = window.filtroObrigacoes || '';
+window.filtroSt2022 = window.filtroSt2022 || '';
+window.filtroSt2023 = window.filtroSt2023 || '';
 
 function renderObrigacoes() {
   const clientes = DB.get('clientes') || [];
-  let ativos = clientes.filter(c => c.status === 'Ativo').sort((a,b)=>parseInt(a.id)-parseInt(b.id));
   const entregas = DB.get('entregas_ecd') || {};
 
+  let ativos = clientes.filter(c => c.status === 'Ativo').sort((a,b)=>parseInt(a.id)-parseInt(b.id));
+
+  // Filtro de Busca Global
   if (window.filtroObrigacoes) {
     const term = window.filtroObrigacoes.toLowerCase();
     ativos = ativos.filter(c => 
@@ -157,6 +161,22 @@ function renderObrigacoes() {
       (c.cnpj && c.cnpj.includes(term)) ||
       (entregas[c.id] && entregas[c.id].resp && entregas[c.id].resp.toLowerCase().includes(term))
     );
+  }
+
+  // Filtro Status 2022
+  if (window.filtroSt2022) {
+    ativos = ativos.filter(c => {
+      const st = entregas[c.id]?.anos?.['2022']?.status || '';
+      return window.filtroSt2022 === 'Pendente' ? (!st) : st === window.filtroSt2022;
+    });
+  }
+
+  // Filtro Status 2023
+  if (window.filtroSt2023) {
+    ativos = ativos.filter(c => {
+      const st = entregas[c.id]?.anos?.['2023']?.status || '';
+      return window.filtroSt2023 === 'Pendente' ? (!st) : st === window.filtroSt2023;
+    });
   }
 
   const statusOptions = [
@@ -205,6 +225,20 @@ function renderObrigacoes() {
     `;
   }).join('');
 
+  // Dropdown para usar nos headers
+  const buildHeaderFilter = (ano, valorFiltro) => {
+    let opts = `<option value="">Todos</option><option value="Pendente" ${valorFiltro==='Pendente'?'selected':''}>⏳ Pendentes</option>`;
+    statusOptions.forEach(o => {
+      opts += `<option value="${o.label}" ${valorFiltro===o.label?'selected':''}>${o.label}</option>`;
+    });
+    return `
+      <div style="font-weight:700;margin-bottom:4px">ANO ${ano}</div>
+      <select style="width:100%;font-size:10px;padding:2px;border:1px solid #ccc;border-radius:4px;background:#fff;color:#333;font-weight:normal" onchange="window.filtroSt${ano}=this.value;render()">
+        ${opts}
+      </select>
+    `;
+  };
+
   return `
 <div class="card mb-4 flex justify-between items-center" style="background:#3b406e;color:#fff;padding:18px 24px;flex-wrap:wrap;gap:16px">
   <div>
@@ -222,15 +256,15 @@ function renderObrigacoes() {
 <div class="card" style="padding:0">
   <div class="table-wrap" style="overflow-x:auto;max-height:65vh">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead style="position:sticky;top:0;background:#4f5286;color:#fff;z-index:2">
+      <thead style="position:sticky;top:0;background:#f8fafc;color:#64748b;z-index:2;border-bottom:2px solid #e2e8f0">
         <tr>
-          <th style="padding:12px 8px;text-align:center">Cód</th>
-          <th style="padding:12px 8px;text-align:left">Empresa</th>
-          <th style="padding:12px 8px;text-align:left">CNPJ</th>
-          <th style="padding:12px 8px;text-align:left">Resp</th>
-          <th style="padding:12px 8px;text-align:left">Documentação</th>
-          <th style="padding:12px 8px;text-align:left">ANO 2022</th>
-          <th style="padding:12px 8px;text-align:left">ANO 2023</th>
+          <th style="padding:12px 8px;text-align:center;font-weight:700">CÓD</th>
+          <th style="padding:12px 8px;text-align:left;font-weight:700">EMPRESA</th>
+          <th style="padding:12px 8px;text-align:left;font-weight:700">CNPJ</th>
+          <th style="padding:12px 8px;text-align:left;font-weight:700">RESP</th>
+          <th style="padding:12px 8px;text-align:left;font-weight:700">DOCUMENTAÇÃO</th>
+          <th style="padding:12px 8px;text-align:left;min-width:160px">${buildHeaderFilter('2022', window.filtroSt2022)}</th>
+          <th style="padding:12px 8px;text-align:left;min-width:160px">${buildHeaderFilter('2023', window.filtroSt2023)}</th>
         </tr>
       </thead>
       <tbody>
