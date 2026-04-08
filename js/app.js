@@ -372,7 +372,7 @@ function openModal(mode, id=null) {
   const renderDiagRow = (key, label, obj) => {
     return `<div style="display:flex;gap:4px;align-items:center;margin-bottom:8px">
       <div style="width:130px;font-size:11px;font-weight:600">${label}</div>
-      <select id="${key}-st" style="width:120px;font-size:10px;padding:4px;border:1px solid #ccc;border-radius:4px;outline:none">
+      <select id="${key}-st" onchange="if(typeof window.runDiagAlerts==='function') window.runDiagAlerts()" style="width:120px;font-size:10px;padding:4px;border:1px solid #ccc;border-radius:4px;outline:none">
         <option value="Pendente" ${obj.status==='Pendente'?'selected':''}>🔴 Pendente</option>
         <option value="Em andamento" ${obj.status==='Em andamento'?'selected':''}>🟡 Em andamento</option>
         <option value="Regular" ${obj.status==='Regular'?'selected':''}>🟢 Regular</option>
@@ -792,11 +792,11 @@ function openModal(mode, id=null) {
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:16px;display:flex;gap:20px;align-items:center">
             <div style="min-width:100px;text-align:center;border-right:1px solid #e2e8f0;padding-right:16px">
               <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Pendências</div>
-              <div style="font-size:22px;font-weight:bold;color:#334155">${countPendents}</div>
+              <div style="font-size:22px;font-weight:bold;color:#334155" id="diag_total_pend">${countPendents}</div>
             </div>
             <div style="min-width:100px;text-align:center">
               <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Risco Fiscal</div>
-              <div style="font-size:16px;font-weight:bold;color:${riscoColor}">${risco}</div>
+              <div style="font-size:16px;font-weight:bold;color:${riscoColor}" id="diag_risco_val">${risco}</div>
             </div>
             <div style="flex:1;margin-left:20px">
               <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:4px">Última Competência Analisada</div>
@@ -884,6 +884,7 @@ function openModal(mode, id=null) {
     if(typeof runITGDiagnosis === 'function') runITGDiagnosis();
     if(typeof updateMovFinanceiraAlerts === 'function') updateMovFinanceiraAlerts();
     if(typeof runTrabDiagnosis === 'function') runTrabDiagnosis();
+    if(typeof window.runDiagAlerts === 'function') window.runDiagAlerts();
   }, 50);
 }
 
@@ -1115,6 +1116,27 @@ window.runITGDiagnosis = () => {
 
     divAlerta.innerHTML = msg;
     divAlerta.style.borderLeftColor = riscoColor;
+};
+
+window.runDiagAlerts = () => {
+    const keys = ['d_sped_f','d_sped_c','d_ecd','d_ecf','d_defis','d_dasnmei','d_simples','d_div_rfb','d_div_pgfn','d_div_est','d_div_pref'];
+    let count = 0;
+    keys.forEach(k => {
+        const el = document.getElementById(k+'-st');
+        if (el && el.value === 'Pendente') count++;
+    });
+    
+    let risco = count > 5 ? 'Alto' : count > 0 ? 'Médio' : 'Baixo';
+    let riscoColor = count > 5 ? '#ef4444' : count > 0 ? '#eab308' : '#22c55e';
+    
+    const countEl = document.getElementById('diag_total_pend');
+    if (countEl) countEl.innerHTML = count;
+    
+    const riscoEl = document.getElementById('diag_risco_val');
+    if (riscoEl) { 
+       riscoEl.innerHTML = risco;
+       riscoEl.style.color = riscoColor;
+    }
 };
 
 window.runTrabDiagnosis = () => {
@@ -1522,6 +1544,34 @@ function gerarParecer() {
      texto += `Finalidade   : ${cliente.ci_itg_finalidade || '—'}\n`;
      texto += `==> Norma Aplicável Recomendada : ${cliente.ci_itg_norma_calc}\n`;
      texto += `==> Risco Técnico Operacional   : ${cliente.ci_itg_risco_calc || '—'}\n`;
+  }
+
+  // Seção de Pendências Fiscais (calculadas sob os dados do cliente dinamicamente)
+  const obgs = [
+    { n: 'SPED Fiscal', v: cliente.d_sped_f }, { n: 'SPED Contrib', v: cliente.d_sped_c },
+    { n: 'ECD', v: cliente.d_ecd }, { n: 'ECF', v: cliente.d_ecf },
+    { n: 'DEFIS', v: cliente.d_defis }, { n: 'DASNMEI', v: cliente.d_dasnmei },
+    { n: 'PGDAS', v: cliente.d_simples }, { n: 'Dívida RFB', v: cliente.d_div_rfb },
+    { n: 'Dívida PGFN', v: cliente.d_div_pgfn }, { n: 'Dívida Estadual', v: cliente.d_div_est },
+    { n: 'Dívida Municipal', v: cliente.d_div_pref }
+  ];
+  const pends = obgs.filter(o => o.v && o.v.status === 'Pendente');
+  const andam = obgs.filter(o => o.v && o.v.status === 'Em andamento');
+  const riscoFiscal = pends.length > 5 ? '🔴 ALTO' : pends.length > 0 ? '🟡 MÉDIO' : '🟢 BAIXO';
+  
+  texto += `\nPENDÊNCIAS E REGULARIDADE FISCAL\n${sep2}\n`;
+  texto += `Risco Fiscal Global: ${riscoFiscal} (${pends.length} pendências)\n\n`;
+  if (pends.length > 0 || andam.length > 0) {
+      if(pends.length > 0) {
+          texto += `🔴 OBRIGAÇÕES/DÉBITOS PENDENTES:\n`;
+          pends.forEach(p => texto += `     • ${p.n} (Ref: ${p.v.comp || 'N/A'})\n`);
+      }
+      if(andam.length > 0) {
+          texto += `\n🟡 EM ANDAMENTO/PARCELANDO:\n`;
+          andam.forEach(p => texto += `     • ${p.n} (Ref: ${p.v.comp || 'N/A'})\n`);
+      }
+  } else {
+      texto += `✅ Nenhuma pendência ou dívida identificada.\n`;
   }
 
   texto += `\nSITUAÇÃO DOCUMENTOS — ${fmtComp(state.competencia)} | Emitido em: ${hoje}\n${sep2}\n`;
