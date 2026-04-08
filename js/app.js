@@ -279,12 +279,12 @@ function openModal(mode, id=null) {
     <div class="modal-body">
       <div class="tabs" id="modal-tabs">
         <button class="tab-btn active" onclick="switchTab(this,'tab-geral')">Dados Gerais</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-onboarding')">Validação de Documentos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-integracoes')">Integrações</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-bancos')">Bancos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-parcelamentos')">Parcelamentos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-trabalhista')">Trabalhista</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-diagnostico')">Diagnóstico</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-onboarding')">Onboarding C-006</button>
       </div>
       <form id="form-cliente">
         <input type="hidden" id="f-id" value="${c.id}">
