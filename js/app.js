@@ -6,7 +6,10 @@
 // ─── STORAGE ───
 const DB = {
   get: k => JSON.parse(localStorage.getItem(k) || 'null'),
-  set: (k,v) => localStorage.setItem(k, JSON.stringify(v)),
+  set: (k,v) => {
+    localStorage.setItem(k, JSON.stringify(v));
+    if (window.CloudDB) window.CloudDB.push(k, v);
+  }
 };
 
 function initDB() {

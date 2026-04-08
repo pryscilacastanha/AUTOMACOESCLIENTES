@@ -408,9 +408,16 @@ function attachEvents() {
 }
 
 // ─── BOOTSTRAP (orquestrador principal) ───
-function bootstrapApp() {
+async function bootstrapApp() {
   try {
     console.log('[Bootstrap] Iniciando...');
+
+    // 0. Sincroniza estado inicial da nuvem (Supabase) localmente
+    if (window.CloudDB && typeof window.CloudDB.pullAll === 'function') {
+      console.log('[Bootstrap] Puxando dados da Nuvem...');
+      await window.CloudDB.pullAll();
+    }
+
     // 1. Inicializa storage (sem seed de clientes)
     initDB();
     console.log('[Bootstrap] initDB() OK. clientes=', (DB.get('clientes')||[]).length);
