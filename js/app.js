@@ -398,7 +398,7 @@ function openModal(mode, id=null) {
         <button class="tab-btn active" onclick="switchTab(this,'tab-geral')">Dados Gerais</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-controles')">Controles Internos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-onboarding')">Validação de Documentos</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-bancos')">Bancos</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-bancos')">Movimentações Financeiras e Bancárias</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-parcelamentos')">Situação Fiscal Passivos e Parcelamentos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-trabalhista')">Trabalhista</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-diagnostico')">Pendências e Regularidade</button>
@@ -586,11 +586,88 @@ function openModal(mode, id=null) {
         </div>
 
         <div id="tab-bancos" class="tab-panel">
-          <p class="text-muted text-sm mb-4">Selecione todos os bancos que o cliente utiliza. O checklist mensal irá gerar uma linha de extrato por banco.</p>
-          <div class="form-group"><label>Bancos (Febraban + Banrisul)</label>
-            <div class="checkbox-group">${bancosHtml}</div>
+          <div class="form-grid">
+            <div class="form-group form-full">
+              <label>Instituições Financeiras Vinculadas</label>
+              <div class="checkbox-group" style="max-height:150px;overflow-y:auto;border:1px solid #e2e8f0;padding:8px;border-radius:6px">${bancosHtml}</div>
+            </div>
+            <div class="form-group form-full"><label>Outro banco / instituição (nome livre)</label><input id="f-banco-outro" value="${c.banco_outro||''}" placeholder="Ex: Sicredi, Cresol, Conta Internacional..."></div>
           </div>
-          <div class="form-group mt-2"><label>Outro banco (nome)</label><input id="f-banco-outro" value="${c.banco_outro||''}" placeholder="Banco Sicredi, Cresol..."></div>
+
+          <!-- DIAGNOSTICO BANCARIO -->
+          <div style="background:#f8fafc;padding:16px;border-radius:8px;border:1px solid var(--border);margin-top:20px;">
+             <h3 style="font-size:14px;color:var(--primary-dark);margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">Mapeamento de Operações (Diagnóstico Avançado)</h3>
+             <div class="cards-grid" style="grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                
+                <div>
+                  <strong style="display:block;font-size:12px;margin-bottom:6px">📊 Operações Bancárias</strong>
+                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ob_simples" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ob_simples?'checked':''}> Movimentação simples (recebimentos/pagamentos)</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ob_alto_vol" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ob_alto_vol?'checked':''}> Alto volume de transações</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ob_transf" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ob_transf?'checked':''}> Transferências entre contas frequentes</label>
+                  </div>
+                </div>
+
+                <div>
+                  <strong style="display:block;font-size:12px;margin-bottom:6px">💳 Cartões de Crédito</strong>
+                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:11px"><input type="checkbox" id="mf_cc_maq" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.cc_maq?'checked':''}> Maquininha (recebimento)</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_cc_corp" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.cc_corp?'checked':''}> Cartão corporativo (despesas)</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_cc_antec" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.cc_antec?'checked':''}> Antecipação de recebíveis</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_cc_multi" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.cc_multi?'checked':''}> Múltiplas operadoras (Cielo, Stone, etc.)</label>
+                  </div>
+                </div>
+
+                <div>
+                  <strong style="display:block;font-size:12px;margin-bottom:6px">💰 Empréstimos e Financiamentos</strong>
+                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ef_banc" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ef_banc?'checked':''}> Empréstimos bancários</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ef_finan" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ef_finan?'checked':''}> Financiamentos (veículos, máquinas, etc.)</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ef_capgiro" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ef_capgiro?'checked':''}> Capital de giro</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ef_reneg" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ef_reneg?'checked':''}> Renegociações / parcelamentos ativos</label>
+                  </div>
+                </div>
+
+                <div>
+                  <strong style="display:block;font-size:12px;margin-bottom:6px">📈 Investimentos e Aplicações</strong>
+                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ia_auto" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ia_auto?'checked':''}> Aplicações automáticas (CDB, RDB)</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ia_fundo" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ia_fundo?'checked':''}> Fundos de investimento</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ia_td" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ia_td?'checked':''}> Tesouro direto</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ia_conta" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ia_conta?'checked':''}> Conta remunerada</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_ia_outras" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ia_outras?'checked':''}> Investimentos em outras empresas</label>
+                  </div>
+                </div>
+
+                <div>
+                  <strong style="display:block;font-size:12px;margin-bottom:6px">🧾 Operações Específicas</strong>
+                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:11px"><input type="checkbox" id="mf_oe_cons" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.oe_cons?'checked':''}> Consórcios</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_oe_moeda" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.oe_moeda?'checked':''}> Operações em moeda estrangeira</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_oe_pix" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.oe_pix?'checked':''}> Recebimentos via PIX estruturado</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_oe_subv" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.oe_subv?'checked':''}> Subvenções / incentivos financeiros</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_oe_cripto" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.oe_cripto?'checked':''}> Criptomoedas</label>
+                  </div>
+                </div>
+
+                <div>
+                  <strong style="display:block;font-size:12px;color:var(--warning);margin-bottom:6px">⚠️ Situações de Atenção Contábil</strong>
+                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:11px"><input type="checkbox" id="mf_sa_mistura" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.sa_mistura?'checked':''}> Conta pessoal misturada com PJ</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_sa_faltacomp" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.sa_faltacomp?'checked':''}> Falta de extratos completos</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_sa_naoident" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.sa_naoident?'checked':''}> Movimentação não identificada</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_sa_saque" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.sa_saque?'checked':''}> Alto volume de saques</label>
+                    <label style="font-size:11px"><input type="checkbox" id="mf_sa_multi" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.sa_multi?'checked':''}> Uso de múltiplas contas sem controle</label>
+                  </div>
+                </div>
+
+             </div>
+
+             <!-- ALERT CONTAINER -->
+             <div id="mf_alerta" style="padding:16px;border-radius:8px;background:#fff;border:1px solid #cbd5e1;font-size:12px;color:var(--text);box-shadow:var(--shadow)">
+               ⚠️ Preencha o mapeamento acima para gerar um diagnóstico automático.
+             </div>
+          </div>
         </div>
 
         <div id="tab-parcelamentos" class="tab-panel" style="background:#f1f5f9;padding:12px;border-radius:10px">
@@ -738,8 +815,10 @@ function openModal(mode, id=null) {
     const obgContainer = document.getElementById('obg-modal-content');
     if (obgContainer) obgContainer.innerHTML = '<div class="empty-state" style="padding:20px;text-align:center"><div style="font-size:24px;margin-bottom:10px">📁</div><p>Cadastre e salve o cliente primeiro para liberar o checklist de Onboarding.</p></div>';
   }
-  
-  setTimeout(updateCiAlerts, 50);
+  setTimeout(() => {
+    if(typeof updateCiAlerts === 'function') updateCiAlerts();
+    if(typeof updateMovFinanceiraAlerts === 'function') updateMovFinanceiraAlerts();
+  }, 50);
 }
 
 function closeModal() {
@@ -830,6 +909,15 @@ function saveCliente(mode) {
     ci_just_motivo: (document.getElementById('ci_just_motivo')||{}).value,
     ci_nivel_complex: (document.getElementById('ci_nivel_complex')||{}).value,
     ci_finalidade: (document.getElementById('ci_finalidade')||{}).value,
+    ...(() => {
+        let mf = {};
+        ['ob_simples','ob_alto_vol','ob_transf','cc_maq','cc_corp','cc_antec','cc_multi',
+         'ef_banc','ef_finan','ef_capgiro','ef_reneg','ia_auto','ia_fundo','ia_td','ia_conta','ia_outras',
+         'oe_cons','oe_moeda','oe_pix','oe_subv','oe_cripto','sa_mistura','sa_faltacomp','sa_naoident','sa_saque','sa_multi'].forEach(id => {
+            mf[id] = document.getElementById('mf_'+id) ? document.getElementById('mf_'+id).checked : false;
+        });
+        return { mov_fin: mf };
+    })(),
     // --- PARCELAMENTOS E DEBITOS ---
     parc_parecer: (document.getElementById('parc_parecer')||{}).value||'',
     ...(() => {
@@ -902,6 +990,76 @@ window.updateCiAlerts = function() {
   }
   divAlerta.innerHTML = msg;
   divAlerta.style.borderLeftColor = hasAlert ? 'var(--danger)' : '#0ea5e9';
+};
+
+window.updateMovFinanceiraAlerts = () => {
+    let riscos = [];
+    let acoes = [];
+    let tags = [];
+    
+    // Regras de detecção baseadas na solicitação
+    if (document.getElementById('mf_cc_maq')?.checked) { tags.push('operações com cartão'); }
+    if (document.getElementById('mf_cc_antec')?.checked) { 
+        tags.push('antecipação'); 
+        riscos.push('necessidade de controle de juros financeiros na antecipação');
+        riscos.push('possível divergência de receitas (BRUTO vs LÍQUIDO)');
+        acoes.push('sugerir conta transitória + classificação de taxa financeira');
+    }
+    if (document.getElementById('mf_ef_banc')?.checked || document.getElementById('mf_ef_finan')?.checked || document.getElementById('mf_ef_capgiro')?.checked) {
+        tags.push('financiamento ativo');
+        riscos.push('necessidade de controle de juros apropriados');
+        acoes.push('criar obrigação: controle de juros a transcorrer + passivo exigível');
+        acoes.push('validar contratos financeiros / tabela SAC/PRICE');
+    }
+    if (document.getElementById('mf_ia_auto')?.checked || document.getElementById('mf_ia_fundo')?.checked || document.getElementById('mf_ia_td')?.checked || document.getElementById('mf_ia_conta')?.checked || document.getElementById('mf_ia_outras')?.checked) {
+        tags.push('aplicações financeiras');
+        riscos.push('conciliação complexa de apuração de rendimentos e IR retido');
+        acoes.push('exigir: classificação contábil detalhada + retenção de rendimentos/IRRF');
+    }
+    if (document.getElementById('mf_ob_alto_vol')?.checked) {
+        tags.push('alto volume de transações');
+        riscos.push('fechamento contábil e conciliação morosas');
+        acoes.push('ativar conciliação bancária avançada (Automação OFX)');
+    }
+    if (document.getElementById('mf_sa_mistura')?.checked) {
+        tags.push('conta pessoal misturada');
+        riscos.push('alto risco de presunção de receita pela RFB e quebra da Entidade');
+        acoes.push('notificar cliente formalmente sobre separação patrimonial PFxPJ');
+    }
+    if (document.getElementById('mf_oe_cripto')?.checked || document.getElementById('mf_oe_moeda')?.checked) {
+        tags.push('cripto / moeda estrangeira');
+        riscos.push('variação cambial não controlada / IN 1888');
+        acoes.push('exigir controle em planilha auxiliar de variação ativa/passiva');
+    }
+
+    const painel = document.getElementById('mf_alerta');
+    if (!painel) return;
+    
+    // remover duplicatas
+    riscos = [...new Set(riscos)];
+    acoes = [...new Set(acoes)];
+    
+    if (tags.length === 0 && riscos.length === 0 && acoes.length === 0) {
+        painel.innerHTML = '⚠️ Selecione as movimentações bancárias acima para gerar o diagnóstico automático de Conta. Recomenda-se preenchimento diligente.';
+        painel.style.borderLeft = '4px solid #cbd5e1';
+        return;
+    }
+    
+    painel.style.borderLeft = '4px solid ' + (riscos.length > 2 ? 'var(--danger)' : 'var(--warning)');
+    painel.innerHTML = `
+        <div style="margin-bottom:12px;font-size:15px;color:var(--primary-dark)"><strong>🧠 Diagnóstico Contábil Bancário Automatizado:</strong></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;background:#f1f5f9;padding:8px;border-radius:4px">
+           O cliente possui <b>${tags.join(' + ')}</b>.
+        </div>
+        ${riscos.length > 0 ? `<div style="color:var(--danger);margin-bottom:12px">
+            <strong style="display:flex;align-items:center;gap:6px;margin-bottom:4px">⚠️ Risco Fiscal e Operacional:</strong>
+            <ul style="margin-left:18px;margin-top:2px">${riscos.map(r=>`<li style="margin-bottom:2px">${r}</li>`).join('')}</ul>
+        </div>` : ''}
+        ${acoes.length > 0 ? `<div style="color:var(--success-dark)">
+            <strong style="display:flex;align-items:center;gap:6px;margin-bottom:4px">📌 Ação Recomendada:</strong>
+            <ul style="margin-left:18px;margin-top:2px">${acoes.map(a=>`<li style="margin-bottom:2px">${a}</li>`).join('')}</ul>
+        </div>` : ''}
+    `;
 };
 
 // ─── CHECKLIST ───
