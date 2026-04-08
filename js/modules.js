@@ -147,77 +147,72 @@ function renderObrigacoes() {
   const ativos = clientes.filter(c => c.status === 'Ativo').sort((a,b)=>parseInt(a.id)-parseInt(b.id));
   const entregas = DB.get('entregas_ecd') || {};
 
-  let rows = ativos.map(c => {
-    const e = entregas[c.id] || { anos: { '2022':{}, '2023':{}, '2024':{} }, resp: 'Aliny', constituicao: '' };
-    
-    const renderAno = (ano) => {
-      const a = e.anos[ano] || {};
-      const status = a.status || 'Pendente';
-      const docs = a.docs || [];
-      const bgColor = status.includes('Transmitida') ? 'var(--success)' : status.includes('Fechada') ? '#86efac' : status.includes('Sem Lançamento') ? '#64748b' : '#cbd5e1';
-      const color = status==='Pendente' ? '#333' : '#fff';
+  const statusOptions = [
+    { label: 'Em andamento', color: '#fef08a', text: '#854d0e' },
+    { label: 'Por realizar', color: '#fee2e2', text: '#991b1b' },
+    { label: 'Fechada sem ECD', color: '#dcfce3', text: '#166534' },
+    { label: 'Solicitar certificado Empresa', color: '#b91c1c', text: '#fff' },
+    { label: 'Solicitar NIRE', color: '#78350f', text: '#fff' },
+    { label: 'Transmitida', color: '#166534', text: '#fff' },
+    { label: 'Sem Lançamento', color: '#334155', text: '#fff' },
+    { label: 'Entrega pela Cris', color: '#15803d', text: '#fff' },
+    { label: 'Em processo de validação', color: '#e9d5ff', text: '#6b21a8' }
+  ];
 
-      const tagsHtml = docs.map(d => `<span class="badge" style="font-size:9px;background:#e2e8f0;color:#333;margin:1px">${d}</span>`).join('');
+  let rows = ativos.map(c => {
+    const e = entregas[c.id] || { anos: { '2022':{}, '2023':{} }, resp: '', constituicao: '', documentacao: '' };
+    
+    const renderDropdown = (ano) => {
+      const a = e.anos[ano] || {};
+      const status = a.status || '';
+      const opt = statusOptions.find(o => o.label === status) || { color:'#e2e8f0', text:'#333'};
+      
+      const optionsHtml = `<option value="">Selecione...</option>` + statusOptions.map(o => 
+        `<option value="${o.label}" ${status===o.label?'selected':''}>${o.label}</option>`
+      ).join('');
 
       return `
-        <td style="min-width:140px">
-          <select style="border:none;background:${bgColor};color:${color};font-size:11px;padding:4px;border-radius:4px;width:100%;font-weight:bold" onchange="saveEntrega(${c.id}, '${ano}', 'status', this.value)">
-            <option value="Pendente" ${status==='Pendente'?'selected':''}>Pendente</option>
-            <option value="Transmitida" ${status==='Transmitida'?'selected':''}>Transmitida</option>
-            <option value="Fechada sem ECD" ${status==='Fechada sem ECD'?'selected':''}>Fechada sem ECD</option>
-            <option value="Sem Lançamento p/ ${ano}" ${status.includes('Sem Lançamento')?'selected':''}>Sem Lançamento p/ ${ano}</option>
+        <td style="min-width:160px;padding:4px">
+          <select style="border:1px solid #ccc;background:${opt.color};color:${opt.text};font-size:11px;padding:6px;border-radius:12px;width:100%;font-weight:bold;outline:none;cursor:pointer" onchange="saveEntrega(${c.id}, '${ano}', 'status', this.value);render()">
+            ${optionsHtml}
           </select>
-        </td>
-        <td style="min-width:180px">
-          <div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">${tagsHtml}</div>
-          <button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="editDocs(${c.id}, '${ano}')">+ Docs</button>
-        </td>
-        <td style="min-width:140px">
-          <input type="text" placeholder="Data Hora" value="${a.dataHora || ''}" onblur="saveEntrega(${c.id}, '${ano}', 'dataHora', this.value)" style="width:100%;font-size:10px;padding:4px;border:1px solid var(--border);border-radius:4px">
-        </td>
-        <td style="min-width:160px">
-          <input type="text" placeholder="HASH do Recibo" value="${a.hash || ''}" onblur="saveEntrega(${c.id}, '${ano}', 'hash', this.value)" style="width:100%;font-size:10px;padding:4px;border:1px solid var(--border);border-radius:4px">
         </td>
       `;
     };
 
     return `
-      <tr>
-        <td style="text-align:center;padding:4px"><strong>${c.id}</strong></td>
-        <td style="font-size:11px;font-weight:600;white-space:nowrap;padding:4px">${c.nome}</td>
-        <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;padding:4px">${c.cnpj||c.cpf||''}</td>
-        <td style="padding:4px"><input type="text" value="${e.resp || ''}" onblur="saveEntregaBase(${c.id}, 'resp', this.value)" style="width:60px;font-size:11px;padding:2px"></td>
-        <td style="font-size:11px;padding:4px">${e.constituicao || '01/01/2000'}</td>
-        ${renderAno('2022')}
-        ${renderAno('2023')}
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="text-align:center;padding:12px 8px;font-size:12px"><strong>${c.id}</strong></td>
+        <td style="font-size:11px;font-weight:600;white-space:nowrap;padding:12px 8px">${c.nome}</td>
+        <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;padding:12px 8px">${c.cnpj||c.cpf||''}</td>
+        <td style="padding:12px 8px"><input type="text" value="${e.resp || ''}" onblur="saveEntregaBase(${c.id}, 'resp', this.value)" style="width:60px;font-size:11px;padding:4px;border:none;background:transparent"></td>
+        <td style="padding:12px 8px"><input type="text" value="${e.documentacao || ''}" onblur="saveEntregaBase(${c.id}, 'documentacao', this.value)" placeholder="C:\\PRYSCILA\\..." style="width:100%;min-width:150px;font-size:11px;padding:4px;border:none;background:transparent"></td>
+        <td style="font-size:11px;padding:12px 8px"><input type="text" value="${e.constituicao || ''}" onblur="saveEntregaBase(${c.id}, 'constituicao', this.value)" placeholder="DD/MM/AAAA" style="width:80px;font-size:11px;padding:4px;border:none;background:transparent"></td>
+        ${renderDropdown('2022')}
+        ${renderDropdown('2023')}
       </tr>
     `;
   }).join('');
 
   return `
-<div class="card mb-4" style="background:linear-gradient(135deg,#312e81,#4338ca);color:#fff;padding:18px 24px">
-  <h3 style="font-size:16px;margin-bottom:4px">📋 Controle de Entregas (ECD e DEFIS)</h3>
-  <p style="opacity:.85;font-size:12px">Controle unificado de status anuais, envio de SPED e HASH dos recibos.</p>
+<div class="card mb-4" style="background:#3b406e;color:#fff;padding:18px 24px">
+  <h3 style="font-size:16px;margin-bottom:4px">📋 Demandas e Entregas</h3>
+  <p style="opacity:.85;font-size:12px">Controle de envio e documentação.</p>
 </div>
 
 <div class="card" style="padding:0">
   <div class="table-wrap" style="overflow-x:auto;max-height:65vh">
-    <table style="width:max-content;border-collapse:collapse;font-size:12px">
-      <thead style="position:sticky;top:0;background:var(--bg-side);color:#fff;z-index:2">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead style="position:sticky;top:0;background:#4f5286;color:#fff;z-index:2">
         <tr>
-          <th style="padding:10px">Cód</th>
-          <th style="padding:10px">Empresa</th>
-          <th style="padding:10px">CNPJ</th>
-          <th style="padding:10px">Resp</th>
-          <th style="padding:10px">Const.</th>
-          <th style="background:#1e1b4b;padding:10px">ANO 2022</th>
-          <th style="background:#1e1b4b;padding:10px">Documentos Servidor</th>
-          <th style="background:#1e1b4b;padding:10px">Data Entrega/Hora</th>
-          <th style="background:#1e1b4b;padding:10px">HASH (2022)</th>
-          <th style="background:#312e81;padding:10px">ANO 2023</th>
-          <th style="background:#312e81;padding:10px">Documentos Servidor</th>
-          <th style="background:#312e81;padding:10px">Data Entrega/Hora</th>
-          <th style="background:#312e81;padding:10px">HASH (2023)</th>
+          <th style="padding:12px 8px;text-align:center">Cód</th>
+          <th style="padding:12px 8px;text-align:left">Empresa</th>
+          <th style="padding:12px 8px;text-align:left">CNPJ</th>
+          <th style="padding:12px 8px;text-align:left">Resp</th>
+          <th style="padding:12px 8px;text-align:left">Documentação</th>
+          <th style="padding:12px 8px;text-align:left">Data de Constituiç</th>
+          <th style="padding:12px 8px;text-align:left">ANO 2022</th>
+          <th style="padding:12px 8px;text-align:left">ANO 2023</th>
         </tr>
       </thead>
       <tbody>
