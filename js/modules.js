@@ -137,7 +137,12 @@ const OBRIGACOES_CALENDARIO = [
   { cod:'DASN-MEI', nome:'DASN — Declaração Anual MEI',           regime:['MEI'],                           periodicidade:'Anual',   prazo:'31/05 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'05' },
   { cod:'DIRF',     nome:'DIRF — Declaração IR Retido',           regime:['todos'],                         periodicidade:'Anual',   prazo:'28/02 (ano seguinte)',                  categoria:'Fiscal',   anoRef:'2025', mesRef:'02' },
   { cod:'RAIS',     nome:'RAIS — Atividades Sócio-Econômicas',    regime:['todos'],                         periodicidade:'Anual',   prazo:'Março (varia por ano)',                 categoria:'Trabalhista',anoRef:'2025',mesRef:'03' },
-  { cod:'eSocial',  nome:'eSocial — Folha e Trabalhista',         regime:['todos'],                         periodicidade:'Mensal',  prazo:window.filtroObrigacoes = window.filtroObrigacoes || '';
+  { cod:'eSocial',  nome:'eSocial — Folha e Trabalhista',         regime:['todos'],                         periodicidade:'Mensal',  prazo:'Dia 7 do mês subsequente',              categoria:'Trabalhista' }
+];
+
+let obgAno = "2023"; // Ano principal para visualização
+
+window.filtroObrigacoes = window.filtroObrigacoes || '';
 window.filtroCod = window.filtroCod || '';
 window.filtroEmp = window.filtroEmp || '';
 window.filtroCnpj = window.filtroCnpj || '';
