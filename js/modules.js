@@ -142,10 +142,22 @@ const OBRIGACOES_CALENDARIO = [
 
 let obgAno = "2023"; // Ano principal para visualização (pode ser 2022, 2023)
 
+window.filtroObrigacoes = window.filtroObrigacoes || '';
+
 function renderObrigacoes() {
   const clientes = DB.get('clientes') || [];
-  const ativos = clientes.filter(c => c.status === 'Ativo').sort((a,b)=>parseInt(a.id)-parseInt(b.id));
+  let ativos = clientes.filter(c => c.status === 'Ativo').sort((a,b)=>parseInt(a.id)-parseInt(b.id));
   const entregas = DB.get('entregas_ecd') || {};
+
+  if (window.filtroObrigacoes) {
+    const term = window.filtroObrigacoes.toLowerCase();
+    ativos = ativos.filter(c => 
+      c.nome.toLowerCase().includes(term) || 
+      (c.id+'').includes(term) ||
+      (c.cnpj && c.cnpj.includes(term)) ||
+      (entregas[c.id] && entregas[c.id].resp && entregas[c.id].resp.toLowerCase().includes(term))
+    );
+  }
 
   const statusOptions = [
     { label: 'Em andamento', color: '#fef08a', text: '#854d0e' },
@@ -160,7 +172,7 @@ function renderObrigacoes() {
   ];
 
   let rows = ativos.map(c => {
-    const e = entregas[c.id] || { anos: { '2022':{}, '2023':{} }, resp: '', constituicao: '', documentacao: '' };
+    const e = entregas[c.id] || { anos: { '2022':{}, '2023':{} }, resp: '', documentacao: '' };
     
     const renderDropdown = (ano) => {
       const a = e.anos[ano] || {};
@@ -187,7 +199,6 @@ function renderObrigacoes() {
         <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;padding:12px 8px">${c.cnpj||c.cpf||''}</td>
         <td style="padding:12px 8px"><input type="text" value="${e.resp || ''}" onblur="saveEntregaBase(${c.id}, 'resp', this.value)" style="width:60px;font-size:11px;padding:4px;border:none;background:transparent"></td>
         <td style="padding:12px 8px"><input type="text" value="${e.documentacao || ''}" onblur="saveEntregaBase(${c.id}, 'documentacao', this.value)" placeholder="C:\\PRYSCILA\\..." style="width:100%;min-width:150px;font-size:11px;padding:4px;border:none;background:transparent"></td>
-        <td style="font-size:11px;padding:12px 8px"><input type="text" value="${e.constituicao || ''}" onblur="saveEntregaBase(${c.id}, 'constituicao', this.value)" placeholder="DD/MM/AAAA" style="width:80px;font-size:11px;padding:4px;border:none;background:transparent"></td>
         ${renderDropdown('2022')}
         ${renderDropdown('2023')}
       </tr>
@@ -195,9 +206,17 @@ function renderObrigacoes() {
   }).join('');
 
   return `
-<div class="card mb-4" style="background:#3b406e;color:#fff;padding:18px 24px">
-  <h3 style="font-size:16px;margin-bottom:4px">📋 Demandas e Entregas</h3>
-  <p style="opacity:.85;font-size:12px">Controle de envio e documentação.</p>
+<div class="card mb-4 flex justify-between items-center" style="background:#3b406e;color:#fff;padding:18px 24px;flex-wrap:wrap;gap:16px">
+  <div>
+    <h3 style="font-size:16px;margin-bottom:4px">📋 Demandas e Entregas</h3>
+    <p style="opacity:.85;font-size:12px">Controle de envio e documentação.</p>
+  </div>
+  <div>
+    <input type="text" placeholder="🔍 Filtrar por código, empresa, cnpj ou resp..." 
+      value="${window.filtroObrigacoes}" 
+      oninput="window.filtroObrigacoes=this.value;render()" 
+      style="padding:8px 14px;border-radius:20px;border:none;outline:none;font-size:13px;width:300px;color:#333">
+  </div>
 </div>
 
 <div class="card" style="padding:0">
@@ -210,7 +229,6 @@ function renderObrigacoes() {
           <th style="padding:12px 8px;text-align:left">CNPJ</th>
           <th style="padding:12px 8px;text-align:left">Resp</th>
           <th style="padding:12px 8px;text-align:left">Documentação</th>
-          <th style="padding:12px 8px;text-align:left">Data de Constituiç</th>
           <th style="padding:12px 8px;text-align:left">ANO 2022</th>
           <th style="padding:12px 8px;text-align:left">ANO 2023</th>
         </tr>
