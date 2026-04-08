@@ -1546,22 +1546,69 @@ function gerarParecer() {
      texto += `==> Risco Técnico Operacional   : ${cliente.ci_itg_risco_calc || '—'}\n`;
   }
 
-  // Seção de Pendências Fiscais (calculadas sob os dados do cliente dinamicamente)
+  const dbEntregas = DB.get('entregas_ecd') || {};
+  const ecdDefis = dbEntregas[cliente.id] || { anos: {}, defis_anos: {} };
+  const getAutoSt = (tipo) => {
+      if (tipo === 'ecd') return cliente.regime === 'Simples Nacional' ? 'Não aplicável' : 'Pendente';
+      if (tipo === 'defis') return cliente.regime === 'Simples Nacional' ? 'Pendente' : 'Não aplicável';
+      return 'Pendente';
+  };
+  const ecdSt = {
+      2022: ecdDefis.anos?.['2022']?.status || getAutoSt('ecd'),
+      2023: ecdDefis.anos?.['2023']?.status || getAutoSt('ecd'),
+      2024: ecdDefis.anos?.['2024']?.status || getAutoSt('ecd'),
+      2025: ecdDefis.anos?.['2025']?.status || getAutoSt('ecd')
+  };
+  const defisSt = {
+      2023: ecdDefis.defis_anos?.['2023']?.status || getAutoSt('defis'),
+      2024: ecdDefis.defis_anos?.['2024']?.status || getAutoSt('defis'),
+      2025: ecdDefis.defis_anos?.['2025']?.status || getAutoSt('defis')
+  };
+  let ecdPends = [], defisPends = [];
+  [2022,2023,2024,2025].forEach(a => { if(['Pendente','Em andamento'].includes(ecdSt[a])) ecdPends.push(`ECD ${a}`); });
+  [2023,2024,2025].forEach(a => { if(['Pendente','Em andamento'].includes(defisSt[a])) defisPends.push(`DEFIS ${a}`); });
+
+  const totalObg = ecdPends.length + defisPends.length;
+  const stObgStr = totalObg === 0 ? '🟢 Regular' : totalObg === 1 ? '🟡 Atenção' : '🔴 Irregular';
+
+  texto += `\n📍 MATRIZ DE OBRIGAÇÕES ANUAIS (ECD / DEFIS)\n${sep2}\n`;
+  texto += `1. Enquadramento Tributário\n`;
+  if (cliente.regime === 'Simples Nacional') {
+     texto += `A empresa está enquadrada no regime do Simples Nacional, estando obrigada\nà entrega da DEFIS anual e dispensada, em regra, da ECD.\n`;
+  } else {
+     texto += `A empresa está enquadrada no regime de ${cliente.regime || 'não especificado'}.\nEstando obrigada à entrega da Escrituração Contábil Digital (ECD), não sujeita à DEFIS.\n`;
+  }
+  
+  texto += `\n2. Situação das Obrigações\n`;
+  texto += `[ECD]:   ` + [2022,2023,2024,2025].map(a => `${a}: ${ecdSt[a]}`).join(' | ') + `\n`;
+  texto += `[DEFIS]: ` + [2023,2024,2025].map(a => `${a}: ${defisSt[a]}`).join(' | ') + `\n`;
+  
+  texto += `\n3. Diagnóstico do Painel Estratégico\nStatus Geral: ${stObgStr}\n`;
+  if (totalObg > 0) {
+      texto += `\n4. Riscos Identificados\n`;
+      texto += `Identifica-se situação de irregularidade/atenção quanto às obrigações acessórias\n`;
+      texto += `anuais, com pendência na entrega de: ${[...ecdPends, ...defisPends].join(', ')}.\n`;
+      texto += `\n5. Recomendações (Ações Práticas)\n`;
+      if (ecdPends.length) texto += `• Regularizar de imediato a Escrituração (ECD).\n`;
+      if (defisPends.length) texto += `• Avaliar e encaminhar a transmissão da(s) declaração(ões) da DEFIS.\n`;
+      texto += `• Revisar o enquadramento se o fluxo for discordante do regime indicado.\n`;
+  }
+
+  // Pendências Fiscais Menores
   const obgs = [
     { n: 'SPED Fiscal', v: cliente.d_sped_f }, { n: 'SPED Contrib', v: cliente.d_sped_c },
-    { n: 'ECD', v: cliente.d_ecd }, { n: 'ECF', v: cliente.d_ecf },
-    { n: 'DEFIS', v: cliente.d_defis }, { n: 'DASNMEI', v: cliente.d_dasnmei },
-    { n: 'PGDAS', v: cliente.d_simples }, { n: 'Dívida RFB', v: cliente.d_div_rfb },
+    { n: 'ECD Mensal/Outra', v: cliente.d_ecd }, { n: 'ECF', v: cliente.d_ecf },
+    { n: 'PGDAS Mensal', v: cliente.d_simples }, { n: 'Dívida RFB', v: cliente.d_div_rfb },
     { n: 'Dívida PGFN', v: cliente.d_div_pgfn }, { n: 'Dívida Estadual', v: cliente.d_div_est },
     { n: 'Dívida Municipal', v: cliente.d_div_pref }
   ];
   const pends = obgs.filter(o => o.v && o.v.status === 'Pendente');
   const andam = obgs.filter(o => o.v && o.v.status === 'Em andamento');
-  const riscoFiscal = pends.length > 5 ? '🔴 ALTO' : pends.length > 0 ? '🟡 MÉDIO' : '🟢 BAIXO';
   
-  texto += `\nPENDÊNCIAS E REGULARIDADE FISCAL\n${sep2}\n`;
-  texto += `Risco Fiscal Global: ${riscoFiscal} (${pends.length} pendências)\n\n`;
   if (pends.length > 0 || andam.length > 0) {
+      const riscoFiscal = pends.length > 5 ? '🔴 ALTO' : pends.length > 0 ? '🟡 MÉDIO' : '🟢 BAIXO';
+      texto += `\n📍 REVISÃO DE ROTINAS FISCAIS E DÍVIDAS SECUNDÁRIAS\n${sep2}\n`;
+      texto += `Risco Secundário (Mensais/Dívidas): ${riscoFiscal} (${pends.length} pendências)\n\n`;
       if(pends.length > 0) {
           texto += `🔴 OBRIGAÇÕES/DÉBITOS PENDENTES:\n`;
           pends.forEach(p => texto += `     • ${p.n} (Ref: ${p.v.comp || 'N/A'})\n`);
@@ -1570,8 +1617,6 @@ function gerarParecer() {
           texto += `\n🟡 EM ANDAMENTO/PARCELANDO:\n`;
           andam.forEach(p => texto += `     • ${p.n} (Ref: ${p.v.comp || 'N/A'})\n`);
       }
-  } else {
-      texto += `✅ Nenhuma pendência ou dívida identificada.\n`;
   }
 
   texto += `\nSITUAÇÃO DOCUMENTOS — ${fmtComp(state.competencia)} | Emitido em: ${hoje}\n${sep2}\n`;

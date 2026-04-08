@@ -231,13 +231,13 @@ function renderObrigacoes() {
       const status = a.status || '';
       const opt = statusOptions.find(o => o.label === status) || { color:'#e2e8f0', text:'#333'};
       
-      const optionsHtml = `<option value="">Selecione...</option>` + statusOptions.map(o => 
-        `<option value="${o.label}" ${status===o.label?'selected':''}>${o.label}</option>`
+      const optionsHtml = `<option value="" data-bg="#e2e8f0" data-tc="#333">Selecione...</option>` + statusOptions.map(o => 
+        `<option value="${o.label}" data-bg="${o.color}" data-tc="${o.text}" ${status===o.label?'selected':''}>${o.label}</option>`
       ).join('');
 
       return `
         <td style="min-width:160px;padding:4px">
-          <select style="border:1px solid #ccc;background:${opt.color};color:${opt.text};font-size:11px;padding:6px;border-radius:12px;width:100%;font-weight:bold;outline:none;cursor:pointer" onchange="saveEntrega(${c.id}, '${ano}', 'status', this.value);render()">
+          <select style="border:1px solid #ccc;background:${opt.color};color:${opt.text};font-size:11px;padding:6px;border-radius:12px;width:100%;font-weight:bold;outline:none;cursor:pointer" onchange="saveEntrega(${c.id}, '${ano}', 'status', this.value); this.style.background = this.options[this.selectedIndex].getAttribute('data-bg'); this.style.color = this.options[this.selectedIndex].getAttribute('data-tc');">
             ${optionsHtml}
           </select>
         </td>
