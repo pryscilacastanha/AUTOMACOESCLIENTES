@@ -400,7 +400,7 @@ function openModal(mode, id=null) {
         <button class="tab-btn" onclick="switchTab(this,'tab-onboarding')">Validação de Documentos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-bancos')">Movimentações Financeiras e Bancárias</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-parcelamentos')">Situação Fiscal Passivos e Parcelamentos</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-trabalhista')">Trabalhista</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-trabalhista')">Estrutura Trabalhista e Risco</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-diagnostico')">Pendências e Regularidade</button>
       </div>
       <form id="form-cliente">
@@ -706,9 +706,85 @@ function openModal(mode, id=null) {
         </div>
 
         <div id="tab-trabalhista" class="tab-panel">
-          <div class="checkbox-group">
-            <label class="checkbox-item"><input type="checkbox" id="f-tem-folha" ${c.tem_folha?'checked':''}> Tem funcionários ativos (gera checklist de Folha)</label>
-            <label class="checkbox-item"><input type="checkbox" id="f-tem-prol" ${c.tem_prolabore?'checked':''}> Sócios retiram Pró-labore</label>
+          <div style="background:#f8fafc;padding:16px;border-radius:8px;border:1px solid var(--border);">
+            <div class="cards-grid" style="grid-template-columns:1fr 1fr;gap:20px;">
+               <!-- BLOCO 1 E BLOCO 4 -->
+               <div style="display:flex;flex-direction:column;gap:16px;">
+                  <div>
+                    <h3 style="font-size:13px;color:var(--primary-dark);margin-bottom:8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">👥 BLOCO 1 — Estrutura Trabalhista</h3>
+                    <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
+                       <label style="font-size:12px"><input type="checkbox" id="tr_tem_folha" onchange="runTrabDiagnosis()" ${c.tem_folha?'checked':''}> Possui funcionários ativos?</label>
+                       <div style="margin-left:24px;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+                          <span style="font-size:11px">Quantidade:</span>
+                          <input type="number" id="tr_qtd_func" value="${c.trab?.qtd_func || c.qtd_funcionarios || ''}" onchange="runTrabDiagnosis()" style="width:60px;padding:2px 4px;font-size:11px;border:1px solid #ccc;border-radius:4px" placeholder="0">
+                       </div>
+                       <label style="font-size:12px"><input type="checkbox" id="tr_tem_prol" onchange="runTrabDiagnosis()" ${c.tem_prolabore?'checked':''}> Possui sócios com pró-labore?</label>
+                       <label style="font-size:12px"><input type="checkbox" id="tr_tem_aut" onchange="runTrabDiagnosis()" ${c.trab?.tem_aut?'checked':''}> Possui autônomos/RPA?</label>
+                       <label style="font-size:12px"><input type="checkbox" id="tr_tem_estag" onchange="runTrabDiagnosis()" ${c.trab?.tem_estag?'checked':''}> Possui estagiários?</label>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 style="font-size:13px;color:var(--primary-dark);margin-bottom:8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">📁 BLOCO 4 — Documentação</h3>
+                    <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
+                       <label style="font-size:12px"><input type="checkbox" id="tr_doc_contr" onchange="runTrabDiagnosis()" ${c.trab?.doc_contr?'checked':''}> Contratos de trabalho disponíveis?</label>
+                       <label style="font-size:12px"><input type="checkbox" id="tr_doc_ponto" onchange="runTrabDiagnosis()" ${c.trab?.doc_ponto?'checked':''}> Controle de ponto vigente?</label>
+                       <label style="font-size:12px"><input type="checkbox" id="tr_doc_folha" onchange="runTrabDiagnosis()" ${c.trab?.doc_folha?'checked':''}> Folha assinada eletrônica ou física?</label>
+                       <label style="font-size:12px"><input type="checkbox" id="tr_doc_recibo" onchange="runTrabDiagnosis()" ${c.trab?.doc_recibo?'checked':''}> Recibos de pró/férias organizados?</label>
+                    </div>
+                  </div>
+               </div>
+
+               <!-- BLOCO 2 E BLOCO 3 -->
+               <div style="display:flex;flex-direction:column;gap:16px;">
+                  <div>
+                    <h3 style="font-size:13px;color:var(--primary-dark);margin-bottom:8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">📅 BLOCO 2 — Obrigações e Rotinas</h3>
+                    <div class="checkbox-group" style="display:flex;flex-direction:column;gap:6px">
+                       <label style="font-size:12px;font-weight:600;margin-bottom:2px"><input type="checkbox" id="tr_folha_proc" onchange="runTrabDiagnosis()" ${c.trab?.folha_proc?'checked':''}> Folha de pagamento processada regularmente?</label>
+                       <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+                          <span>Envio eSocial:</span>
+                          <select id="tr_esoc_st" style="border:1px solid #ccc;border-radius:4px;padding:2px 4px" onchange="runTrabDiagnosis()">
+                            <option ${c.trab?.esoc_st==='Regular'?'selected':''}>Regular</option><option ${c.trab?.esoc_st==='Em atraso'?'selected':''}>Em atraso</option><option ${c.trab?.esoc_st==='Não enviado'?'selected':''}>Não enviado</option>
+                          </select>
+                       </div>
+                       <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+                          <span>GFIP/FGTS:</span>
+                          <select id="tr_fgts_st" style="border:1px solid #ccc;border-radius:4px;padding:2px 4px" onchange="runTrabDiagnosis()">
+                            <option ${c.trab?.fgts_st==='Regular'?'selected':''}>Regular</option><option ${c.trab?.fgts_st==='Em atraso'?'selected':''}>Em atraso</option>
+                          </select>
+                       </div>
+                       <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+                          <span>INSS Patronal/Retic:</span>
+                          <select id="tr_inss_st" style="border:1px solid #ccc;border-radius:4px;padding:2px 4px" onchange="runTrabDiagnosis()">
+                            <option ${c.trab?.inss_st==='Regular'?'selected':''}>Regular</option><option ${c.trab?.inss_st==='Em atraso'?'selected':''}>Em atraso</option>
+                          </select>
+                       </div>
+                       <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+                          <span>SST (Segurança Trab):</span>
+                          <select id="tr_sst_st" style="border:1px solid #ccc;border-radius:4px;padding:2px 4px" onchange="runTrabDiagnosis()">
+                            <option ${c.trab?.sst_st==='Pendente'?'selected':''}>Pendente</option><option ${c.trab?.sst_st==='Implantado'?'selected':''}>Implantado</option>
+                          </select>
+                       </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 style="font-size:13px;color:var(--danger);margin-bottom:8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">⚠️ BLOCO 3 — Risco Trabalhista</h3>
+                    <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
+                       <label style="font-size:12px"><input type="checkbox" id="tr_r_sem_reg" onchange="runTrabDiagnosis()" ${c.trab?.r_sem_reg?'checked':''}> Indícios de funcionário sem registro?</label>
+                       <label style="font-size:12px"><input type="checkbox" id="tr_r_atraso" onchange="runTrabDiagnosis()" ${c.trab?.r_atraso?'checked':''}> Recusa ou atrasos sistêmicos de folha?</label>
+                       <label style="font-size:12px"><input type="checkbox" id="tr_r_prol_sem" onchange="runTrabDiagnosis()" ${c.trab?.r_prol_sem?'checked':''}> Sócios c/ pró-labore irregular/sem retirada?</label>
+                       <label style="font-size:12px"><input type="checkbox" id="tr_r_div_esoc" onchange="runTrabDiagnosis()" ${c.trab?.r_div_esoc?'checked':''}> Divergências entre sistema DP x eSocial?</label>
+                    </div>
+                  </div>
+               </div>
+            </div>
+
+            <!-- BLOCO 5 e 6 (DIAGNÓSTICO AUTOMÁTICO) -->
+            <div style="margin-top:20px;">
+               <h3 style="font-size:13px;color:var(--primary-dark);margin-bottom:8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">🧠 BLOCO 5 e 6 — Diagnóstico Automático e Ações</h3>
+               <div id="tr_alerta" style="padding:16px;border-radius:8px;background:#fff;border-left:4px solid var(--warning);font-size:13px;color:var(--text);box-shadow:var(--shadow)">
+                 Preencha as informações acima para processar a análise trabalhista e disparar as ações.
+               </div>
+            </div>
           </div>
         </div>
 
@@ -807,6 +883,7 @@ function openModal(mode, id=null) {
   setTimeout(() => {
     if(typeof runITGDiagnosis === 'function') runITGDiagnosis();
     if(typeof updateMovFinanceiraAlerts === 'function') updateMovFinanceiraAlerts();
+    if(typeof runTrabDiagnosis === 'function') runTrabDiagnosis();
   }, 50);
 }
 
@@ -847,8 +924,26 @@ function saveCliente(mode) {
     qtd_socios: document.getElementById('f-socios').value,
     obs: document.getElementById('f-obs').value,
     obs_diag: document.getElementById('f-obs-diag').value,
-    tem_prolabore: document.getElementById('f-tem-prol').checked,
-    tem_folha: document.getElementById('f-tem-folha').checked,
+    tem_prolabore: document.getElementById('tr_tem_prol')?.checked || false,
+    tem_folha: document.getElementById('tr_tem_folha')?.checked || false,
+    trab: {
+        qtd_func: document.getElementById('tr_qtd_func')?.value || '',
+        tem_aut: document.getElementById('tr_tem_aut')?.checked,
+        tem_estag: document.getElementById('tr_tem_estag')?.checked,
+        folha_proc: document.getElementById('tr_folha_proc')?.checked,
+        esoc_st: document.getElementById('tr_esoc_st')?.value,
+        fgts_st: document.getElementById('tr_fgts_st')?.value,
+        inss_st: document.getElementById('tr_inss_st')?.value,
+        sst_st: document.getElementById('tr_sst_st')?.value,
+        r_sem_reg: document.getElementById('tr_r_sem_reg')?.checked,
+        r_atraso: document.getElementById('tr_r_atraso')?.checked,
+        r_prol_sem: document.getElementById('tr_r_prol_sem')?.checked,
+        r_div_esoc: document.getElementById('tr_r_div_esoc')?.checked,
+        doc_contr: document.getElementById('tr_doc_contr')?.checked,
+        doc_ponto: document.getElementById('tr_doc_ponto')?.checked,
+        doc_folha: document.getElementById('tr_doc_folha')?.checked,
+        doc_recibo: document.getElementById('tr_doc_recibo')?.checked,
+    },
     bancos, banco_outro: document.getElementById('f-banco-outro').value,
     parc_federal: document.getElementById('f-parc-fed').checked,
     parc_estadual: document.getElementById('f-parc-est').checked,
@@ -1020,6 +1115,92 @@ window.runITGDiagnosis = () => {
 
     divAlerta.innerHTML = msg;
     divAlerta.style.borderLeftColor = riscoColor;
+};
+
+window.runTrabDiagnosis = () => {
+    // Collect variables
+    const isActive = document.getElementById('tr_tem_folha')?.checked || false;
+    const qtdFunc = parseInt(document.getElementById('tr_qtd_func')?.value || '0', 10);
+    const hasProlabore = document.getElementById('tr_tem_prol')?.checked || false;
+    const hasAutonomo = document.getElementById('tr_tem_aut')?.checked || false;
+    
+    const esoc = document.getElementById('tr_esoc_st')?.value || 'Regular';
+    const sst = document.getElementById('tr_sst_st')?.value || 'Pendente';
+    
+    const rReg = document.getElementById('tr_r_sem_reg')?.checked;
+    const rAtraso = document.getElementById('tr_r_atraso')?.checked;
+    const rProlSem = document.getElementById('tr_r_prol_sem')?.checked;
+    const rDivEsoc = document.getElementById('tr_r_div_esoc')?.checked;
+
+    let riscoNivel = '🟢 Baixo';
+    let riscoColor = 'var(--success-dark)';
+    let msgs = [];
+    let acoes = [];
+
+    // Lógica Inteligente Trabalhista
+    if (isActive) {
+        msgs.push(`Empresa ativa com <b>${qtdFunc} funcionário(s)</b>.`);
+        if (sst === 'Pendente') {
+            riscoNivel = '🔴 Alto'; riscoColor = 'var(--danger)';
+            msgs.push('🚨 Atenção: SST Pendente com funcionários ativos configurando risco iminente de autuação/multa na Receita Federal.');
+            acoes.push('Implantar SST / Adquirir certificação PCMSO/PGR urgentemente');
+        }
+    }
+    
+    if (hasProlabore) {
+        if (rProlSem) {
+            if(riscoNivel !== '🔴 Alto') { riscoNivel = '🟡 Médio'; riscoColor = 'var(--warning)'; }
+            msgs.push('Sócio(s) sem retirada formal de pró-labore, configurando distribuição de lucros disfarçada.');
+            acoes.push('Ajustar pró-labore (formalizar contrato/valor e periodicidade)');
+        }
+    }
+
+    if (esoc !== 'Regular' || rDivEsoc) {
+        riscoNivel = '🔴 Alto'; riscoColor = 'var(--danger)';
+        msgs.push('Inconsistência ou Atrasos no eSocial, ou divergência severa com a Folha de Pagamento base.');
+        acoes.push('Regularizar eSocial e realizar cruzamento completo dos holerites na DCTFWeb');
+    }
+
+    if (rReg) {
+        riscoNivel = '🔴 Alto'; riscoColor = 'var(--danger)';
+        msgs.push('Indícios graves de funcionários trabalhando sem registro formal.');
+        acoes.push('Auditoria de contratos e regularização de vínculos empregatícios (Assinatura CTPS)');
+    }
+
+    if (rAtraso) {
+        riscoNivel = '🔴 Alto'; riscoColor = 'var(--danger)';
+        msgs.push('Atrasos sistemáticos nas remunerações da folha ou encargos.');
+        acoes.push('Conferir e recalcular recolhimentos de FGTS/INSS atrasados');
+    }
+
+    if (hasAutonomo) {
+        msgs.push('Utilização de Autônomos exige validação técnica de retenções na fonte.');
+        acoes.push('Conferir notas fiscais e retenção do ISS/INSS de profissionais PJs/Autônomos');
+    }
+
+    const painel = document.getElementById('tr_alerta');
+    if (!painel) return;
+
+    // Remover acoes repetidas
+    acoes = [...new Set(acoes)];
+
+    if (!isActive && !hasProlabore && !hasAutonomo) {
+        painel.innerHTML = '✨ Empresa não apresentou indícios de movimentação trabalhista ou pró-labore.';
+        painel.style.borderLeftColor = '#cbd5e1';
+        return;
+    }
+
+    painel.style.borderLeftColor = riscoColor;
+    painel.innerHTML = `
+        <div style="margin-bottom:12px;font-size:15px"><strong>Diagnóstico Foco Trabalhista: <span style="color:${riscoColor};font-weight:900">${riscoNivel}</span></strong></div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:12px;line-height:1.6;background:#f1f5f9;padding:10px;border-radius:6px">
+           ${msgs.join('<br>')}
+        </div>
+        ${acoes.length > 0 ? `<div style="color:var(--primary-dark)">
+            <strong style="display:flex;align-items:center;gap:6px;margin-bottom:4px">📌 Ações Práticas Mód. Departamento Pessoal:</strong>
+            <ul style="margin-left:18px;margin-top:2px">${acoes.map(a=>`<li style="margin-bottom:2px">${a}</li>`).join('')}</ul>
+        </div>` : '<div style="color:var(--success-dark)">✓ Estrutura Trabalhista Regular e mitigada.</div>'}
+    `;
 };
 
 window.updateMovFinanceiraAlerts = () => {
