@@ -1625,18 +1625,20 @@ function renderChecklist() {
   const catHtml = categorias.map(cat => {
     const catDone = cat.items.filter(i => saved[i.key] === 'recebido').length;
     const itemsHtml = cat.items.map(item => {
-      const val = saved[item.key] || 'aguardando';
-      return `<div class="checklist-item">
+      let val = saved[item.key] || 'aguardando';
+      if (item._disabled) val = 'na';
+      return `<div class="checklist-item" ${item._disabled ? 'style="opacity:0.6"' : ''}>
         <div style="flex:1">
           <div class="checklist-item-name">${item.nome}</div>
           ${item.obs ? `<div class="checklist-item-sub">${item.obs}</div>` : ''}
         </div>
-        <select class="status-select ${val}" onchange="saveChkItem('${item.key}',this.value,this)">
+        <select class="status-select ${val}" onchange="saveChkItem('${item.key}',this.value,this)" ${item._disabled?'disabled':''}>
           <option value="aguardando"  ${val==='aguardando' ?'selected':''}>⏳ Aguardando</option>
           <option value="recebido"    ${val==='recebido'   ?'selected':''}>✅ Recebido</option>
           <option value="incompleto"  ${val==='incompleto' ?'selected':''}>⚠️ Incompleto</option>
           <option value="nao_enviado" ${val==='nao_enviado'?'selected':''}>❌ Não enviado</option>
           <option value="divergente"  ${val==='divergente' ?'selected':''}>🔎 Divergente</option>
+          <option value="na"          ${val==='na'         ?'selected':''}>➖ N/A</option>
         </select>
       </div>`;
     }).join('');
@@ -1682,10 +1684,16 @@ window.getDynamicChecklist = (cliente, appData = {}) => {
 
     const ativoCaixa = tpl.find(c => c.cat.includes('ATIVO — CAIXA'));
     if (ativoCaixa) {
-        if (cliente.ci_cx_possui && cliente.ci_cx_possui !== 'Não possui' && cliente.ci_cx_possui !== 'Não se aplica') {
-            ativoCaixa.items.unshift({key:"dyn_cx_saldo", nome:"Validar saldo de caixa", regimes:["todos"], condicao:null, obs:""});
-            ativoCaixa.items.unshift({key:"dyn_cx_mov", nome:"Conferir movimentação de caixa", regimes:["todos"], condicao:null, obs:"Frequência: "+(cliente.ci_cx_freq||'N/A')});
-        }
+        const cxAtivo = !!cliente.ci_cx_possui && !['Não possui', 'Não se aplica'].includes(cliente.ci_cx_possui);
+        const itemCaixa = {
+            key: "dyn_cx_mov", 
+            nome: "Conferir / Validar Movimento de Caixa", 
+            regimes: ["todos"], 
+            condicao: null, 
+            obs: cxAtivo ? "Frequência: " + (cliente.ci_cx_freq || 'N/A') : "Controle não se aplica / Não possui"
+        };
+        if (!cxAtivo) itemCaixa._disabled = true;
+        ativoCaixa.items.unshift(itemCaixa);
     }
 
     const ativoBancos = tpl.find(c => c.cat.includes('ATIVO — BANCOS'));
