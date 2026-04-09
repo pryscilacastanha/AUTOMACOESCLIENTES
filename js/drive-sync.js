@@ -5,10 +5,10 @@
 
 const DriveSync = (() => {
   // ── Config ──────────────────────────────────────────────────────────
-  // IMPORTANTE: Este Client ID precisa ser cadastrado no Google Cloud Console
-  // → APIs & Services → Credentials → OAuth 2.0 Client ID (Web application)
-  // → Authorized JavaScript origins: https://vertice.pryscilacastanha.com.br
-  const GOOGLE_CLIENT_ID = window.GOOGLE_CLIENT_ID || '';
+  // Client ID do Google Cloud Console (seguro para frontend)
+  // A "chave secreta do cliente" NÃO entra aqui — é para backend apenas
+  const GOOGLE_CLIENT_ID = window.GOOGLE_CLIENT_ID ||
+    '563009037069-lkeaglf49mkf37hrt2nkssac4nqrdn49.apps.googleusercontent.com';
   const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
   const DRIVE_API   = 'https://www.googleapis.com/drive/v3';
 
