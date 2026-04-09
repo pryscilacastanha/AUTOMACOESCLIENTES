@@ -1533,85 +1533,8 @@ function renderEscrituracao() {
   const clientes    = DB.get('clientes') || [];
   const ativos      = clientes.filter(c => c.status === 'Ativo');
   const checklists  = DB.get('checklists') || {};
-  const anoAtual    = '2025';
 
-  if (!chkClienteId) {
-    return _renderEscritVisaoGeral(ativos, checklists, anoAtual);
-  } else {
-    return _renderEscritChecklist(clientes, ativos, checklists);
-  }
-}
-
-// ── Sub-view: VISÃO GERAL ─────────────────────────────────
-function _renderEscritVisaoGeral(ativos, checklists, anoAtual) {
-  // Calcula progresso anual por cliente (todos os meses de 2025)
-  const meses = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-
-  const stats = ativos.map(c => {
-    let totalDocs = 0, recebidos = 0;
-    meses.forEach(mm => {
-      const key  = `${c.id}_${anoAtual}-${mm}`;
-      const data = checklists[key];
-      if (data) {
-        const vals = Object.values(data);
-        totalDocs += vals.length;
-        recebidos += vals.filter(v => v === 'recebido').length;
-      }
-    });
-    const pct = totalDocs ? Math.round(recebidos / totalDocs * 100) : 0;
-    const status = totalDocs === 0 ? 'vazio' : pct === 100 ? 'completo' : pct > 0 ? 'parcial' : 'pendente';
-    return { ...c, totalDocs, recebidos, pct, status };
-  });
-
-  const completos = stats.filter(s => s.status === 'completo').length;
-  const parciais  = stats.filter(s => s.status === 'parcial').length;
-  const pendentes = stats.filter(s => s.status === 'pendente').length;
-  const vazios    = stats.filter(s => s.status === 'vazio').length;
-
-  const cards = stats.map(s => {
-    const corStatus = s.status === 'completo' ? '#10b981' : s.status === 'parcial' ? '#f59e0b' : s.status === 'pendente' ? '#ef4444' : '#94a3b8';
-    const bgStatus  = s.status === 'completo' ? '#f0fdf4' : s.status === 'parcial' ? '#fffbeb' : s.status === 'pendente' ? '#fef2f2' : '#f8fafc';
-    const emoji     = s.status === 'completo' ? '✅' : s.status === 'parcial' ? '⚠️' : s.status === 'pendente' ? '❌' : '📭';
-    const drive     = s.drive_url ? `<a href="${s.drive_url}" target="_blank" title="Abrir Drive" onclick="event.stopPropagation()" style="font-size:10px;color:#3b82f6;text-decoration:none">🔗 Drive</a>` : '';
-    return `
-    <div onclick="chkClienteId='${s.id}';render()"
-      style="background:${bgStatus};border:1px solid ${corStatus}33;border-radius:10px;padding:14px 16px;cursor:pointer;
-      box-shadow:0 1px 4px rgba(0,0,0,.06);transition:transform .15s,box-shadow .15s;min-width:175px;max-width:220px"
-      onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,.1)'"
-      onmouseout="this.style.transform='';this.style.boxShadow='0 1px 4px rgba(0,0,0,.06)'">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <span style="font-size:18px">${emoji}</span>
-        <div style="display:flex;gap:6px;align-items:center">${drive}<span style="font-size:10px;background:${corStatus}22;color:${corStatus};padding:2px 7px;border-radius:99px;font-weight:700">${s.regime?.split(' ')[0]||'—'}</span></div>
-      </div>
-      <div style="font-weight:700;font-size:12px;line-height:1.3;color:#1e293b;margin-bottom:4px">${s.nome.slice(0,30)}${s.nome.length>30?'…':''}</div>
-      <div style="font-size:10px;color:#64748b;margin-bottom:8px">#${s.id}</div>
-      ${s.totalDocs > 0 ? `
-        <div style="background:#e2e8f0;border-radius:99px;height:5px;overflow:hidden;margin-bottom:4px">
-          <div style="background:${corStatus};height:100%;width:${s.pct}%;transition:width .6s"></div>
-        </div>
-        <div style="font-size:11px;font-weight:600;color:${corStatus}">${s.recebidos}/${s.totalDocs} docs · ${s.pct}%</div>
-      ` : `<div style="font-size:11px;color:#94a3b8">Sem documentos registrados</div>`}
-    </div>`;
-  }).join('');
-
-  return `
-<div class="card mb-4" style="background:linear-gradient(135deg,#7c3aed 0%,#1e3a8a 100%);color:#fff;padding:18px 24px;display:flex;gap:20px;flex-wrap:wrap;align-items:center">
-  <div>
-    <div style="font-size:16px;font-weight:800;margin-bottom:2px">📁 Escrituração 2025 — Documentação Recebida</div>
-    <div style="opacity:.75;font-size:12px">Controle de entregas de documentos para escrituração do ano-calendário 2025 · ${ativos.length} clientes ativos</div>
-  </div>
-  <button onclick="exportarRelatorioEntrega2025()" style="margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">⬇️ Exportar CSV</button>
-</div>
-
-<div class="card mb-4" style="padding:16px 20px;display:flex;gap:24px;flex-wrap:wrap">
-  <div style="text-align:center"><div style="font-size:26px;font-weight:800;color:#10b981">${completos}</div><div style="font-size:11px;color:#64748b">✅ Completos</div></div>
-  <div style="text-align:center"><div style="font-size:26px;font-weight:800;color:#f59e0b">${parciais}</div><div style="font-size:11px;color:#64748b">⚠️ Parciais</div></div>
-  <div style="text-align:center"><div style="font-size:26px;font-weight:800;color:#ef4444">${pendentes}</div><div style="font-size:11px;color:#64748b">❌ Pendentes</div></div>
-  <div style="text-align:center"><div style="font-size:26px;font-weight:800;color:#94a3b8">${vazios}</div><div style="font-size:11px;color:#64748b">📭 Sem dados</div></div>
-  <div style="text-align:center"><div style="font-size:26px;font-weight:800;color:#1e3a8a">${ativos.length}</div><div style="font-size:11px;color:#64748b">Total clientes</div></div>
-</div>
-
-<div style="display:flex;flex-wrap:wrap;gap:12px">${cards}</div>`;
+  return _renderEscritChecklist(clientes, ativos, checklists);
 }
 
 // ── HELPER FUNCTIONS FOR MATRIX ──────────────────────────
@@ -1677,10 +1600,9 @@ function _renderEscritChecklist(clientes, ativos, checklists) {
 
   const topBar = `
 <div class="card mb-4" style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#f8fafc;border-left:4px solid #7c3aed">
-  <button onclick="chkClienteId='';render()" class="btn btn-ghost btn-sm" style="font-weight:700;margin-right:12px;display:flex;align-items:center;gap:6px"><span>⬅️</span> Voltar ao Painel Geral</button>
   <span style="font-weight:600;white-space:nowrap;color:#1e293b">Cliente:</span>
   <select style="flex:1;min-width:250px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px"
-    onchange="chkClienteId=this.value;chkView='checklist';render()">
+    onchange="chkClienteId=this.value;render()">
     <option value="">— Selecione o cliente —</option>${selectorOptions}
   </select>
   ${chkClienteId ? `
@@ -1698,7 +1620,11 @@ ${chkClienteId && driveUrl ? `
 ` : ''}`;
 
   if (!chkClienteId) return topBar +
-    `<div class="empty-state"><div class="empty-icon">📁</div><p>Selecione um cliente para visualizar a Matriz de Execução Contábil.</p></div>`;
+    `<div class="empty-state" style="margin-top:40px">
+       <div class="empty-icon" style="font-size:40px;margin-bottom:12px">🏢</div>
+       <p style="font-size:16px;color:#1e293b;font-weight:600">Selecione um cliente acima para visualizar a Matriz de Execução.</p>
+       <p style="font-size:13px;color:#64748b;margin-top:8px">O painel de acompanhamento inteligente será gerado com base no perfil estrutural do cliente.</p>
+     </div>`;
 
   if (!cliente) return topBar;
 
@@ -1828,19 +1754,17 @@ ${chkClienteId && driveUrl ? `
       <table class="matrix-table">
         <thead>
           <tr>
-            <th style="text-align:left;position:sticky;left:0;z-index:2;background:#f8fafc">📁 Fonte de Dados / Documento Exigido</th>
+            <th style="text-align:left;position:sticky;left:0;z-index:3;background:#f8fafc">📁 Fonte de Dados / Documento Exigido</th>
             ${cabecalhoMeses}
+          </tr>
+          <tr>
+            <th style="text-align:right;font-weight:800;position:sticky;left:0;background:#f1f5f9;z-index:3;font-size:12px;color:#0f172a">🏁 STATUS DA COMPETÊNCIA</th>
+            ${fechamento}
           </tr>
         </thead>
         <tbody>
           ${linhas}
         </tbody>
-        <tfoot>
-          <tr>
-            <td style="text-align:right;font-weight:800;position:sticky;left:0;background:#f8fafc;z-index:2;font-size:12px;color:#0f172a">🏁 STATUS DA COMPETÊNCIA</td>
-            ${fechamento}
-          </tr>
-        </tfoot>
       </table>
     </div>
   `;
