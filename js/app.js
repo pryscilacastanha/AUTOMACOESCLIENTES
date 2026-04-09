@@ -598,7 +598,7 @@ function openModal(mode, id=null) {
                 ${['Não possui','Controle manual (caderno/planilha)','Controle em sistema','Parcial'].map(x=>`<option ${c.ci_cx_possui===x?'selected':''}>${x}</option>`).join('')}
               </select></div>
               <div class="form-group"><label>Frequência (Caixa)</label><select id="ci_cx_freq">
-                ${['N/A','Diário','Semanal','Eventual'].map(x=>`<option ${c.ci_cx_freq===x?'selected':''}>${x}</option>`).join('')}
+                ${['N/A','Diário','Semanal','Mensal','Eventual'].map(x=>`<option ${c.ci_cx_freq===x?'selected':''}>${x}</option>`).join('')}
               </select></div>
               <div class="form-group" style="padding-top:12px;border-top:1px solid #e2e8f0;margin-top:12px"><label>Possui conta bancária?</label><select id="ci_banco_possui" onchange="if(typeof window.handleCaixaBancosChange==='function') window.handleCaixaBancosChange()">
                 ${['Sim','Não'].map(x=>`<option ${c.ci_banco_possui===x?'selected':''}>${x}</option>`).join('')}
@@ -1293,7 +1293,7 @@ window.handleCaixaBancosChange = () => {
     const cxPossui = document.getElementById('ci_cx_possui');
     const cxFreq = document.getElementById('ci_cx_freq');
     if (cxPossui && cxFreq) {
-        if (cxPossui.value === 'Não possui') {
+        if (cxPossui.value === 'Não possui' || cxPossui.value === 'Controle manual (caderno/planilha)') {
             cxFreq.value = 'N/A';
             cxFreq.setAttribute('disabled', 'true');
             cxFreq.style.backgroundColor = '#f8fafc';
