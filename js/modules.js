@@ -1633,9 +1633,14 @@ function _renderEscritChecklist(clientes, ativos, checklists) {
 
   const cliente = clientes.find(c => c.id === chkClienteId);
 
-  const driveLink = cliente?.drive_url
-    ? `<a href="${cliente.drive_url}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🔗 Abrir Drive</a>`
-    : '';
+  const appData = cliente?.app_data || {};
+  const driveUrl = cliente?.drive_url || appData?.drive_url || '';
+
+  const driveBtn = driveUrl
+    ? `<a href="${driveUrl}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🔗 Abrir Drive</a>
+       <button id="btn-sync-drive" class="btn btn-primary btn-sm" style="font-size:12px;background:#7c3aed;border-color:#7c3aed"
+         onclick="sincronizarDrive('${chkClienteId}','${driveUrl}','${state.competencia}')">🔄 Sincronizar Drive</button>`
+    : `<span style="font-size:11px;color:#94a3b8;font-style:italic">📁 Cadastre o link do Drive nos Dados Gerais do cliente</span>`;
 
   const topBar = `
 <div class="card mb-4" style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -1645,11 +1650,15 @@ function _renderEscritChecklist(clientes, ativos, checklists) {
     <option value="">— Selecione o cliente —</option>${selectorOptions}
   </select>
   ${chkClienteId ? `
-    ${driveLink}
-    <button class="btn btn-ghost btn-sm" onclick="chkView2='historico';render2Esc()" id="btn-hist-esc">🗓️ Histórico Mensal</button>
+    ${driveBtn}
     <button class="btn btn-success btn-sm" onclick="gerarParecer()">📄 Gerar Parecer</button>
   ` : ''}
-</div>`;
+</div>
+${chkClienteId && driveUrl ? `
+<div id="drive-sync-status" style="display:none;padding:10px 16px;border-left:4px solid #3b82f6;background:#eff6ff;border-radius:6px;margin-bottom:12px"></div>
+<div id="drive-sync-result" style="display:none;padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:12px;font-size:12px"></div>
+` : ''}`;
+
 
   if (!chkClienteId) return topBar +
     `<div class="empty-state"><div class="empty-icon">📁</div><p>Selecione um cliente para visualizar e registrar a documentação recebida para escrituração de 2025.</p></div>`;
@@ -1663,19 +1672,48 @@ function _renderEscritChecklist(clientes, ativos, checklists) {
   const categorias = CHECKLIST_TEMPLATE.map(cat => {
     const items = cat.items.filter(item => {
       if (item.condicao) {
+        // ── Bancos ────────────────────────────────────────────────────
         if (item.condicao.startsWith('banco_')) {
           const cod = item.condicao.replace('banco_', '');
           if (cod === 'outro') return !!cliente.banco_outro;
           return (cliente.bancos||[]).includes(cod);
         }
-        if (item.condicao === 'tem_caixa')       return cliente.tem_caixa;
-        if (item.condicao === 'tem_estoque')     return cliente.tem_estoque;
-        if (item.condicao === 'tem_folha')       return cliente.tem_folha;
-        if (item.condicao === 'tem_prolabore')   return cliente.tem_prolabore;
-        if (item.condicao === 'parc_federal')    return cliente.parc_federal;
-        if (item.condicao === 'parc_estadual')   return cliente.parc_estadual;
-        if (item.condicao === 'parc_pref')       return cliente.parc_pref;
-        if (item.condicao === 'parc_pgfn')       return cliente.parc_pgfn;
+        // ── Flags básicos do cadastro ─────────────────────────────────
+        if (item.condicao === 'tem_caixa')       return !!cliente.tem_caixa;
+        if (item.condicao === 'tem_estoque')     return !!cliente.tem_estoque;
+        if (item.condicao === 'tem_folha')       return !!cliente.tem_folha;
+        if (item.condicao === 'tem_prolabore')   return !!cliente.tem_prolabore;
+        if (item.condicao === 'parc_federal')    return !!cliente.parc_federal;
+        if (item.condicao === 'parc_estadual')   return !!cliente.parc_estadual;
+        if (item.condicao === 'parc_pref')       return !!cliente.parc_pref;
+        if (item.condicao === 'parc_pgfn')       return !!cliente.parc_pgfn;
+        if (item.condicao === 'fiscal_integrado')return !!cliente.fiscal_integrado;
+        if (item.condicao === 'ci_bens_depr')    return !!appData.ci_bens_depr;
+        // ── Diagnóstico: Movimentações Bancárias ──────────────────────
+        if (item.condicao === 'mf_cc_maq')       return !!appData.mf_cc_maq;
+        if (item.condicao === 'mf_cc_antec')     return !!appData.mf_cc_antec;
+        if (item.condicao === 'mf_cc_corp')      return !!appData.mf_cc_corp;
+        if (item.condicao === 'mf_cc_multi')     return !!appData.mf_cc_multi;
+        if (item.condicao === 'mf_ef_banc')      return !!appData.mf_ef_banc;
+        if (item.condicao === 'mf_ef_finan')     return !!appData.mf_ef_finan;
+        if (item.condicao === 'mf_ef_capgiro')   return !!appData.mf_ef_capgiro;
+        if (item.condicao === 'mf_ef_reneg')     return !!appData.mf_ef_reneg;
+        if (item.condicao === 'mf_ia_auto')      return !!appData.mf_ia_auto;
+        if (item.condicao === 'mf_ia_fundo')     return !!appData.mf_ia_fundo;
+        if (item.condicao === 'mf_ia_td')        return !!appData.mf_ia_td;
+        if (item.condicao === 'mf_ia_conta')     return !!appData.mf_ia_conta;
+        if (item.condicao === 'mf_ia_outras')    return !!appData.mf_ia_outras;
+        if (item.condicao === 'mf_oe_moeda')     return !!appData.mf_oe_moeda;
+        if (item.condicao === 'mf_oe_pix')       return !!appData.mf_oe_pix;
+        if (item.condicao === 'mf_oe_subv')      return !!appData.mf_oe_subv;
+        if (item.condicao === 'mf_oe_cripto')    return !!appData.mf_oe_cripto;
+        if (item.condicao === 'mf_oe_cons')      return !!appData.mf_oe_cons;
+        if (item.condicao === 'mf_sa_mistura')   return !!appData.mf_sa_mistura;
+        // ── Diagnóstico: Trabalhista ──────────────────────────────────
+        if (item.condicao === 'mf_tem_aut')      return !!appData.mf_tem_aut  || !!appData.tr_tem_aut;
+        if (item.condicao === 'mf_tem_estag')    return !!appData.mf_tem_estag || !!appData.tr_tem_estag;
+        // Se a condição não for reconhecida, exibe o item
+        return true;
       }
       if (item.regimes && !item.regimes.includes('todos') && !item.regimes.includes(cliente.regime)) return false;
       return true;

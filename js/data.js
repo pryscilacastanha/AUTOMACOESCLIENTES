@@ -18,64 +18,102 @@ const BANCOS = [
 
 // ─── CHECKLIST MENSAL — Modelo por categoria ───
 const CHECKLIST_TEMPLATE = [
-  { cat:"📊 ATIVO",      icon:"📊", items:[
-    {key:"extrato_bb",    nome:"Extrato Bancário — Banco do Brasil",   regimes:["todos"], condicao:"banco_001",    obs:""},
-    {key:"extrato_brad",  nome:"Extrato Bancário — Bradesco",          regimes:["todos"], condicao:"banco_237",    obs:""},
-    {key:"extrato_cef",   nome:"Extrato Bancário — Caixa",             regimes:["todos"], condicao:"banco_104",    obs:""},
-    {key:"extrato_itau",  nome:"Extrato Bancário — Itaú",              regimes:["todos"], condicao:"banco_341",    obs:""},
-    {key:"extrato_sant",  nome:"Extrato Bancário — Santander",         regimes:["todos"], condicao:"banco_033",    obs:""},
-    {key:"extrato_bans",  nome:"Extrato Bancário — Banrisul",          regimes:["todos"], condicao:"banco_041",    obs:""},
-    {key:"extrato_sic",   nome:"Extrato Bancário — Sicredi",           regimes:["todos"], condicao:"banco_748",    obs:""},
-    {key:"extrato_sicoob",nome:"Extrato Bancário — Sicoob",            regimes:["todos"], condicao:"banco_756",    obs:""},
-    {key:"extrato_inter", nome:"Extrato Bancário — Inter",             regimes:["todos"], condicao:"banco_077",    obs:""},
-    {key:"extrato_nu",    nome:"Extrato Bancário — Nubank",            regimes:["todos"], condicao:"banco_260",    obs:""},
-    {key:"extrato_outro", nome:"Extrato Bancário — Outro banco",       regimes:["todos"], condicao:"banco_outro",  obs:""},
-    {key:"aplicacoes",    nome:"Aplicações Financeiras",               regimes:["todos"], condicao:null,           obs:"Informe saldos e rendimentos"},
-    {key:"caixa",         nome:"Controle de Caixa",                    regimes:["todos"], condicao:"tem_caixa",    obs:""},
-    {key:"cr",            nome:"Contas a Receber — Relatório",         regimes:["todos"], condicao:null,           obs:""},
-    {key:"estoque",       nome:"Inventário / Movimentação de Estoque", regimes:["todos"], condicao:"tem_estoque",  obs:""},
-    {key:"imobilizado",   nome:"Imobilizado — Aquisições e Baixas",    regimes:["todos"], condicao:null,           obs:""},
+  // ── ATIVO ─────────────────────────────────────────────────────────────
+  { cat:"🏦 BANCOS — Extratos e Conciliação", icon:"🏦", items:[
+    {key:"extrato_bb",    nome:"Extrato Bancário — Banco do Brasil",      regimes:["todos"], condicao:"banco_001",         obs:"Todos os meses de 2025 em PDF ou OFX"},
+    {key:"extrato_brad",  nome:"Extrato Bancário — Bradesco",             regimes:["todos"], condicao:"banco_237",         obs:"Todos os meses de 2025 em PDF ou OFX"},
+    {key:"extrato_cef",   nome:"Extrato Bancário — Caixa",                regimes:["todos"], condicao:"banco_104",         obs:""},
+    {key:"extrato_itau",  nome:"Extrato Bancário — Itaú",                 regimes:["todos"], condicao:"banco_341",         obs:""},
+    {key:"extrato_sant",  nome:"Extrato Bancário — Santander",            regimes:["todos"], condicao:"banco_033",         obs:""},
+    {key:"extrato_bans",  nome:"Extrato Bancário — Banrisul",             regimes:["todos"], condicao:"banco_041",         obs:""},
+    {key:"extrato_sic",   nome:"Extrato Bancário — Sicredi",              regimes:["todos"], condicao:"banco_748",         obs:""},
+    {key:"extrato_sicoob",nome:"Extrato Bancário — Sicoob",               regimes:["todos"], condicao:"banco_756",         obs:""},
+    {key:"extrato_inter", nome:"Extrato Bancário — Inter",                regimes:["todos"], condicao:"banco_077",         obs:""},
+    {key:"extrato_nu",    nome:"Extrato Bancário — Nubank",               regimes:["todos"], condicao:"banco_260",         obs:""},
+    {key:"extrato_outro", nome:"Extrato Bancário — Outro banco",          regimes:["todos"], condicao:"banco_outro",       obs:"Especificar nome do banco"},
   ]},
-  { cat:"📊 PASSIVO",    icon:"📊", items:[
-    {key:"cp",            nome:"Contas a Pagar — Relatório",           regimes:["todos"], condicao:null,           obs:""},
-    {key:"emprestimos",   nome:"Empréstimos e Financiamentos",         regimes:["todos"], condicao:null,           obs:"Saldos e parcelas do mês"},
-    {key:"parc_rfb",      nome:"Guia Parcelamento — Receita Federal",  regimes:["todos"], condicao:"parc_federal", obs:""},
-    {key:"parc_estado",   nome:"Guia Parcelamento — Receita Estadual", regimes:["todos"], condicao:"parc_estadual",obs:""},
-    {key:"parc_pref",     nome:"Guia Parcelamento — Prefeitura",       regimes:["todos"], condicao:"parc_pref",    obs:""},
-    {key:"parc_pgfn",     nome:"Guia Parcelamento — Procuradoria PGFN",regimes:["todos"], condicao:"parc_pgfn",    obs:""},
-    {key:"obrig_trab",    nome:"Obrigações Trabalhistas do Mês",       regimes:["todos"], condicao:"tem_folha",    obs:""},
+  { cat:"💳 CARTÕES E MAQUININHA", icon:"💳", items:[
+    {key:"fatura_cartao", nome:"Fatura(s) do Cartão de Crédito Corporativo", regimes:["todos"], condicao:"mf_cc_corp",    obs:"PJ — todas as faturas do ano"},
+    {key:"maquininha_rep",nome:"Relatório de Vendas — Maquininha",        regimes:["todos"], condicao:"mf_cc_maq",         obs:"Cielo, Stone, PagSeguro, Rede etc."},
+    {key:"antecipacao",   nome:"Relatório de Antecipação de Recebíveis",  regimes:["todos"], condicao:"mf_cc_antec",       obs:"⚠️ Essencial para conciliação BRUTO x LÍQUIDO"},
+    {key:"operadoras",    nome:"Extrato de Operadoras (múltiplas)",       regimes:["todos"], condicao:"mf_cc_multi",       obs:"Consolidado por operadora"},
   ]},
-  { cat:"📊 PATRIMÔNIO", icon:"📊", items:[
-    {key:"alt_contratual",nome:"Alterações Contratuais",               regimes:["todos"], condicao:null,           obs:"Enviar se houver alteração"},
-    {key:"dist_lucros",   nome:"Distribuição de Lucros",               regimes:["Lucro Presumido","Lucro Real"], condicao:null, obs:""},
-    {key:"integ_capital", nome:"Integralização de Capital",            regimes:["todos"], condicao:null,           obs:"Enviar se houver"},
+  { cat:"💰 EMPRÉSTIMOS, FINANCIAMENTOS E FGTS", icon:"💰", items:[
+    {key:"contratos_fin", nome:"Contratos de Empréstimos/Financiamentos", regimes:["todos"], condicao:"mf_ef_banc",        obs:"Tabela SAC/PRICE para apropriação de juros"},
+    {key:"boletos_fin",   nome:"Boletos de Financiamento Pagos",          regimes:["todos"], condicao:"mf_ef_finan",       obs:"Veículos, máquinas, imóveis"},
+    {key:"cgiro",         nome:"Extrato de Capital de Giro",              regimes:["todos"], condicao:"mf_ef_capgiro",     obs:""},
+    {key:"reneg",         nome:"Acordo/Renegociação — Extrato Atualizado",regimes:["todos"], condicao:"mf_ef_reneg",       obs:"Parcelas ativas e saldo devedor"},
   ]},
-  { cat:"📊 RECEITAS",   icon:"📊", items:[
-    {key:"nf_emitidas",   nome:"Notas Fiscais Emitidas (XML)",         regimes:["todos"], condicao:null,           obs:"Todas as NF-e e NFS-e do mês"},
-    {key:"faturamento",   nome:"Relatório de Faturamento",             regimes:["todos"], condicao:null,           obs:""},
-    {key:"serv_sem_nf",   nome:"Serviços Prestados sem Nota Fiscal",   regimes:["todos"], condicao:null,           obs:"⚠️ Ponto crítico — declarar todos"},
+  { cat:"📈 INVESTIMENTOS E APLICAÇÕES", icon:"📈", items:[
+    {key:"aplicacoes",    nome:"Extrato de Aplicações Financeiras (CDB/RDB/Conta Remunerada)", regimes:["todos"], condicao:"mf_ia_auto", obs:"Rendimentos e IRRF retido"},
+    {key:"fundos",        nome:"Extrato de Fundos de Investimento",       regimes:["todos"], condicao:"mf_ia_fundo",       obs:"Valor de cota e rendimentos mensais"},
+    {key:"tesouro",       nome:"Extrato Tesouro Direto",                  regimes:["todos"], condicao:"mf_ia_td",          obs:"Via B3/XP/Corretora"},
+    {key:"outras_invest", nome:"Comprovante de Investimentos em Outras Empresas", regimes:["todos"], condicao:"mf_ia_outras", obs:"Participações societárias"},
   ]},
-  { cat:"📊 DESPESAS",   icon:"📊", items:[
-    {key:"nf_entrada",    nome:"Notas Fiscais de Entrada (XML)",       regimes:["todos"], condicao:null,           obs:""},
-    {key:"serv_tomados",  nome:"Serviços Tomados sem Nota",            regimes:["todos"], condicao:null,           obs:""},
-    {key:"desp_op",       nome:"Despesas Operacionais — Comprovantes", regimes:["todos"], condicao:null,           obs:"Aluguéis, contas, etc."},
-    {key:"cartao",        nome:"Fatura(s) do Cartão de Crédito",       regimes:["todos"], condicao:null,           obs:"PJ e PF se houver uso empresarial"},
+  { cat:"🌍 OPERAÇÕES ESPECIAIS", icon:"🌍", items:[
+    {key:"cambio",        nome:"Extrato em Moeda Estrangeira + Conversão Câmbio", regimes:["todos"], condicao:"mf_oe_moeda", obs:"⚠️ Variação ativa/passiva obrigatória"},
+    {key:"pix_estrut",   nome:"Relatório de Recebimentos via PIX Estruturado", regimes:["todos"], condicao:"mf_oe_pix",   obs:""},
+    {key:"subvencao",    nome:"Comprovante de Subvenção / Incentivo Fiscal", regimes:["todos"], condicao:"mf_oe_subv",    obs:""},
+    {key:"cripto",       nome:"Extrato de Criptoativos + Registro IN 1888", regimes:["todos"], condicao:"mf_oe_cripto",   obs:"⚠️ Obrigação acessória específica"},
+    {key:"consorte",     nome:"Extrato de Consórcio",                     regimes:["todos"], condicao:"mf_oe_cons",       obs:""},
   ]},
-  { cat:"📊 FISCAL",     icon:"📊", items:[
-    {key:"xml_entrada",   nome:"XMLs de Entrada (NF-e fornecedores)",  regimes:["todos"], condicao:"fiscal_integrado", obs:""},
-    {key:"xml_saida",     nome:"XMLs de Saída (NF-e emitidas)",        regimes:["todos"], condicao:"fiscal_integrado", obs:""},
-    {key:"apur_impostos", nome:"Apuração de Impostos do Mês",          regimes:["todos"], condicao:null,           obs:""},
-    {key:"guias_pagas",   nome:"Guias de Impostos Pagas",              regimes:["todos"], condicao:null,           obs:"DAS, DARF, GPS, ISS etc."},
-    {key:"pgdas",         nome:"PGDAS-D — Declaração Simples",         regimes:["Simples Nacional","MEI"], condicao:null, obs:""},
-    {key:"dasn",          nome:"DASN — Declaração Anual MEI",          regimes:["MEI"], condicao:null,             obs:""},
+  // ── ATIVO PATRIMONIAL ─────────────────────────────────────────────────
+  { cat:"🏗️ ATIVO — PATRIMONIAL E IMOBILIZADO", icon:"🏗️", items:[
+    {key:"imobilizado",  nome:"Imobilizado — Relação de Aquisições e Baixas 2025", regimes:["todos"], condicao:null,       obs:"Bens com nota fiscal e data de compra"},
+    {key:"dep_rel",      nome:"Planilha de Depreciação (se controle próprio)",      regimes:["todos"], condicao:"ci_bens_depr", obs:""},
+    {key:"caixa",        nome:"Controle de Caixa",                                  regimes:["todos"], condicao:"tem_caixa", obs:"Saldo diário ou resumo mensal"},
+    {key:"estoque",      nome:"Inventário / Movimentação de Estoque",               regimes:["todos"], condicao:"tem_estoque", obs:"Entradas, saídas e saldo final"},
+    {key:"cr",           nome:"Relatório de Contas a Receber",                      regimes:["todos"], condicao:null,       obs:"Clientes e vencimentos"},
   ]},
-  { cat:"📊 FOLHA",      icon:"📊", items:[
-    {key:"folha",         nome:"Folha de Pagamento do Mês",            regimes:["todos"], condicao:"tem_folha",    obs:""},
-    {key:"prolabore",     nome:"Pró-labore dos Sócios",                regimes:["todos"], condicao:"tem_prolabore",obs:""},
-    {key:"inss_fgts",     nome:"INSS e FGTS — Guias e Comprovantes",   regimes:["todos"], condicao:"tem_folha",    obs:""},
-    {key:"rescisoes",     nome:"Rescisões / Admissões do Mês",         regimes:["todos"], condicao:"tem_folha",    obs:"Se houver movimentação"},
+  // ── PASSIVO ───────────────────────────────────────────────────────────
+  { cat:"📋 PASSIVO — OBRIGAÇÕES E DÍVIDAS", icon:"📋", items:[
+    {key:"cp",           nome:"Relatório de Contas a Pagar",                        regimes:["todos"], condicao:null,       obs:"Fornecedores e vencimentos"},
+    {key:"emprestimos",  nome:"Empréstimos e Financiamentos — Saldo Devedor Anual", regimes:["todos"], condicao:null,       obs:""},
+    {key:"parc_rfb",     nome:"Guia de Parcelamento — Receita Federal",             regimes:["todos"], condicao:"parc_federal", obs:""},
+    {key:"parc_estado",  nome:"Guia de Parcelamento — Receita Estadual",            regimes:["todos"], condicao:"parc_estadual", obs:""},
+    {key:"parc_pref",    nome:"Guia de Parcelamento — Prefeitura",                  regimes:["todos"], condicao:"parc_pref", obs:""},
+    {key:"parc_pgfn",    nome:"Guia de Parcelamento — PGFN",                        regimes:["todos"], condicao:"parc_pgfn", obs:""},
+  ]},
+  // ── PATRIMÔNIO ────────────────────────────────────────────────────────
+  { cat:"🏛️ PATRIMÔNIO LÍQUIDO", icon:"🏛️", items:[
+    {key:"alt_contratual",nome:"Alterações Contratuais (alteração de contrato social)", regimes:["todos"], condicao:null, obs:"Enviar se houver em 2025"},
+    {key:"dist_lucros",   nome:"Distribuição de Lucros — Comprovante",              regimes:["Lucro Presumido","Lucro Real"], condicao:null, obs:""},
+    {key:"integ_capital", nome:"Integralização de Capital",                         regimes:["todos"], condicao:null,  obs:"Enviar se houver"},
+  ]},
+  // ── RECEITAS ──────────────────────────────────────────────────────────
+  { cat:"💵 RECEITAS E FATURAMENTO", icon:"💵", items:[
+    {key:"nf_emitidas",  nome:"Notas Fiscais Emitidas — XMLs (NF-e e NFS-e)",       regimes:["todos"], condicao:null,  obs:"Arquivo XML de todas as NF emitidas em 2025"},
+    {key:"faturamento",  nome:"Relatório de Faturamento Anual 2025",                regimes:["todos"], condicao:null,  obs:"Por competência, separado por mês"},
+    {key:"serv_sem_nf",  nome:"Relação de Serviços Prestados sem NF",              regimes:["todos"], condicao:null,  obs:"⚠️ Ponto crítico — declarar todos para evitar omissão de receita"},
+  ]},
+  // ── DESPESAS ──────────────────────────────────────────────────────────
+  { cat:"💸 DESPESAS E CUSTOS", icon:"💸", items:[
+    {key:"nf_entrada",   nome:"Notas Fiscais de Entrada — XMLs",                    regimes:["todos"], condicao:null,  obs:"NF-e recebidas de fornecedores"},
+    {key:"serv_tomados", nome:"Relação de Serviços Tomados sem NF",                regimes:["todos"], condicao:null,  obs:""},
+    {key:"desp_op",      nome:"Comprovantes de Despesas Operacionais",              regimes:["todos"], condicao:null,  obs:"Aluguéis, energia, internet, contas"},
+    {key:"conta_pessoal",nome:"⚠️ ATENÇÃO: Comprovante de separação Conta PF x PJ",regimes:["todos"], condicao:"mf_sa_mistura", obs:"Conta pessoal misturada detectada — exigir separação formal"},
+  ]},
+  // ── FISCAL ────────────────────────────────────────────────────────────
+  { cat:"🧾 FISCAL — GUIAS E DECLARAÇÕES", icon:"🧾", items:[
+    {key:"apur_impostos",nome:"Apuração de Impostos 2025",                          regimes:["todos"], condicao:null,  obs:"Resumo por mês"},
+    {key:"guias_pagas",  nome:"Guias de Impostos Pagos (DAS, DARF, GPS, ISS)",     regimes:["todos"], condicao:null,  obs:"Todos os meses de 2025"},
+    {key:"pgdas",        nome:"PGDAS-D — Declaração do Simples Nacional 2025",     regimes:["Simples Nacional","MEI"], condicao:null, obs:""},
+    {key:"dasn",         nome:"DASN — Declaração Anual MEI",                       regimes:["MEI"], condicao:null,   obs:""},
+    {key:"xml_entrada",  nome:"XMLs de NFe de Entrada (SPED Fiscal)",              regimes:["todos"], condicao:"fiscal_integrado", obs:""},
+    {key:"xml_saida",    nome:"XMLs de NFe de Saída (SPED Fiscal)",                regimes:["todos"], condicao:"fiscal_integrado", obs:""},
+  ]},
+  // ── FOLHA / TRABALHISTA ───────────────────────────────────────────────
+  { cat:"👷 FOLHA E OBRIGAÇÕES TRABALHISTAS", icon:"👷", items:[
+    {key:"folha",        nome:"Folha de Pagamento 2025 — Todos os meses",           regimes:["todos"], condicao:"tem_folha",    obs:""},
+    {key:"prolabore",    nome:"Pró-labore dos Sócios — Recibos 2025",               regimes:["todos"], condicao:"tem_prolabore",obs:"Um recibo por sócio por mês"},
+    {key:"inss_fgts",    nome:"INSS e FGTS — Guias e Comprovantes de Pagamento",   regimes:["todos"], condicao:"tem_folha",    obs:"GPS e GFIP/SEFIP 2025"},
+    {key:"rescisoes",    nome:"Rescisões, Admissões e Afastamentos",                regimes:["todos"], condicao:"tem_folha",    obs:"Se houver movimentação em 2025"},
+    {key:"rpa",          nome:"RPA — Recibo de Pagamento a Autônomo",               regimes:["todos"], condicao:"mf_tem_aut",  obs:"Todos os autônomos contratados"},
+    {key:"estagio",      nome:"Contrato de Estágio + Comprovantes",                regimes:["todos"], condicao:"mf_tem_estag", obs:""},
+    {key:"obrig_trab",   nome:"Obrigações Trabalhistas (eSocial) — Relatório",     regimes:["todos"], condicao:"tem_folha",    obs:"SST implementado conforme diagnóstico"},
   ]},
 ];
+
 
 // ─── CHECKLIST ONBOARDING C-006 ───
 const C006_TEMPLATE = [

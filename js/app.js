@@ -46,7 +46,7 @@ function render() {
   const main = document.getElementById('main-content');
   try {
     const titles = {
-      dashboard:'Dashboard', clientes:'Clientes',
+      dashboard:'Carteira de Clientes — Diagnóstico', clientes:'Clientes',
       escrituracao:'📁 Escrituração 2025 — Documentação Recebida',
       checklist:'Escrituração 2025 — Documentação Recebida',
       onboarding:'Onboarding de Clientes', auditoria:'Auditoria & Apontamentos',
