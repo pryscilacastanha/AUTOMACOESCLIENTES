@@ -449,6 +449,13 @@ function openModal(mode, id=null) {
               </div>
             </div>
           </div>
+          <div class="form-group form-full mt-2">
+            <label>🔗 Drive Google — Link da pasta do cliente</label>
+            <input id="f-drive-url" value="${c.drive_url||''}"
+              placeholder="Cole aqui o link da pasta do Google Drive compartilhada pelo cliente (ex: https://drive.google.com/drive/folders/...)"
+              style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;width:100%;box-sizing:border-box">
+            <div style="font-size:11px;color:#64748b;margin-top:4px">Este link ativa o botão "🔄 Sincronizar Drive" no módulo Escrituração 2025.</div>
+          </div>
           <div class="form-group form-full mt-2"><label>Observações Gerais</label><textarea id="f-obs">${c.obs||''}</textarea></div>
         </div>
 
@@ -918,7 +925,7 @@ function saveCliente(mode) {
     complexidade: document.getElementById('f-comp').value,
     erp: document.getElementById('f-erp').value,
     erp_nome: (document.getElementById('f-erp-nome')||{}).value||'',
-    drive_url: (document.getElementById('f-drive')||{}).value||'',
+    drive_url: (document.getElementById('f-drive-url')||{}).value||'',
     responsavel: document.getElementById('f-resp').value,
     whatsapp: document.getElementById('f-wapp').value,
     email: document.getElementById('f-email').value,
