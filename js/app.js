@@ -846,8 +846,8 @@ function openModal(mode, id=null) {
     if (obgContainer) {
       const onboarding = DB.get('onboarding') || {};
       const savedObg = onboarding[id] || {};
-      const STATUS_OBG = ['pendente','solicitado','verificar','concluido','cliente_nao_possui'];
-      const statusLabel = {pendente:'Pendente',solicitado:'Solicitado',verificar:'Verificar',concluido:'Concluído',cliente_nao_possui:'Cliente Não Possui'};
+      const STATUS_OBG = ['pendente','solicitado','verificar','concluido','cliente_nao_possui','nao_disponibilizado'];
+      const statusLabel = {pendente:'Pendente',solicitado:'Solicitado',verificar:'Verificar',concluido:'Concluído',cliente_nao_possui:'Cliente Não Possui',nao_disponibilizado:'Não disponibilizado'};
 
       if (typeof C006_TEMPLATE !== 'undefined') {
         obgContainer.innerHTML = C006_TEMPLATE.map(sec => {
