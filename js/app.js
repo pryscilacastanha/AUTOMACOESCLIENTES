@@ -1606,11 +1606,17 @@ function gerarParecer() {
 
   // Pendências Fiscais Menores
   const obgs = [
-    { n: 'SPED Fiscal', v: cliente.d_sped_f }, { n: 'SPED Contrib', v: cliente.d_sped_c },
-    { n: 'ECD Mensal/Outra', v: cliente.d_ecd }, { n: 'ECF', v: cliente.d_ecf },
-    { n: 'PGDAS Mensal', v: cliente.d_simples }, { n: 'Dívida RFB', v: cliente.d_div_rfb },
-    { n: 'Dívida PGFN', v: cliente.d_div_pgfn }, { n: 'Dívida Estadual', v: cliente.d_div_est },
-    { n: 'Dívida Municipal', v: cliente.d_div_pref }
+    { n: 'SPED Fiscal', v: cliente.d_sped_f, isAcessoria: true }, 
+    { n: 'SPED Contrib', v: cliente.d_sped_c, isAcessoria: true },
+    { n: 'ECD Mensal/Outra', v: cliente.d_ecd, isAcessoria: true }, 
+    { n: 'ECF', v: cliente.d_ecf, isAcessoria: true },
+    { n: 'DEFIS', v: cliente.d_defis, isAcessoria: true },
+    { n: 'DASNMEI', v: cliente.d_dasnmei, isAcessoria: true },
+    { n: 'PGDAS Mensal', v: cliente.d_simples, isAcessoria: true }, 
+    { n: 'Dívida RFB', v: cliente.d_div_rfb, isAcessoria: false },
+    { n: 'Dívida PGFN', v: cliente.d_div_pgfn, isAcessoria: false }, 
+    { n: 'Dívida Estadual', v: cliente.d_div_est, isAcessoria: false },
+    { n: 'Dívida Municipal', v: cliente.d_div_pref, isAcessoria: false }
   ];
   const pends = obgs.filter(o => o.v && o.v.status === 'Pendente');
   const andam = obgs.filter(o => o.v && o.v.status === 'Em andamento');
@@ -1618,14 +1624,26 @@ function gerarParecer() {
   if (pends.length > 0 || andam.length > 0) {
       const riscoFiscal = pends.length > 5 ? '🔴 ALTO' : pends.length > 0 ? '🟡 MÉDIO' : '🟢 BAIXO';
       texto += `\n📍 REVISÃO DE ROTINAS FISCAIS E DÍVIDAS SECUNDÁRIAS\n${sep2}\n`;
-      texto += `Risco Secundário (Mensais/Dívidas): ${riscoFiscal} (${pends.length} pendências)\n\n`;
+      texto += `Risco Secundário (Obrigações/Dívidas): ${riscoFiscal} (${pends.length} pendências)\n\n`;
       if(pends.length > 0) {
           texto += `🔴 OBRIGAÇÕES/DÉBITOS PENDENTES:\n`;
-          pends.forEach(p => texto += `     • ${p.n} (Ref: ${p.v.comp || 'N/A'})\n`);
+          pends.forEach(p => {
+              if (p.isAcessoria) {
+                  texto += `     • Empresa possui pendência na entrega do ${p.n} (Ref: ${p.v.comp || 'N/A'}) — risco de autuação e necessidade de regularização.\n`;
+              } else {
+                  texto += `     • Empresa possui débitos fiscais em aberto (${p.n}) — necessário acompanhamento e conciliação de parcelamentos.\n`;
+              }
+          });
       }
       if(andam.length > 0) {
           texto += `\n🟡 EM ANDAMENTO/PARCELANDO:\n`;
-          andam.forEach(p => texto += `     • ${p.n} (Ref: ${p.v.comp || 'N/A'})\n`);
+          andam.forEach(p => {
+              if (p.isAcessoria) {
+                  texto += `     • Entrega em andamento: ${p.n} (Ref: ${p.v.comp || 'N/A'}).\n`;
+              } else {
+                  texto += `     • Débito em regularização/parcelando: ${p.n}.\n`;
+              }
+          });
       }
   }
 

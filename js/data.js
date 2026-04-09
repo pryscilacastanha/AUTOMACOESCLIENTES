@@ -60,7 +60,7 @@ const CHECKLIST_TEMPLATE = [
   ]},
 
   // ── 2. PASSIVO ───────────────────────────────────────────────────────────
-  { cat:"📋 2. PASSIVO", icon:"📋", items:[
+  { cat:"📋 2. PASSIVO OPERACIONAL", icon:"📋", items:[
     // Fornecedores
     {key:"cp",           nome:"Relatório de Contas a Pagar (Fornecedores)",         regimes:["todos"], condicao:null,       obs:"Fornecedores e vencimentos"},
 
@@ -71,37 +71,39 @@ const CHECKLIST_TEMPLATE = [
     {key:"cgiro",         nome:"Extrato de Capital de Giro",              regimes:["todos"], condicao:"mf_ef_capgiro",     obs:"(Passivo Bancário)"},
     {key:"reneg",         nome:"Acordo/Renegociação — Extrato Atualizado",regimes:["todos"], condicao:"mf_ef_reneg",       obs:"Parcelas ativas e saldo devedor"},
 
-    // Parcelamentos
-    {key:"parc_rfb",     nome:"Guia de Parcelamento — Receita Federal",             regimes:["todos"], condicao:"parc_federal", obs:""},
-    {key:"parc_estado",  nome:"Guia de Parcelamento — Receita Estadual",            regimes:["todos"], condicao:"parc_estadual", obs:""},
-    {key:"parc_pref",    nome:"Guia de Parcelamento — Prefeitura",                  regimes:["todos"], condicao:"parc_pref", obs:""},
-    {key:"parc_pgfn",    nome:"Guia de Parcelamento — PGFN",                        regimes:["todos"], condicao:"parc_pgfn", obs:""},
-
-    // Obrigações Trabalhistas
+    // Obrigações Trabalhistas e Sócios
     {key:"folha",        nome:"Folha de Pagamento 2025 — Todos os meses",           regimes:["todos"], condicao:"tem_folha",    obs:""},
-    {key:"prolabore",    nome:"Pró-labore dos Sócios — Recibos 2025",               regimes:["todos"], condicao:"tem_prolabore",obs:"Um recibo por sócio por mês"},
+    {key:"prolabore",    nome:"Controle de Lucros Distribuídos (e Pró-Labore)",     regimes:["todos"], condicao:"tem_prolabore",obs:"Relatórios, comprovantes ou registros de distribuição"},
     {key:"inss_fgts",    nome:"INSS e FGTS — Guias e Comprovantes de Pagamento",   regimes:["todos"], condicao:"tem_folha",    obs:"GPS e GFIP/SEFIP 2025"},
     {key:"rescisoes",    nome:"Rescisões, Admissões e Afastamentos",                regimes:["todos"], condicao:"tem_folha",    obs:"Se houver movimentação em 2025"},
     {key:"rpa",          nome:"RPA — Recibo de Pagamento a Autônomo",               regimes:["todos"], condicao:"mf_tem_aut",  obs:"Todos os autônomos contratados"},
     {key:"estagio",      nome:"Contrato de Estágio + Comprovantes",                regimes:["todos"], condicao:"mf_tem_estag", obs:""},
     {key:"obrig_trab",   nome:"Obrigações Trabalhistas (eSocial) — Relatório",     regimes:["todos"], condicao:"tem_folha",    obs:"SST implementado conforme diagnóstico"},
-
-    // Obrigações Fiscais
-    {key:"apur_impostos",nome:"Apuração de Impostos 2025",                          regimes:["todos"], condicao:null,  obs:"Resumo por mês"},
-    {key:"guias_pagas",  nome:"Guias de Impostos Pagos (DAS, DARF, GPS, ISS)",     regimes:["todos"], condicao:null,  obs:"Todos os meses de 2025"},
-    {key:"pgdas",        nome:"PGDAS-D — Declaração do Simples Nacional 2025",     regimes:["Simples Nacional","MEI"], condicao:null, obs:""},
-    {key:"dasn",         nome:"DASN — Declaração Anual MEI",                       regimes:["MEI"], condicao:null,   obs:""},
   ]},
 
-  // ── 3. PATRIMÔNIO LÍQUIDO ────────────────────────────────────────────────────────
-  { cat:"🏛️ 3. PATRIMÔNIO LÍQUIDO", icon:"🏛️", items:[
+  // ── 3. BLOCO TRIBUTÁRIO ───────────────────────────────────────────────────
+  { cat:"🏛️ 3. BLOCO TRIBUTÁRIO", icon:"🏛️", items:[
+    // 3.1 Parcelamentos e Débitos Fiscais
+    {key:"parc_rfb",     nome:"Parcelamento / Débitos — RFB",                       regimes:["todos"], condicao:"div_rfb",      obs:""},
+    {key:"parc_pgfn",    nome:"Parcelamento / Débitos — PGFN",                      regimes:["todos"], condicao:"div_pgfn",     obs:""},
+    {key:"parc_estado",  nome:"Parcelamento / Débitos — Estadual",                  regimes:["todos"], condicao:"div_estado",   obs:""},
+    {key:"parc_pref",    nome:"Parcelamento / Débitos — Municipal",                 regimes:["todos"], condicao:"div_pref",     obs:""},
+
+    // 3.2 Guias e Comprovações
+    {key:"guias_pagas",  nome:"Guias Pagas (DAS, impostos diversos)",               regimes:["todos"], condicao:null,           obs:"Todos os meses de 2025"},
+    {key:"comp_fiscais", nome:"Comprovantes de Pagamento Diversos",                 regimes:["todos"], condicao:null,           obs:""},
+    {key:"apur_impostos",nome:"Relatórios de Apuração (quando aplicável)",          regimes:["todos"], condicao:null,           obs:"Resumo por mês"},
+  ]},
+
+  // ── 4. PATRIMÔNIO LÍQUIDO ────────────────────────────────────────────────────────
+  { cat:"🏛️ 4. PATRIMÔNIO LÍQUIDO", icon:"🏛️", items:[
     {key:"alt_contratual",nome:"Alterações Contratuais (alteração de contrato social)", regimes:["todos"], condicao:null, obs:"Enviar se houver em 2025"},
     {key:"integ_capital", nome:"Integralização de Capital",                         regimes:["todos"], condicao:null,  obs:"Enviar se houver"},
     {key:"dist_lucros",   nome:"Distribuição de Lucros — Comprovante",              regimes:["Lucro Presumido","Lucro Real"], condicao:null, obs:""},
   ]},
 
-  // ── 4. RECEITAS ──────────────────────────────────────────────────────────
-  { cat:"💵 4. RECEITAS", icon:"💵", items:[
+  // ── 5. RECEITAS ──────────────────────────────────────────────────────────
+  { cat:"💵 5. RECEITAS", icon:"💵", items:[
     {key:"nf_emitidas",  nome:"Notas Fiscais Emitidas — XMLs (NF-e e NFS-e)",       regimes:["todos"], condicao:null,  obs:"Arquivo XML de todas as NF emitidas em 2025"},
     {key:"xml_saida",    nome:"XMLs de NFe de Saída (SPED Fiscal)",                regimes:["todos"], condicao:"fiscal_integrado", obs:""},
     {key:"faturamento",  nome:"Relatório de Faturamento Anual 2025",                regimes:["todos"], condicao:null,  obs:"Por competência, separado por mês"},
@@ -109,8 +111,8 @@ const CHECKLIST_TEMPLATE = [
     {key:"serv_sem_nf",  nome:"Relação de Serviços Prestados ou Receitas sem NF",   regimes:["todos"], condicao:null,  obs:"⚠️ Ponto crítico — declarar todos para evitar omissão de receita"},
   ]},
 
-  // ── 5. DESPESAS E CUSTOS ──────────────────────────────────────────────────────────
-  { cat:"💸 5. DESPESAS E CUSTOS", icon:"💸", items:[
+  // ── 6. DESPESAS E CUSTOS ──────────────────────────────────────────────────────────
+  { cat:"💸 6. DESPESAS E CUSTOS", icon:"💸", items:[
     // Custos diretos / Entradas
     {key:"nf_entrada",   nome:"Notas Fiscais de Entrada — XMLs",                    regimes:["todos"], condicao:null,  obs:"NF-e recebidas de fornecedores"},
     {key:"xml_entrada",  nome:"XMLs de NFe de Entrada (SPED Fiscal)",              regimes:["todos"], condicao:"fiscal_integrado", obs:""},

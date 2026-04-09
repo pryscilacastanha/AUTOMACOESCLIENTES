@@ -1556,8 +1556,12 @@ window.calcFechamentoCompetencia = function(clienteId, comp, categorias, checkli
   let divergentes = 0;
   let emAndamento = false;
 
+  let temParcelamentoPendente = false;
+
   categorias.forEach(cat => {
     cat.items.forEach(item => {
+      if (item._disabled) return; // ignora no cálculo se estiver bloqueado (Regular/N.A)
+
       totalDoc++;
       const val = saved[item.key] || 'nao_enviado';
       if (val === 'recebido') recebidos++;
@@ -1565,11 +1569,16 @@ window.calcFechamentoCompetencia = function(clienteId, comp, categorias, checkli
         emAndamento = true;
         if (val === 'divergente') divergentes++;
       }
+      
+      if (['parc_rfb','parc_estado','parc_pref','parc_pgfn'].includes(item.key) && val !== 'recebido') {
+        temParcelamentoPendente = true;
+      }
     });
   });
 
   if (totalDoc === 0) return { text: '-', bg: '#f8fafc', color: '#94a3b8' };
   if (recebidos === totalDoc) return { text: '🔒 Fechado', bg: '#f0fdf4', color: '#16a34a' };
+  if (temParcelamentoPendente) return { text: '⚠️ Risco Passivo', bg: '#fef2f2', color: '#ef4444', title: 'Fechamento com risco — ausência de controle de passivo fiscal' };
   if (recebidos > 0 && recebidos < totalDoc) return { text: '🔄 Parcial', bg: '#fef3c7', color: '#d97706' };
   if (divergentes > 0) return { text: '⚠️ Diverg.', bg: '#fef2f2', color: '#ef4444' };
   if (emAndamento) return { text: '▶️ Em andamento', bg: '#eff6ff', color: '#2563eb' };
@@ -1631,7 +1640,8 @@ ${chkClienteId && driveUrl ? `
   // Filtra itens dinamicamente pelo diagnóstico do cliente
 
   const categorias = CHECKLIST_TEMPLATE.map(cat => {
-    const items = cat.items.filter(item => {
+    let items = cat.items.map(i => ({...i}));
+    items = items.filter(item => {
       if (item.condicao) {
         // ── Bancos ────────────────────────────────────────────────────
         if (item.condicao.startsWith('banco_')) {
@@ -1644,10 +1654,24 @@ ${chkClienteId && driveUrl ? `
         if (item.condicao === 'tem_estoque')     return !!cliente.tem_estoque;
         if (item.condicao === 'tem_folha')       return !!cliente.tem_folha;
         if (item.condicao === 'tem_prolabore')   return !!cliente.tem_prolabore;
-        if (item.condicao === 'parc_federal')    return !!cliente.parc_federal;
-        if (item.condicao === 'parc_estadual')   return !!cliente.parc_estadual;
-        if (item.condicao === 'parc_pref')       return !!cliente.parc_pref;
-        if (item.condicao === 'parc_pgfn')       return !!cliente.parc_pgfn;
+        
+        if (item.condicao === 'div_rfb') {
+            item._disabled = !(cliente.d_div_rfb && (cliente.d_div_rfb.status === 'Pendente' || cliente.d_div_rfb.status === 'Em andamento'));
+            return true;
+        }
+        if (item.condicao === 'div_estado') {
+            item._disabled = !(cliente.d_div_est && (cliente.d_div_est.status === 'Pendente' || cliente.d_div_est.status === 'Em andamento'));
+            return true;
+        }
+        if (item.condicao === 'div_pref') {
+            item._disabled = !(cliente.d_div_pref && (cliente.d_div_pref.status === 'Pendente' || cliente.d_div_pref.status === 'Em andamento'));
+            return true;
+        }
+        if (item.condicao === 'div_pgfn') {
+            item._disabled = !(cliente.d_div_pgfn && (cliente.d_div_pgfn.status === 'Pendente' || cliente.d_div_pgfn.status === 'Em andamento'));
+            return true;
+        }
+
         if (item.condicao === 'fiscal_integrado')return !!cliente.fiscal_integrado;
         if (item.condicao === 'ci_bens_depr')    return !!appData.ci_bens_depr;
         // ── Diagnóstico: Movimentações Bancárias ──────────────────────
@@ -1704,6 +1728,10 @@ ${chkClienteId && driveUrl ? `
         const savedData = checklists[key] || {};
         const actualVal = savedData[item.key] || 'aguardando';
 
+        if (item._disabled) {
+           return `<td style="padding:4px;background:#f1f5f9;text-align:center;color:#94a3b8;font-size:10px;font-style:italic">Não se aplica</td>`;
+        }
+
         return `<td style="padding:4px">
           <select class="status-select-m ${actualVal}" onchange="saveChkItemMatrix('${chkClienteId}','${comp}','${item.key}',this.value,this)">
              <option value="aguardando"  ${actualVal==='aguardando' ?'selected':''}>⏳ Aguardando</option>
@@ -1726,7 +1754,7 @@ ${chkClienteId && driveUrl ? `
   const fechamento = meses.map(m => {
       const comp = `${ano}-${m}`;
       const statusComp = calcFechamentoCompetencia(chkClienteId, comp, categorias, checklists);
-      return `<td style="background:${statusComp.bg};color:${statusComp.color};font-weight:800;font-size:11px;text-align:center">
+      return `<td style="background:${statusComp.bg};color:${statusComp.color};font-weight:800;font-size:11px;text-align:center" title="${statusComp.title || ''}">
         ${statusComp.text}
       </td>`;
   }).join('');
