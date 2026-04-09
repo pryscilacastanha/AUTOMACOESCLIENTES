@@ -5,10 +5,10 @@
 
 const DriveSync = (() => {
   // ── Config ──────────────────────────────────────────────────────────
-  // Client ID do Google Cloud Console (seguro para frontend)
+  // Client ID do Google Cloud Console — projeto vertice-492813 (seguro para frontend)
   // A "chave secreta do cliente" NÃO entra aqui — é para backend apenas
   const GOOGLE_CLIENT_ID = window.GOOGLE_CLIENT_ID ||
-    '563009037069-lkeaglf49mkf37hrt2nkssac4nqrdn49.apps.googleusercontent.com';
+    '482333241156-4hca81u2n89s5hob0t8f0v06kugvbtia.apps.googleusercontent.com';
   const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
   const DRIVE_API   = 'https://www.googleapis.com/drive/v3';
 
