@@ -19,45 +19,29 @@ const BANCOS = [
 
 const CHECKLIST_TEMPLATE = [
   // ── 1. ATIVO ─────────────────────────────────────────────────────────────
-  { cat:"🏦 1. ATIVO", icon:"🏦", items:[
-    // Bancos
-    {key:"extrato_bb",    nome:"Extrato Bancário — Banco do Brasil",      regimes:["todos"], condicao:"banco_001",         obs:"Todos os meses de 2025 em PDF ou OFX"},
-    {key:"extrato_brad",  nome:"Extrato Bancário — Bradesco",             regimes:["todos"], condicao:"banco_237",         obs:"Todos os meses de 2025 em PDF ou OFX"},
-    {key:"extrato_cef",   nome:"Extrato Bancário — Caixa",                regimes:["todos"], condicao:"banco_104",         obs:""},
-    {key:"extrato_itau",  nome:"Extrato Bancário — Itaú",                 regimes:["todos"], condicao:"banco_341",         obs:""},
-    {key:"extrato_sant",  nome:"Extrato Bancário — Santander",            regimes:["todos"], condicao:"banco_033",         obs:""},
-    {key:"extrato_bans",  nome:"Extrato Bancário — Banrisul",             regimes:["todos"], condicao:"banco_041",         obs:""},
-    {key:"extrato_sic",   nome:"Extrato Bancário — Sicredi",              regimes:["todos"], condicao:"banco_748",         obs:""},
-    {key:"extrato_sicoob",nome:"Extrato Bancário — Sicoob",               regimes:["todos"], condicao:"banco_756",         obs:""},
-    {key:"extrato_inter", nome:"Extrato Bancário — Inter",                regimes:["todos"], condicao:"banco_077",         obs:""},
-    {key:"extrato_nu",    nome:"Extrato Bancário — Nubank",               regimes:["todos"], condicao:"banco_260",         obs:""},
-    {key:"extrato_outro", nome:"Extrato Bancário — Outro banco",          regimes:["todos"], condicao:"banco_outro",       obs:"Especificar nome do banco"},
+  { cat:"🏦 1.1 ATIVO — CAIXA", icon:"🏦", items:[] },
+  { cat:"🏦 1.2 ATIVO — BANCOS", icon:"🏦", items:[
     {key:"operadoras",    nome:"Extrato de Operadoras de Cartão (múltiplas)", regimes:["todos"], condicao:"mf_cc_multi",   obs:"Cielo, Stone, PagSeguro, etc. Consolidado"},
     {key:"antecipacao",   nome:"Relatório de Antecipação de Recebíveis",  regimes:["todos"], condicao:"mf_cc_antec",       obs:"⚠️ Essencial para conciliação BRUTO x LÍQUIDO"},
-    {key:"cambio",        nome:"Extrato em Moeda Estrangeira + Conversão Câmbio", regimes:["todos"], condicao:"mf_oe_moeda", obs:"⚠️ Variação ativa obrigatória"},
-
-    // Aplicações financeiras
+    {key:"cambio",        nome:"Extrato em Moeda Estrangeira + Conversão Câmbio", regimes:["todos"], condicao:"mf_oe_moeda", obs:"⚠️ Variação ativa obrigatória"}
+  ]},
+  { cat:"📈 1.3 ATIVO — RELATÓRIOS E CONTAS A RECEBER", icon:"📈", items:[
+    {key:"cr",           nome:"Relatório de Contas a Receber",                      regimes:["todos"], condicao:null,       obs:"Clientes e vencimentos"},
+    {key:"pix_estrut",   nome:"Relatório de Recebimentos via PIX Estruturado", regimes:["todos"], condicao:"mf_oe_pix",   obs:""},
+    {key:"subvencao",    nome:"Comprovante de Subvenção / Incentivo Fiscal", regimes:["todos"], condicao:"mf_oe_subv",    obs:"Direitos a receber ou já realizados"},
+  ]},
+  { cat:"💰 1.4 ATIVO — APLICAÇÕES FINANCEIRAS", icon:"💰", items:[
     {key:"aplicacoes",    nome:"Extrato de Aplicações Financeiras (CDB/RDB/Conta Rem)", regimes:["todos"], condicao:"mf_ia_auto", obs:"Rendimentos e IRRF retido"},
     {key:"fundos",        nome:"Extrato de Fundos de Investimento",       regimes:["todos"], condicao:"mf_ia_fundo",       obs:"Valor de cota e rendimentos mensais"},
     {key:"tesouro",       nome:"Extrato Tesouro Direto",                  regimes:["todos"], condicao:"mf_ia_td",          obs:"Via B3/XP/Corretora"},
     {key:"outras_invest", nome:"Comprovante de Investimentos em Outras Empresas", regimes:["todos"], condicao:"mf_ia_outras", obs:"Participações societárias"},
     {key:"cripto",       nome:"Extrato de Criptoativos + Registro IN 1888", regimes:["todos"], condicao:"mf_oe_cripto",   obs:"Apesar de intangível, classificado aqui (Ativo Misto)"},
     {key:"consorte",     nome:"Extrato de Consórcio",                     regimes:["todos"], condicao:"mf_oe_cons",       obs:""},
-
-    // Contas a receber
-    {key:"cr",           nome:"Relatório de Contas a Receber",                      regimes:["todos"], condicao:null,       obs:"Clientes e vencimentos"},
-    {key:"pix_estrut",   nome:"Relatório de Recebimentos via PIX Estruturado", regimes:["todos"], condicao:"mf_oe_pix",   obs:""},
-    {key:"subvencao",    nome:"Comprovante de Subvenção / Incentivo Fiscal", regimes:["todos"], condicao:"mf_oe_subv",    obs:"Direitos a receber ou já realizados"},
-
-    // Estoques
+  ]},
+  { cat:"🏭 1.5 ATIVO — BENS E ESTOQUES", icon:"🏭", items:[
     {key:"estoque",      nome:"Inventário / Movimentação de Estoque",               regimes:["todos"], condicao:"tem_estoque", obs:"Entradas, saídas e saldo final"},
-
-    // Imobilizado
     {key:"imobilizado",  nome:"Imobilizado — Relação de Aquisições e Baixas 2025", regimes:["todos"], condicao:null,       obs:"Bens com nota fiscal e data de compra"},
     {key:"dep_rel",      nome:"Planilha de Depreciação (se controle próprio)",      regimes:["todos"], condicao:"ci_bens_depr", obs:""},
-    
-    // Caixa (Ativo Circulante)
-    {key:"caixa",        nome:"Controle de Caixa",                                  regimes:["todos"], condicao:"tem_caixa", obs:"Saldo diário ou resumo mensal"},
   ]},
 
   // ── 2. PASSIVO ───────────────────────────────────────────────────────────

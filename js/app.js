@@ -1621,18 +1621,16 @@ window.getDynamicChecklist = (cliente, appData = {}) => {
     if (!cliente) return tpl;
     if (Object.keys(appData).length === 0 && cliente.mov_fin) appData = cliente.mov_fin;
 
-    const ativo = tpl.find(c => c.cat.includes('ATIVO'));
-    if (ativo) {
-        // Remove fixed bank extratos if they use condicao banco_... 
-        ativo.items = ativo.items.filter(i => !(i.condicao && i.condicao.startsWith('banco_')));
-        
-        // Inject Caixa
+    const ativoCaixa = tpl.find(c => c.cat.includes('ATIVO — CAIXA'));
+    if (ativoCaixa) {
         if (cliente.ci_cx_possui && cliente.ci_cx_possui !== 'Não possui' && cliente.ci_cx_possui !== 'Não se aplica') {
-            ativo.items.unshift({key:"dyn_cx_saldo", nome:"Validar saldo de caixa", regimes:["todos"], condicao:null, obs:""});
-            ativo.items.unshift({key:"dyn_cx_mov", nome:"Conferir movimentação de caixa", regimes:["todos"], condicao:null, obs:"Frequência: "+(cliente.ci_cx_freq||'N/A')});
+            ativoCaixa.items.unshift({key:"dyn_cx_saldo", nome:"Validar saldo de caixa", regimes:["todos"], condicao:null, obs:""});
+            ativoCaixa.items.unshift({key:"dyn_cx_mov", nome:"Conferir movimentação de caixa", regimes:["todos"], condicao:null, obs:"Frequência: "+(cliente.ci_cx_freq||'N/A')});
         }
-        
-        // Inject Bancos
+    }
+
+    const ativoBancos = tpl.find(c => c.cat.includes('ATIVO — BANCOS'));
+    if (ativoBancos) {
         if (cliente.ci_banco_possui === 'Sim' || !cliente.ci_banco_possui) {
             const bancosUtilizados = (cliente.bancos||[]).map(cod => (BANCOS.find(b => b.cod === cod)||{}).nome).filter(Boolean);
             if (cliente.banco_outro) bancosUtilizados.push(cliente.banco_outro);
@@ -1642,9 +1640,9 @@ window.getDynamicChecklist = (cliente, appData = {}) => {
             else if (cliente.ci_banco_sit === 'Conciliado') risk = "BAIXO";
 
             bancosUtilizados.forEach((nome, idx) => {
-                ativo.items.push({key:"dyn_b_"+idx+"_ext", nome:`Importar/lançar extrato — ${nome}`, regimes:["todos"], condicao:null, obs:"Risco Associado: "+risk});
+                ativoBancos.items.push({key:"dyn_b_"+idx+"_ext", nome:`Importar/lançar extrato — ${nome}`, regimes:["todos"], condicao:null, obs:"Risco Associado: "+risk});
                 if (cliente.ci_banco_forma && (cliente.ci_banco_forma.includes('Conciliação') || cliente.ci_banco_forma.includes('sistema') || cliente.ci_banco_forma.includes('planilha'))) {
-                    ativo.items.push({key:"dyn_b_"+idx+"_conc", nome:`Conciliar banco — ${nome}`, regimes:["todos"], condicao:null, obs:""});
+                    ativoBancos.items.push({key:"dyn_b_"+idx+"_conc", nome:`Conciliar banco — ${nome}`, regimes:["todos"], condicao:null, obs:""});
                 }
             });
         }
