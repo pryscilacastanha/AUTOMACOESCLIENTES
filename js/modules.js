@@ -1527,7 +1527,7 @@ function abrirCPCAnalise(cliId) {
 // MÓDULO UNIFICADO: ESCRITURAÇÃO 2025 — DOCUMENTAÇÃO RECEBIDA
 // Combina: Visão Geral (todos os clientes) + Checklist por cliente
 // ══════════════════════════════════════════════════════════
-let escView = 'geral'; // 'geral' | 'checklist'
+let escView = 'geral'; // mantido apenas para fallback preventivo
 
 function renderEscrituracao() {
   const clientes    = DB.get('clientes') || [];
@@ -1535,26 +1535,15 @@ function renderEscrituracao() {
   const checklists  = DB.get('checklists') || {};
   const anoAtual    = '2025';
 
-  // ── Abas principais ──────────────────────────────────────
-  const abas = `
-  <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px">
-    <button onclick="escView='geral';render()" style="padding:10px 22px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:${escView==='geral'?'3px solid var(--primary);color:var(--primary)':'3px solid transparent;color:var(--text-muted)'};cursor:pointer;margin-bottom:-2px">
-      📊 Visão Geral — Todos os Clientes
-    </button>
-    <button onclick="escView='checklist';render()" style="padding:10px 22px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:${escView==='checklist'?'3px solid var(--primary);color:var(--primary)':'3px solid transparent;color:var(--text-muted)'};cursor:pointer;margin-bottom:-2px">
-      📋 Checklist por Cliente
-    </button>
-  </div>`;
-
-  if (escView === 'geral') {
-    return _renderEscritVisaoGeral(ativos, checklists, anoAtual, abas);
+  if (!chkClienteId) {
+    return _renderEscritVisaoGeral(ativos, checklists, anoAtual);
   } else {
-    return abas + _renderEscritChecklist(clientes, ativos, checklists);
+    return _renderEscritChecklist(clientes, ativos, checklists);
   }
 }
 
 // ── Sub-view: VISÃO GERAL ─────────────────────────────────
-function _renderEscritVisaoGeral(ativos, checklists, anoAtual, abas) {
+function _renderEscritVisaoGeral(ativos, checklists, anoAtual) {
   // Calcula progresso anual por cliente (todos os meses de 2025)
   const meses = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 
@@ -1585,7 +1574,7 @@ function _renderEscritVisaoGeral(ativos, checklists, anoAtual, abas) {
     const emoji     = s.status === 'completo' ? '✅' : s.status === 'parcial' ? '⚠️' : s.status === 'pendente' ? '❌' : '📭';
     const drive     = s.drive_url ? `<a href="${s.drive_url}" target="_blank" title="Abrir Drive" onclick="event.stopPropagation()" style="font-size:10px;color:#3b82f6;text-decoration:none">🔗 Drive</a>` : '';
     return `
-    <div onclick="escView='checklist';chkClienteId='${s.id}';render()"
+    <div onclick="chkClienteId='${s.id}';render()"
       style="background:${bgStatus};border:1px solid ${corStatus}33;border-radius:10px;padding:14px 16px;cursor:pointer;
       box-shadow:0 1px 4px rgba(0,0,0,.06);transition:transform .15s,box-shadow .15s;min-width:175px;max-width:220px"
       onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,.1)'"
@@ -1605,7 +1594,7 @@ function _renderEscritVisaoGeral(ativos, checklists, anoAtual, abas) {
     </div>`;
   }).join('');
 
-  return `${abas}
+  return `
 <div class="card mb-4" style="background:linear-gradient(135deg,#7c3aed 0%,#1e3a8a 100%);color:#fff;padding:18px 24px;display:flex;gap:20px;flex-wrap:wrap;align-items:center">
   <div>
     <div style="font-size:16px;font-weight:800;margin-bottom:2px">📁 Escrituração 2025 — Documentação Recebida</div>
@@ -1687,8 +1676,9 @@ function _renderEscritChecklist(clientes, ativos, checklists) {
     : `<span style="font-size:11px;color:#94a3b8;font-style:italic">📁 Cadastre o link do Drive nos Dados Gerais do cliente</span>`;
 
   const topBar = `
-<div class="card mb-4" style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-  <span style="font-weight:600;white-space:nowrap">Cliente:</span>
+<div class="card mb-4" style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#f8fafc;border-left:4px solid #7c3aed">
+  <button onclick="chkClienteId='';render()" class="btn btn-ghost btn-sm" style="font-weight:700;margin-right:12px;display:flex;align-items:center;gap:6px"><span>⬅️</span> Voltar ao Painel Geral</button>
+  <span style="font-weight:600;white-space:nowrap;color:#1e293b">Cliente:</span>
   <select style="flex:1;min-width:250px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px"
     onchange="chkClienteId=this.value;chkView='checklist';render()">
     <option value="">— Selecione o cliente —</option>${selectorOptions}
