@@ -631,65 +631,105 @@ function openModal(mode, id=null) {
              <div class="cards-grid" style="grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
                 
                 <div>
-                  <strong style="display:block;font-size:12px;margin-bottom:6px">📊 Operações Bancárias</strong>
-                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ob_simples" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ob_simples?'checked':''}> Movimentação simples (recebimentos/pagamentos)</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ob_alto_vol" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ob_alto_vol?'checked':''}> Alto volume de transações</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ob_transf" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ob_transf?'checked':''}> Transferências entre contas frequentes</label>
-                  </div>
+                  <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--primary-dark)">📊 Operações Bancárias</strong>
+                  <div class="form-group"><label>Movimentações simples (Receb. / Pag.)?</label><select id="mf_ob_simples" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ob_simples && x==='Sim' || !c.mov_fin?.ob_simples && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Alto volume de transações?</label><select id="mf_ob_alto_vol" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ob_alto_vol && x==='Sim' || !c.mov_fin?.ob_alto_vol && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Transferências entre contas frequentes?</label><select id="mf_ob_transf" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ob_transf && x==='Sim' || !c.mov_fin?.ob_transf && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
                 </div>
 
                 <div>
-                  <strong style="display:block;font-size:12px;margin-bottom:6px">💳 Cartões de Crédito</strong>
-                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
-                    <label style="font-size:11px"><input type="checkbox" id="mf_cc_maq" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.cc_maq?'checked':''}> Maquininha (recebimento)</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_cc_corp" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.cc_corp?'checked':''}> Cartão corporativo (despesas)</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_cc_antec" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.cc_antec?'checked':''}> Antecipação de recebíveis</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_cc_multi" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.cc_multi?'checked':''}> Múltiplas operadoras (Cielo, Stone, etc.)</label>
-                  </div>
+                  <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--primary-dark)">💳 Cartões de Crédito</strong>
+                  <div class="form-group"><label>Maquininha (recebimento)?</label><select id="mf_cc_maq" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_maq && x==='Sim' || !c.mov_fin?.cc_maq && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Cartão corporativo (despesas)?</label><select id="mf_cc_corp" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_corp && x==='Sim' || !c.mov_fin?.cc_corp && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Antecipação de recebíveis?</label><select id="mf_cc_antec" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_antec && x==='Sim' || !c.mov_fin?.cc_antec && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Múltiplas operadoras (Cielo, Stone, etc.)?</label><select id="mf_cc_multi" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_multi && x==='Sim' || !c.mov_fin?.cc_multi && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
                 </div>
 
                 <div>
-                  <strong style="display:block;font-size:12px;margin-bottom:6px">💰 Empréstimos e Financiamentos</strong>
-                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ef_banc" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ef_banc?'checked':''}> Empréstimos bancários</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ef_finan" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ef_finan?'checked':''}> Financiamentos (veículos, máquinas, etc.)</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ef_capgiro" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ef_capgiro?'checked':''}> Capital de giro</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ef_reneg" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ef_reneg?'checked':''}> Renegociações / parcelamentos ativos</label>
-                  </div>
+                  <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--primary-dark)">💰 Empréstimos e Financiamentos</strong>
+                  <div class="form-group"><label>Empréstimos bancários?</label><select id="mf_ef_banc" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_banc && x==='Sim' || !c.mov_fin?.ef_banc && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Financiamentos (veículos/máquinas)?</label><select id="mf_ef_finan" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_finan && x==='Sim' || !c.mov_fin?.ef_finan && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Capital de giro?</label><select id="mf_ef_capgiro" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_capgiro && x==='Sim' || !c.mov_fin?.ef_capgiro && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Renegociações ou parcelamentos?</label><select id="mf_ef_reneg" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_reneg && x==='Sim' || !c.mov_fin?.ef_reneg && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
                 </div>
 
                 <div>
-                  <strong style="display:block;font-size:12px;margin-bottom:6px">📈 Investimentos e Aplicações</strong>
-                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ia_auto" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ia_auto?'checked':''}> Aplicações automáticas (CDB, RDB)</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ia_fundo" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ia_fundo?'checked':''}> Fundos de investimento</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ia_td" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ia_td?'checked':''}> Tesouro direto</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ia_conta" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ia_conta?'checked':''}> Conta remunerada</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_ia_outras" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.ia_outras?'checked':''}> Investimentos em outras empresas</label>
-                  </div>
+                  <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--primary-dark)">📈 Investimentos e Aplicações</strong>
+                  <div class="form-group"><label>Aplicações automáticas (CDB, RDB)?</label><select id="mf_ia_auto" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_auto && x==='Sim' || !c.mov_fin?.ia_auto && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Fundos de investimento?</label><select id="mf_ia_fundo" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_fundo && x==='Sim' || !c.mov_fin?.ia_fundo && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Tesouro direto?</label><select id="mf_ia_td" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_td && x==='Sim' || !c.mov_fin?.ia_td && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Conta remunerada?</label><select id="mf_ia_conta" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_conta && x==='Sim' || !c.mov_fin?.ia_conta && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Investimentos em outras empresas?</label><select id="mf_ia_outras" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_outras && x==='Sim' || !c.mov_fin?.ia_outras && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
                 </div>
 
                 <div>
-                  <strong style="display:block;font-size:12px;margin-bottom:6px">🧾 Operações Específicas</strong>
-                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
-                    <label style="font-size:11px"><input type="checkbox" id="mf_oe_cons" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.oe_cons?'checked':''}> Consórcios</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_oe_moeda" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.oe_moeda?'checked':''}> Operações em moeda estrangeira</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_oe_pix" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.oe_pix?'checked':''}> Recebimentos via PIX estruturado</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_oe_subv" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.oe_subv?'checked':''}> Subvenções / incentivos financeiros</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_oe_cripto" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.oe_cripto?'checked':''}> Criptomoedas</label>
-                  </div>
+                  <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--primary-dark)">🧾 Operações Específicas</strong>
+                  <div class="form-group"><label>Consórcios?</label><select id="mf_oe_cons" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_cons && x==='Sim' || !c.mov_fin?.oe_cons && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Operações em moeda estrangeira?</label><select id="mf_oe_moeda" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_moeda && x==='Sim' || !c.mov_fin?.oe_moeda && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Recebimentos via PIX estruturado?</label><select id="mf_oe_pix" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_pix && x==='Sim' || !c.mov_fin?.oe_pix && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Subvenções / incentivos financeiros?</label><select id="mf_oe_subv" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_subv && x==='Sim' || !c.mov_fin?.oe_subv && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Criptomoedas?</label><select id="mf_oe_cripto" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_cripto && x==='Sim' || !c.mov_fin?.oe_cripto && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
                 </div>
 
                 <div>
-                  <strong style="display:block;font-size:12px;color:var(--warning);margin-bottom:6px">⚠️ Situações de Atenção Contábil</strong>
-                  <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
-                    <label style="font-size:11px"><input type="checkbox" id="mf_sa_mistura" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.sa_mistura?'checked':''}> Conta pessoal misturada com PJ</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_sa_faltacomp" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.sa_faltacomp?'checked':''}> Falta de extratos completos</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_sa_naoident" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.sa_naoident?'checked':''}> Movimentação não identificada</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_sa_saque" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.sa_saque?'checked':''}> Alto volume de saques</label>
-                    <label style="font-size:11px"><input type="checkbox" id="mf_sa_multi" onchange="updateMovFinanceiraAlerts()" ${c.mov_fin?.sa_multi?'checked':''}> Uso de múltiplas contas sem controle</label>
-                  </div>
+                  <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--warning)">⚠️ Situações de Atenção Contábil</strong>
+                  <div class="form-group"><label>Conta pessoal misturada com PJ?</label><select id="mf_sa_mistura" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_mistura && x==='Sim' || !c.mov_fin?.sa_mistura && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Falta de extratos completos?</label><select id="mf_sa_faltacomp" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_faltacomp && x==='Sim' || !c.mov_fin?.sa_faltacomp && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Movimentação não identificada?</label><select id="mf_sa_naoident" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_naoident && x==='Sim' || !c.mov_fin?.sa_naoident && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Alto volume de saques?</label><select id="mf_sa_saque" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_saque && x==='Sim' || !c.mov_fin?.sa_saque && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Uso de múltiplas contas sem controle?</label><select id="mf_sa_multi" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_multi && x==='Sim' || !c.mov_fin?.sa_multi && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
                 </div>
 
              </div>
@@ -1064,7 +1104,7 @@ function saveCliente(mode) {
         ['ob_simples','ob_alto_vol','ob_transf','cc_maq','cc_corp','cc_antec','cc_multi',
          'ef_banc','ef_finan','ef_capgiro','ef_reneg','ia_auto','ia_fundo','ia_td','ia_conta','ia_outras',
          'oe_cons','oe_moeda','oe_pix','oe_subv','oe_cripto','sa_mistura','sa_faltacomp','sa_naoident','sa_saque','sa_multi'].forEach(id => {
-            mf[id] = document.getElementById('mf_'+id) ? document.getElementById('mf_'+id).checked : false;
+            mf[id] = document.getElementById('mf_'+id) ? document.getElementById('mf_'+id).value === 'Sim' : false;
         });
         return { mov_fin: mf };
     })(),
