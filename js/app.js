@@ -46,13 +46,15 @@ function render() {
   const main = document.getElementById('main-content');
   try {
     const titles = {
-      dashboard:'Dashboard', clientes:'Clientes', checklist:'Checklist Mensal',
+      dashboard:'Dashboard', clientes:'Clientes',
+      escrituracao:'📁 Escrituração 2025 — Documentação Recebida',
+      checklist:'Escrituração 2025 — Documentação Recebida',
       onboarding:'Onboarding de Clientes', auditoria:'Auditoria & Apontamentos',
       educacao:'Educação do Cliente', importacao:'Importação com Gemini AI',
       configuracoes:'Configurações', obrigacoes:'Obrigações Acessórias',
       planocontas:'Plano de Contas', treinamento:'Treinamento da Equipe',
       integracao:'Integração — Import & Export',
-      painel:'Painel Global — Entrega de Documentos',
+      painel:'Escrituração 2025 — Visão Geral',
       controle:'Controle de Clientes — CM Contabilidade',
       parecer:'Parecer Técnico — Escrituração Contábil'
     };
@@ -60,7 +62,8 @@ function render() {
     switch(state.page) {
       case 'dashboard':     main.innerHTML = renderDashboard(); break;
       case 'clientes':      main.innerHTML = renderClientes(); break;
-      case 'checklist':     main.innerHTML = renderChecklist(); break;
+      case 'escrituracao':  main.innerHTML = renderEscrituracao(); break;
+      case 'checklist':     main.innerHTML = renderEscrituracao(); break;
       case 'onboarding':    main.innerHTML = renderOnboarding(); break;
       case 'auditoria':     main.innerHTML = renderAuditoria(); break;
       case 'educacao':      main.innerHTML = renderEducacao(); break;
@@ -70,7 +73,7 @@ function render() {
       case 'planocontas':   main.innerHTML = renderPlanoContas(); break;
       case 'treinamento':   main.innerHTML = renderTreinamento(); break;
       case 'integracao':    main.innerHTML = renderIntegracao(); break;
-      case 'painel':        main.innerHTML = renderPainelGlobal(); break;
+      case 'painel':        main.innerHTML = renderEscrituracao(); break;
       case 'controle':      main.innerHTML = renderClientesAvancado(); break;
       case 'parecer':       main.innerHTML = renderParecerPage(); break;
     }
