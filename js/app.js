@@ -272,7 +272,7 @@ function openModal(mode, id=null) {
     return `<label class="checkbox-item"><input type="checkbox" name="banco" value="${b.cod}" ${checked}> ${b.cod} — ${b.nome}</label>`;
   }).join('');
 
-  const getDiag = (key) => typeof c[key] === 'object' ? c[key] : { status: c[key] ? 'Pendente' : 'Regular', comp: '' };
+  const getDiag = (key) => typeof c[key] === 'object' && c[key] !== null ? c[key] : { status: c[key] ? 'Pendente' : 'Regular', comp: '' };
   const d_sped_f = getDiag('d_sped_f');
   const d_sped_c = getDiag('d_sped_c');
   const d_ecd = getDiag('d_ecd');
@@ -280,6 +280,9 @@ function openModal(mode, id=null) {
   const d_defis = getDiag('d_defis');
   const d_dasnmei = getDiag('d_dasnmei');
   const d_simples = getDiag('d_simples');
+  const d_dctfweb = getDiag('d_dctfweb');
+  const d_dime = getDiag('d_dime');
+  const d_gia = getDiag('d_gia');
 
   const d_div_rfb = getDiag('d_div_rfb');
   const d_div_pgfn = getDiag('d_div_pgfn');
@@ -385,8 +388,10 @@ function openModal(mode, id=null) {
     </div>`;
   };
 
-  const countPendents = [d_sped_f, d_sped_c, d_ecd, d_ecf, d_defis, d_dasnmei, d_simples, d_div_rfb, d_div_pgfn, d_div_est, d_div_pref].filter(x=>x.status==='Pendente').length;
-  const risco = countPendents > 5 ? 'Alto' : countPendents > 0 ? 'Médio' : 'Baixo';
+  const allDiags = [d_sped_f, d_sped_c, d_ecd, d_ecf, d_defis, d_dasnmei, d_simples, d_dctfweb, d_dime, d_gia, d_div_rfb, d_div_pgfn, d_div_est, d_div_pref];
+  const countPendents = allDiags.filter(x=>x.status==='Pendente').length;
+  const countAndamento = allDiags.filter(x=>x.status==='Em andamento').length;
+  const risco = countPendents > 0 ? 'Alto' : countAndamento > 0 ? 'Médio' : 'Baixo';
   const riscoColor = risco === 'Alto' ? '#ef4444' : risco === 'Médio' ? '#eab308' : '#22c55e';
 
   document.getElementById('modal-container').innerHTML = `
@@ -401,10 +406,11 @@ function openModal(mode, id=null) {
         <button class="tab-btn active" onclick="switchTab(this,'tab-geral')">Dados Gerais</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-controles')">Controles Internos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-onboarding')">Validação de Documentos</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-bancos')">Movimentações Financeiras e Bancárias</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-parcelamentos')">Situação Fiscal Passivos e Parcelamentos</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-trabalhista')">Estrutura Trabalhista e Risco</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-diagnostico')">Pendências e Regularidade</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-bancos')">Mov. Financeiras</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-parcelamentos')">Passivos e Parcelamentos</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-trabalhista')">Estrutura Trab. / Risco</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-situacao-fiscal')">Situação Fiscal (Débitos)</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-obrigacoes')">Obrigações Acessórias</button>
       </div>
       <form id="form-cliente">
         <input type="hidden" id="f-id" value="${c.id}">
@@ -798,43 +804,52 @@ function openModal(mode, id=null) {
           </div>
         </div>
 
-        <div id="tab-diagnostico" class="tab-panel">
+        <div id="tab-situacao-fiscal" class="tab-panel">
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:16px;display:flex;gap:20px;align-items:center">
-            <div style="min-width:100px;text-align:center;border-right:1px solid #e2e8f0;padding-right:16px">
-              <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Pendências</div>
-              <div style="font-size:22px;font-weight:bold;color:#334155" id="diag_total_pend">${countPendents}</div>
-            </div>
-            <div style="min-width:100px;text-align:center">
-              <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Risco Fiscal</div>
-              <div style="font-size:16px;font-weight:bold;color:${riscoColor}" id="diag_risco_val">${risco}</div>
+            <div style="min-width:140px;text-align:center;border-right:1px solid #e2e8f0;padding-right:16px">
+              <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Risco Fiscal Global</div>
+              <div style="font-size:16px;font-weight:bold;color:${riscoColor}" id="diag_risco_val_sf">${risco}</div>
             </div>
             <div style="flex:1;margin-left:20px">
               <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:4px">Última Competência Analisada</div>
               <input id="f-ultima-comp" value="${c.d_ultima_comp||''}" placeholder="Ex: Fev/2026" style="width:100%;max-width:200px;font-size:12px;padding:6px;border:1px solid #ccc;border-radius:4px;outline:none">
             </div>
           </div>
+          <h4 style="margin-bottom:12px;font-size:12px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;text-transform:uppercase;color:#475569">SITUAÇÃO FISCAL / DÉBITOS</h4>
+          <div class="cards-grid" style="grid-template-columns:1fr 1fr;gap:24px">
+             <div>
+                ${renderDiagRow('d_div_rfb', 'Dívida RFB', d_div_rfb)}
+                ${renderDiagRow('d_div_pgfn', 'Dívida PGFN', d_div_pgfn)}
+             </div>
+             <div>
+                ${renderDiagRow('d_div_est', 'Dívida Estadual', d_div_est)}
+                ${renderDiagRow('d_div_pref', 'Dívida Municipal', d_div_pref)}
+             </div>
+          </div>
+          <div class="form-group mt-4"><label>Observações do Diagnóstico (Passivos)</label><textarea id="f-obs-diag" style="min-height:70px;border-radius:6px">${c.obs_diag||''}</textarea></div>
+        </div>
 
-          <div style="display:flex;gap:24px">
-            <div style="flex:1">
-              <h4 style="margin-bottom:12px;font-size:12px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;text-transform:uppercase;color:#475569">Obrigações Acessórias</h4>
+        <div id="tab-obrigacoes" class="tab-panel">
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:16px;display:flex;gap:20px;align-items:center">
+             <div style="font-size:13px;color:#1e40af">Esta aba gerencia as entregas acessórias. Pendências aqui elevam o <strong>Risco Fiscal global</strong> do cliente, geram alertas, porém NÃO exigem upload de documentação contábil na matriz.</div>
+          </div>
+          <h4 style="margin-bottom:12px;font-size:12px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;text-transform:uppercase;color:#475569">OBRIGAÇÕES ACESSÓRIAS / DECLARAÇÕES</h4>
+          <div class="cards-grid" style="grid-template-columns:1fr 1fr;gap:24px">
+            <div>
               ${renderDiagRow('d_sped_f', 'SPED Fiscal', d_sped_f)}
               ${renderDiagRow('d_sped_c', 'SPED Contribuições', d_sped_c)}
               ${renderDiagRow('d_ecd', 'ECD', d_ecd)}
               ${renderDiagRow('d_ecf', 'ECF', d_ecf)}
+              ${renderDiagRow('d_dctfweb', 'DCTFWEB', d_dctfweb)}
+            </div>
+            <div>
               ${renderDiagRow('d_defis', 'DEFIS', d_defis)}
               ${renderDiagRow('d_dasnmei', 'DASNMEI', d_dasnmei)}
               ${renderDiagRow('d_simples', 'PGDAS', d_simples)}
-            </div>
-            <div style="flex:1">
-              <h4 style="margin-bottom:12px;font-size:12px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;text-transform:uppercase;color:#475569">Situação Fiscal / Débitos</h4>
-              ${renderDiagRow('d_div_rfb', 'Dívida RFB', d_div_rfb)}
-              ${renderDiagRow('d_div_pgfn', 'Dívida PGFN', d_div_pgfn)}
-              ${renderDiagRow('d_div_est', 'Dívida Estadual', d_div_est)}
-              ${renderDiagRow('d_div_pref', 'Dívida Municipal', d_div_pref)}
+              ${renderDiagRow('d_dime', 'DIME', d_dime)}
+              ${renderDiagRow('d_gia', 'GIA', d_gia)}
             </div>
           </div>
-
-          <div class="form-group mt-4"><label>Observações do Diagnóstico</label><textarea id="f-obs-diag" style="min-height:70px;border-radius:6px">${c.obs_diag||''}</textarea></div>
         </div>
 
         <div id="tab-onboarding" class="tab-panel">
@@ -967,6 +982,9 @@ function saveCliente(mode) {
     d_ecf: { status: (document.getElementById('d_ecf-st')||{}).value||'', comp: (document.getElementById('d_ecf-comp')||{}).value||'' },
     d_defis: { status: (document.getElementById('d_defis-st')||{}).value||'', comp: (document.getElementById('d_defis-comp')||{}).value||'' },
     d_dasnmei: { status: (document.getElementById('d_dasnmei-st')||{}).value||'', comp: (document.getElementById('d_dasnmei-comp')||{}).value||'' },
+    d_dctfweb: { status: (document.getElementById('d_dctfweb-st')||{}).value||'', comp: (document.getElementById('d_dctfweb-comp')||{}).value||'' },
+    d_dime: { status: (document.getElementById('d_dime-st')||{}).value||'', comp: (document.getElementById('d_dime-comp')||{}).value||'' },
+    d_gia: { status: (document.getElementById('d_gia-st')||{}).value||'', comp: (document.getElementById('d_gia-comp')||{}).value||'' },
     d_div_rfb: { status: (document.getElementById('d_div_rfb-st')||{}).value||'', comp: (document.getElementById('d_div_rfb-comp')||{}).value||'' },
     d_div_pgfn: { status: (document.getElementById('d_div_pgfn-st')||{}).value||'', comp: (document.getElementById('d_div_pgfn-comp')||{}).value||'' },
     d_div_est: { status: (document.getElementById('d_div_est-st')||{}).value||'', comp: (document.getElementById('d_div_est-comp')||{}).value||'' },
@@ -1613,6 +1631,9 @@ function gerarParecer() {
     { n: 'DEFIS', v: cliente.d_defis, isAcessoria: true },
     { n: 'DASNMEI', v: cliente.d_dasnmei, isAcessoria: true },
     { n: 'PGDAS Mensal', v: cliente.d_simples, isAcessoria: true }, 
+    { n: 'DCTFWEB', v: cliente.d_dctfweb, isAcessoria: true },
+    { n: 'DIME', v: cliente.d_dime, isAcessoria: true },
+    { n: 'GIA', v: cliente.d_gia, isAcessoria: true },
     { n: 'Dívida RFB', v: cliente.d_div_rfb, isAcessoria: false },
     { n: 'Dívida PGFN', v: cliente.d_div_pgfn, isAcessoria: false }, 
     { n: 'Dívida Estadual', v: cliente.d_div_est, isAcessoria: false },
