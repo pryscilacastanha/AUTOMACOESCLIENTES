@@ -427,7 +427,7 @@ function openModal(mode, id=null) {
               ${['Simples Nacional','Lucro Presumido','Lucro Real','MEI','A definir'].map(r=>`<option ${c.regime===r?'selected':''}>${r}</option>`).join('')}
             </select></div>
             <div class="form-group"><label>CNAE</label><input id="f-cnae" value="${c.cnae||''}" placeholder="0000-0/00"></div>
-            <div class="form-group"><label>Tipo de Operação</label><select id="f-tipo">
+            <div class="form-group"><label>Tipo de Operação</label><select id="f-tipo" onchange="if(typeof window.handleTipoOperacaoChange==='function') window.handleTipoOperacaoChange()">
               ${['Serviço','Comércio','Indústria','Misto'].map(t=>`<option ${c.tipo_operacao===t?'selected':''}>${t}</option>`).join('')}
             </select></div>
             <div class="form-group"><label>Complexidade</label><select id="f-comp">
@@ -913,6 +913,7 @@ function openModal(mode, id=null) {
     if(typeof updateMovFinanceiraAlerts === 'function') updateMovFinanceiraAlerts();
     if(typeof runTrabDiagnosis === 'function') runTrabDiagnosis();
     if(typeof window.runDiagAlerts === 'function') window.runDiagAlerts();
+    if(typeof window.handleTipoOperacaoChange === 'function') window.handleTipoOperacaoChange();
   }, 50);
 }
 
@@ -1149,6 +1150,21 @@ window.runITGDiagnosis = () => {
 
     divAlerta.innerHTML = msg;
     divAlerta.style.borderLeftColor = riscoColor;
+};
+
+window.handleTipoOperacaoChange = () => {
+    const tipo = document.getElementById('f-tipo')?.value || '';
+    const ctrlEstoque = document.getElementById('ci_est_possui');
+    if (!ctrlEstoque) return;
+    
+    if (tipo === 'Serviço') {
+        ctrlEstoque.value = 'Não se aplica';
+        ctrlEstoque.setAttribute('disabled', 'true');
+        ctrlEstoque.style.backgroundColor = '#f1f5f9';
+    } else {
+        ctrlEstoque.removeAttribute('disabled');
+        ctrlEstoque.style.backgroundColor = '';
+    }
 };
 
 window.runDiagAlerts = () => {
@@ -1706,11 +1722,13 @@ function gerarParecer() {
     <strong>📄 Parecer Técnico — ${fmtComp(state.competencia)}</strong>
     <div style="display:flex;gap:6px">
       <button class="btn btn-ghost btn-sm" onclick="copiarParecer()">📋 Copiar</button>
-      <button class="btn btn-ghost btn-sm" onclick="imprimirParecer()">🖨️ Imprimir</button>
+      <button class="btn btn-ghost btn-sm" onclick="imprimirParecer()">🖨️ Imprimir PDF</button>
     </div>
   </div>
   <div class="parecer-box" id="parecer-text">${texto}</div>
 </div>`;
+
+  setTimeout(() => { imprimirParecer(); }, 300);
 }
 function copiarParecer() {
   navigator.clipboard.writeText(document.getElementById('parecer-text').textContent);
