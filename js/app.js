@@ -1154,17 +1154,28 @@ window.runITGDiagnosis = () => {
 
 window.handleTipoOperacaoChange = () => {
     const tipo = document.getElementById('f-tipo')?.value || '';
-    const ctrlEstoque = document.getElementById('ci_est_possui');
-    if (!ctrlEstoque) return;
     
-    if (tipo === 'Serviço') {
-        ctrlEstoque.value = 'Não se aplica';
-        ctrlEstoque.setAttribute('disabled', 'true');
-        ctrlEstoque.style.backgroundColor = '#f1f5f9';
-    } else {
-        ctrlEstoque.removeAttribute('disabled');
-        ctrlEstoque.style.backgroundColor = '';
-    }
+    const fields = [
+        { id: 'ci_est_possui', val: 'Não se aplica' },
+        { id: 'ci_est_tipo', val: 'N/A' },
+        { id: 'ci_est_inv', val: 'N/A' },
+        { id: 'ci_est_freq', val: 'N/A' },
+        { id: 'ci_est_integra', val: 'N/A' }
+    ];
+
+    fields.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (!el) return;
+        
+        if (tipo === 'Serviço') {
+            el.value = f.val;
+            el.setAttribute('disabled', 'true');
+            el.style.backgroundColor = '#f1f5f9';
+        } else {
+            el.removeAttribute('disabled');
+            el.style.backgroundColor = '';
+        }
+    });
 };
 
 window.runDiagAlerts = () => {
