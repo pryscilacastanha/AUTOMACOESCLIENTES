@@ -1639,72 +1639,7 @@ ${chkClienteId && driveUrl ? `
 
   // Filtra itens dinamicamente pelo diagnóstico do cliente
 
-  const categorias = CHECKLIST_TEMPLATE.map(cat => {
-    let items = cat.items.map(i => ({...i}));
-    items = items.filter(item => {
-      if (item.condicao) {
-        // ── Bancos ────────────────────────────────────────────────────
-        if (item.condicao.startsWith('banco_')) {
-          const cod = item.condicao.replace('banco_', '');
-          if (cod === 'outro') return !!cliente.banco_outro;
-          return (cliente.bancos||[]).includes(cod);
-        }
-        // ── Flags básicos do cadastro ─────────────────────────────────
-        if (item.condicao === 'tem_caixa')       return !!cliente.tem_caixa;
-        if (item.condicao === 'tem_estoque')     return !!cliente.tem_estoque;
-        if (item.condicao === 'tem_folha')       return !!cliente.tem_folha;
-        if (item.condicao === 'tem_prolabore')   return !!cliente.tem_prolabore;
-        
-        if (item.condicao === 'div_rfb') {
-            item._disabled = !(cliente.d_div_rfb && (cliente.d_div_rfb.status === 'Pendente' || cliente.d_div_rfb.status === 'Em andamento'));
-            return true;
-        }
-        if (item.condicao === 'div_estado') {
-            item._disabled = !(cliente.d_div_est && (cliente.d_div_est.status === 'Pendente' || cliente.d_div_est.status === 'Em andamento'));
-            return true;
-        }
-        if (item.condicao === 'div_pref') {
-            item._disabled = !(cliente.d_div_pref && (cliente.d_div_pref.status === 'Pendente' || cliente.d_div_pref.status === 'Em andamento'));
-            return true;
-        }
-        if (item.condicao === 'div_pgfn') {
-            item._disabled = !(cliente.d_div_pgfn && (cliente.d_div_pgfn.status === 'Pendente' || cliente.d_div_pgfn.status === 'Em andamento'));
-            return true;
-        }
-
-        if (item.condicao === 'fiscal_integrado')return !!cliente.fiscal_integrado;
-        if (item.condicao === 'ci_bens_depr')    return !!appData.ci_bens_depr;
-        // ── Diagnóstico: Movimentações Bancárias ──────────────────────
-        if (item.condicao === 'mf_cc_maq')       return !!appData.mf_cc_maq;
-        if (item.condicao === 'mf_cc_antec')     return !!appData.mf_cc_antec;
-        if (item.condicao === 'mf_cc_corp')      return !!appData.mf_cc_corp;
-        if (item.condicao === 'mf_cc_multi')     return !!appData.mf_cc_multi;
-        if (item.condicao === 'mf_ef_banc')      return !!appData.mf_ef_banc;
-        if (item.condicao === 'mf_ef_finan')     return !!appData.mf_ef_finan;
-        if (item.condicao === 'mf_ef_capgiro')   return !!appData.mf_ef_capgiro;
-        if (item.condicao === 'mf_ef_reneg')     return !!appData.mf_ef_reneg;
-        if (item.condicao === 'mf_ia_auto')      return !!appData.mf_ia_auto;
-        if (item.condicao === 'mf_ia_fundo')     return !!appData.mf_ia_fundo;
-        if (item.condicao === 'mf_ia_td')        return !!appData.mf_ia_td;
-        if (item.condicao === 'mf_ia_conta')     return !!appData.mf_ia_conta;
-        if (item.condicao === 'mf_ia_outras')    return !!appData.mf_ia_outras;
-        if (item.condicao === 'mf_oe_moeda')     return !!appData.mf_oe_moeda;
-        if (item.condicao === 'mf_oe_pix')       return !!appData.mf_oe_pix;
-        if (item.condicao === 'mf_oe_subv')      return !!appData.mf_oe_subv;
-        if (item.condicao === 'mf_oe_cripto')    return !!appData.mf_oe_cripto;
-        if (item.condicao === 'mf_oe_cons')      return !!appData.mf_oe_cons;
-        if (item.condicao === 'mf_sa_mistura')   return !!appData.mf_sa_mistura;
-        // ── Diagnóstico: Trabalhista ──────────────────────────────────
-        if (item.condicao === 'mf_tem_aut')      return !!appData.mf_tem_aut  || !!appData.tr_tem_aut;
-        if (item.condicao === 'mf_tem_estag')    return !!appData.mf_tem_estag || !!appData.tr_tem_estag;
-        // Se a condição não for reconhecida, exibe o item
-        return true;
-      }
-      if (item.regimes && !item.regimes.includes('todos') && !item.regimes.includes(cliente.regime)) return false;
-      return true;
-    });
-    return { ...cat, items };
-  }).filter(cat => cat.items.length > 0);
+  const categorias = window.getDynamicChecklist(cliente, appData);
 
   // ── GERAR MATRIZ DE COMPETÊNCIAS ────────────────────────────────
   const meses = ['01','02','03','04','05','06','07','08','09','10','11','12'];

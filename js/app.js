@@ -524,14 +524,20 @@ function openModal(mode, id=null) {
             <!-- CAIXA -->
             <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border)">
               <div style="font-weight:700;margin-bottom:8px;font-size:12px;color:var(--primary-dark)">2. Caixa e Bancos</div>
-              <div class="form-group"><label>Controle de caixa?</label><select id="ci_cx_possui">
-                ${['Não se aplica','Sim','Não'].map(x=>`<option ${c.ci_cx_possui===x?'selected':''}>${x}</option>`).join('')}
+              <div class="form-group"><label>Controle de caixa?</label><select id="ci_cx_possui" onchange="if(typeof window.handleCaixaBancosChange==='function') window.handleCaixaBancosChange()">
+                ${['Não possui','Controle manual (caderno/planilha)','Controle em sistema','Parcial'].map(x=>`<option ${c.ci_cx_possui===x?'selected':''}>${x}</option>`).join('')}
               </select></div>
-              <div class="form-group"><label>Tipo</label><select id="ci_cx_tipo">
-                ${['N/A','Caixa diário','Fluxo de caixa projetado','Extrato bancário apenas'].map(x=>`<option ${c.ci_cx_tipo===x?'selected':''}>${x}</option>`).join('')}
+              <div class="form-group"><label>Frequência (Caixa)</label><select id="ci_cx_freq">
+                ${['N/A','Diário','Semanal','Eventual'].map(x=>`<option ${c.ci_cx_freq===x?'selected':''}>${x}</option>`).join('')}
               </select></div>
-              <div class="form-group"><label>Conciliação bancária?</label><select id="ci_cx_concil">
-                ${['N/A','Sim','Não'].map(x=>`<option ${c.ci_cx_concil===x?'selected':''}>${x}</option>`).join('')}
+              <div class="form-group" style="padding-top:12px;border-top:1px solid #e2e8f0;margin-top:12px"><label>Possui conta bancária?</label><select id="ci_banco_possui" onchange="if(typeof window.handleCaixaBancosChange==='function') window.handleCaixaBancosChange()">
+                ${['Sim','Não'].map(x=>`<option ${c.ci_banco_possui===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Forma de controle bancário</label><select id="ci_banco_forma">
+                ${['N/A','Não controla','Apenas arquiva extrato','Conciliação manual (planilha)','Conciliação em sistema'].map(x=>`<option ${c.ci_banco_forma===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Situação da conciliação</label><select id="ci_banco_sit">
+                ${['N/A','Não conciliado','Parcialmente conciliado','Conciliado'].map(x=>`<option ${c.ci_banco_sit===x?'selected':''}>${x}</option>`).join('')}
               </select></div>
               <div class="form-group"><label>Frequência</label><select id="ci_cx_freq">
                 ${['N/A','Diária','Semanal','Mensal'].map(x=>`<option ${c.ci_cx_freq===x?'selected':''}>${x}</option>`).join('')}
@@ -915,6 +921,7 @@ function openModal(mode, id=null) {
     if(typeof runTrabDiagnosis === 'function') runTrabDiagnosis();
     if(typeof window.runDiagAlerts === 'function') window.runDiagAlerts();
     if(typeof window.handleTipoOperacaoChange === 'function') window.handleTipoOperacaoChange();
+    if(typeof window.handleCaixaBancosChange === 'function') window.handleCaixaBancosChange();
   }, 50);
 }
 
@@ -1007,12 +1014,13 @@ function saveCliente(mode) {
     ci_est_inv: (document.getElementById('ci_est_inv')||{}).value,
     ci_est_freq: (document.getElementById('ci_est_freq')||{}).value,
     ci_est_integra: (document.getElementById('ci_est_integra')||{}).value,
+    
     ci_cx_possui: (document.getElementById('ci_cx_possui')||{}).value,
-    ci_cx_tipo: (document.getElementById('ci_cx_tipo')||{}).value,
-    ci_cx_concil: (document.getElementById('ci_cx_concil')||{}).value,
     ci_cx_freq: (document.getElementById('ci_cx_freq')||{}).value,
-    ci_cx_sep: (document.getElementById('ci_cx_sep')||{}).value,
-    ci_bens_possui: (document.getElementById('ci_bens_possui')||{}).value,
+    ci_banco_possui: (document.getElementById('ci_banco_possui')||{}).value || 'Sim',
+    ci_banco_forma: (document.getElementById('ci_banco_forma')||{}).value,
+    ci_banco_sit: (document.getElementById('ci_banco_sit')||{}).value,
+    
     ci_bens_reg: (document.getElementById('ci_bens_reg')||{}).value,
     ci_bens_depr: (document.getElementById('ci_bens_depr')||{}).value,
     ci_bens_inv: (document.getElementById('ci_bens_inv')||{}).value,
@@ -1022,6 +1030,9 @@ function saveCliente(mode) {
     ci_doc_padrao: (document.getElementById('ci_doc_padrao')||{}).value,
     ci_doc_chk: (document.getElementById('ci_doc_chk')||{}).value,
     ci_proc_rotina: (document.getElementById('ci_proc_rotina')||{}).value,
+    ci_est_freq: (document.getElementById('ci_est_freq')||{}).value,
+    ci_est_integra: (document.getElementById('ci_est_integra')||{}).value,
+    ci_bens_possui: (document.getElementById('ci_bens_possui')||{}).value,
     ci_proc_seg: (document.getElementById('ci_proc_seg')||{}).value,
     ci_itg_tipo: (document.getElementById('ci_itg_tipo')||{}).value,
     ci_itg_porte: (document.getElementById('ci_itg_porte')||{}).value,
@@ -1217,6 +1228,39 @@ window.handleTipoOperacaoChange = () => {
             el.style.backgroundColor = '';
         }
     });
+};
+
+window.handleCaixaBancosChange = () => {
+    const cxPossui = document.getElementById('ci_cx_possui');
+    const cxFreq = document.getElementById('ci_cx_freq');
+    if (cxPossui && cxFreq) {
+        if (cxPossui.value === 'Não possui') {
+            cxFreq.value = 'N/A';
+            cxFreq.setAttribute('disabled', 'true');
+            cxFreq.style.backgroundColor = '#f8fafc';
+        } else {
+            cxFreq.removeAttribute('disabled');
+            cxFreq.style.backgroundColor = '';
+        }
+    }
+    const bPossui = document.getElementById('ci_banco_possui');
+    const bForma = document.getElementById('ci_banco_forma');
+    const bSit = document.getElementById('ci_banco_sit');
+    if (bPossui && bForma && bSit) {
+        if (bPossui.value === 'Não') {
+            bForma.value = 'N/A';
+            bSit.value = 'N/A';
+            bForma.setAttribute('disabled', 'true');
+            bSit.setAttribute('disabled', 'true');
+            bForma.style.backgroundColor = '#f8fafc';
+            bSit.style.backgroundColor = '#f8fafc';
+        } else {
+            bForma.removeAttribute('disabled');
+            bSit.removeAttribute('disabled');
+            bForma.style.backgroundColor = '';
+            bSit.style.backgroundColor = '';
+        }
+    }
 };
 
 window.runDiagAlerts = () => {
@@ -1513,29 +1557,7 @@ function renderChecklist() {
   const key = `${chkClienteId}_${state.competencia}`;
   const saved = checklists[key] || {};
 
-  const categorias = CHECKLIST_TEMPLATE.map(cat => {
-    const items = cat.items.filter(item => {
-      if (item.condicao) {
-        if (item.condicao.startsWith('banco_')) {
-          const cod = item.condicao.replace('banco_', '');
-          if (cod === 'outro') return !!cliente.banco_outro;
-          return (cliente.bancos||[]).includes(cod);
-        }
-        if (item.condicao === 'tem_caixa')       return cliente.tem_caixa;
-        if (item.condicao === 'tem_estoque')     return cliente.tem_estoque;
-        if (item.condicao === 'tem_folha')       return cliente.tem_folha;
-        if (item.condicao === 'tem_prolabore')   return cliente.tem_prolabore;
-        if (item.condicao === 'parc_federal')    return cliente.parc_federal;
-        if (item.condicao === 'parc_estadual')   return cliente.parc_estadual;
-        if (item.condicao === 'parc_pref')       return cliente.parc_pref;
-        if (item.condicao === 'parc_pgfn')       return cliente.parc_pgfn;
-        if (item.condicao === 'fiscal_integrado') return cliente.fiscal_integrado;
-      }
-      if (item.regimes && !item.regimes.includes('todos') && !item.regimes.includes(cliente.regime)) return false;
-      return true;
-    });
-    return { ...cat, items };
-  }).filter(cat => cat.items.length > 0);
+  const categorias = window.getDynamicChecklist(cliente);
 
   const totalItems = categorias.reduce((a,c) => a + c.items.length, 0);
   const doneItems  = categorias.reduce((a,c) => a + c.items.filter(i => saved[i.key]==='recebido').length, 0);
@@ -1594,6 +1616,98 @@ function saveChkItem(key, val, sel) {
   DB.set('checklists', checklists);
 }
 
+window.getDynamicChecklist = (cliente, appData = {}) => {
+    let tpl = JSON.parse(JSON.stringify(CHECKLIST_TEMPLATE));
+    if (!cliente) return tpl;
+    if (Object.keys(appData).length === 0 && cliente.mov_fin) appData = cliente.mov_fin;
+
+    const ativo = tpl.find(c => c.cat.includes('ATIVO'));
+    if (ativo) {
+        // Remove fixed bank extratos if they use condicao banco_... 
+        ativo.items = ativo.items.filter(i => !(i.condicao && i.condicao.startsWith('banco_')));
+        
+        // Inject Caixa
+        if (cliente.ci_cx_possui && cliente.ci_cx_possui !== 'Não possui' && cliente.ci_cx_possui !== 'Não se aplica') {
+            ativo.items.unshift({key:"dyn_cx_saldo", nome:"Validar saldo de caixa", regimes:["todos"], condicao:null, obs:""});
+            ativo.items.unshift({key:"dyn_cx_mov", nome:"Conferir movimentação de caixa", regimes:["todos"], condicao:null, obs:"Frequência: "+(cliente.ci_cx_freq||'N/A')});
+        }
+        
+        // Inject Bancos
+        if (cliente.ci_banco_possui === 'Sim' || !cliente.ci_banco_possui) {
+            const bancosUtilizados = (cliente.bancos||[]).map(cod => (BANCOS.find(b => b.cod === cod)||{}).nome).filter(Boolean);
+            if (cliente.banco_outro) bancosUtilizados.push(cliente.banco_outro);
+            
+            let risk = "MÉDIO";
+            if (cliente.ci_banco_forma === 'Não controla' || cliente.ci_banco_sit === 'Não conciliado') risk = "ALTO";
+            else if (cliente.ci_banco_sit === 'Conciliado') risk = "BAIXO";
+
+            bancosUtilizados.forEach((nome, idx) => {
+                ativo.items.push({key:"dyn_b_"+idx+"_ext", nome:`Importar/lançar extrato — ${nome}`, regimes:["todos"], condicao:null, obs:"Risco Associado: "+risk});
+                if (cliente.ci_banco_forma && (cliente.ci_banco_forma.includes('Conciliação') || cliente.ci_banco_forma.includes('sistema') || cliente.ci_banco_forma.includes('planilha'))) {
+                    ativo.items.push({key:"dyn_b_"+idx+"_conc", nome:`Conciliar banco — ${nome}`, regimes:["todos"], condicao:null, obs:""});
+                }
+            });
+        }
+    }
+    
+    return tpl.map(cat => {
+      const items = cat.items.filter(item => {
+        if (item.condicao) {
+          if (item.condicao === 'tem_caixa')       return !!cliente.tem_caixa;
+          if (item.condicao === 'tem_estoque')     return !!cliente.tem_estoque;
+          if (item.condicao === 'tem_folha')       return !!cliente.tem_folha;
+          if (item.condicao === 'tem_prolabore')   return !!cliente.tem_prolabore;
+          
+          if (item.condicao === 'div_rfb') {
+              item._disabled = !(cliente.d_div_rfb && (cliente.d_div_rfb.status === 'Pendente' || cliente.d_div_rfb.status === 'Em andamento'));
+              return true;
+          }
+          if (item.condicao === 'div_estado') {
+              item._disabled = !(cliente.d_div_est && (cliente.d_div_est.status === 'Pendente' || cliente.d_div_est.status === 'Em andamento'));
+              return true;
+          }
+          if (item.condicao === 'div_pref') {
+              item._disabled = !(cliente.d_div_pref && (cliente.d_div_pref.status === 'Pendente' || cliente.d_div_pref.status === 'Em andamento'));
+              return true;
+          }
+          if (item.condicao === 'div_pgfn') {
+              item._disabled = !(cliente.d_div_pgfn && (cliente.d_div_pgfn.status === 'Pendente' || cliente.d_div_pgfn.status === 'Em andamento'));
+              return true;
+          }
+
+          if (item.condicao === 'fiscal_integrado') return !!cliente.fiscal_integrado;
+          if (item.condicao === 'ci_bens_depr')    return !!appData.ci_bens_depr;
+          
+          if (item.condicao === 'mf_cc_maq')       return !!appData.mf_cc_maq;
+          if (item.condicao === 'mf_cc_antec')     return !!appData.mf_cc_antec;
+          if (item.condicao === 'mf_cc_corp')      return !!appData.mf_cc_corp;
+          if (item.condicao === 'mf_cc_multi')     return !!appData.mf_cc_multi;
+          if (item.condicao === 'mf_ef_banc')      return !!appData.mf_ef_banc;
+          if (item.condicao === 'mf_ef_finan')     return !!appData.mf_ef_finan;
+          if (item.condicao === 'mf_ef_capgiro')   return !!appData.mf_ef_capgiro;
+          if (item.condicao === 'mf_ef_reneg')     return !!appData.mf_ef_reneg;
+          if (item.condicao === 'mf_ia_auto')      return !!appData.mf_ia_auto;
+          if (item.condicao === 'mf_ia_fundo')     return !!appData.mf_ia_fundo;
+          if (item.condicao === 'mf_ia_td')        return !!appData.mf_ia_td;
+          if (item.condicao === 'mf_ia_conta')     return !!appData.mf_ia_conta;
+          if (item.condicao === 'mf_ia_outras')    return !!appData.mf_ia_outras;
+          if (item.condicao === 'mf_oe_moeda')     return !!appData.mf_oe_moeda;
+          if (item.condicao === 'mf_oe_pix')       return !!appData.mf_oe_pix;
+          if (item.condicao === 'mf_oe_subv')      return !!appData.mf_oe_subv;
+          if (item.condicao === 'mf_oe_cripto')    return !!appData.mf_oe_cripto;
+          if (item.condicao === 'mf_oe_cons')      return !!appData.mf_oe_cons;
+          if (item.condicao === 'mf_sa_mistura')   return !!appData.mf_sa_mistura;
+          
+          if (item.condicao === 'mf_tem_aut')      return !!appData.mf_tem_aut  || !!appData.tr_tem_aut;
+          if (item.condicao === 'mf_tem_estag')    return !!appData.mf_tem_estag || !!appData.tr_tem_estag;
+        }
+        if (item.regimes && !item.regimes.includes('todos') && !item.regimes.includes(cliente.regime)) return false;
+        return true;
+      });
+      return { ...cat, items };
+    }).filter(cat => cat.items.length > 0);
+};
+
 function gerarParecer() {
   const clientes = DB.get('clientes') || [];
   const cliente = clientes.find(c => c.id === chkClienteId);
@@ -1603,7 +1717,8 @@ function gerarParecer() {
 
   // Coleta status
   const recebidos = [], pendentes = [], incompletos = [], divergentes = [], naoEnviados = [];
-  CHECKLIST_TEMPLATE.forEach(cat => cat.items.forEach(item => {
+  const categorias = window.getDynamicChecklist(cliente);
+  categorias.forEach(cat => cat.items.forEach(item => {
     const v = saved[item.key];
     if (v === 'recebido')    recebidos.push(item.nome);
     if (v === 'nao_enviado') naoEnviados.push(item.nome);

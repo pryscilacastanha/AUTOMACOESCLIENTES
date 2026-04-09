@@ -11,6 +11,7 @@ const BANCOS = [
   {cod:"237", nome:"Bradesco"},
   {cod:"260", nome:"Nubank"},
   {cod:"341", nome:"Itaú"},
+  {cod:"380", nome:"PicPay"},
   {cod:"422", nome:"Safra"},
   {cod:"748", nome:"Sicredi"},
   {cod:"756", nome:"Sicoob / Bancoob"},
