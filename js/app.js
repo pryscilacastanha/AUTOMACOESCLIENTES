@@ -463,6 +463,39 @@ function openModal(mode, id=null) {
             <div style="font-size:11px;color:#64748b;margin-top:4px">Este link ativa o botão "🔄 Sincronizar Drive" no módulo Escrituração 2025.</div>
           </div>
           <div class="form-group form-full mt-2"><label>Observações Gerais</label><textarea id="f-obs">${c.obs||''}</textarea></div>
+          
+          <!-- MATURIDADE / ITG (DIAGNÓSTICO AUTOMÁTICO) -->
+          <div style="margin-top:16px;background:#f0fdff;border:1px solid #7dd3fc;padding:12px;border-radius:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #bae6fd;padding-bottom:8px">
+              <div style="font-weight:700;font-size:14px;color:#0369a1">🚦 Classificação Contábil (Enquadramento ITG/NBC)</div>
+              <div style="background:#0284c7;color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;min-width:180px;text-align:center" id="ci_risco_display">Nível de Risco: A Calcular</div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group"><label>1. Tipo de Entidade</label><select id="ci_itg_tipo" onchange="runITGDiagnosis()">
+                ${['Empresa com fins lucrativos','Simples Nacional','Entidade sem fins lucrativos (Terceiro Setor)','Cooperativa'].map(x=>`<option ${c.ci_itg_tipo===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>2. Porte da Empresa</label><select id="ci_itg_porte" onchange="runITGDiagnosis()">
+                ${['Microempresa (ME)','Empresa de Pequeno Porte (EPP)','Médio Porte','Grande Porte'].map(x=>`<option ${c.ci_itg_porte===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group form-full"><label>3. Complexidade Operacional</label><select id="ci_itg_complex" onchange="runITGDiagnosis()">
+                ${['Baixa (Sem estoque relevante, sem financiamento, rotina simples)','Média (Com estoque, controle financeiro ativo, dívidas estruturadas)','Alta (Financiamentos, Crescimento Acelerado, Auditoria)'].map(x=>`<option ${c.ci_itg_complex===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group form-full"><label>4. Finalidade da Contabilidade (Regra de Ouro)</label><select id="ci_itg_finalidade" onchange="runITGDiagnosis()">
+                ${['Somente Cumprimento Fiscal / Obrigações','Apoio a Tomada de Decisão / Relatórios Gerenciais e Crescimento'].map(x=>`<option ${c.ci_itg_finalidade===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+            </div>
+
+            <!-- ALERTA AUTOMATICO -->
+            <div style="margin-top:16px;">
+               <label style="font-size:11px;font-weight:700;color:#0ea5e9;display:block;margin-bottom:8px;text-transform:uppercase">🧠 Diagnóstico Automático (Regra Técnica)</label>
+               <div id="ci_alerta_itg" style="padding:14px;border-radius:6px;background:#fff;border-left:4px solid var(--warning);font-size:13px;color:var(--text);box-shadow:var(--shadow)">
+                 Selecione as variáveis acima para definir a norma contábil aplicável.
+               </div>
+               <input type="hidden" id="ci_itg_norma_calc" value="${c.ci_itg_norma_calc||''}">
+               <input type="hidden" id="ci_itg_risco_calc" value="${c.ci_itg_risco_calc||''}">
+            </div>
+          </div>
+
         </div>
 
         <div id="tab-controles" class="tab-panel">
@@ -555,40 +588,8 @@ function openModal(mode, id=null) {
               </select></div>
               <div style="font-size:10px;color:var(--warning);margin-top:2px;font-style:italic">👉 Falta segreg = Risco de fraude/desorganização</div>
             </div>
-
-            <!-- MATURIDADE / ITG (DIAGNÓSTICO AUTOMÁTICO) -->
-            <div style="flex:2;background:#f0fdff;border:1px solid #7dd3fc;padding:12px;border-radius:8px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #bae6fd;padding-bottom:8px">
-                <div style="font-weight:700;font-size:14px;color:#0369a1">🚦 Classificação Contábil (Enquadramento ITG/NBC)</div>
-                <div style="background:#0284c7;color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;min-width:180px;text-align:center" id="ci_risco_display">Nível de Risco: A Calcular</div>
-              </div>
-              <div class="form-grid">
-                <div class="form-group"><label>1. Tipo de Entidade</label><select id="ci_itg_tipo" onchange="runITGDiagnosis()">
-                  ${['Empresa com fins lucrativos','Simples Nacional','Entidade sem fins lucrativos (Terceiro Setor)','Cooperativa'].map(x=>`<option ${c.ci_itg_tipo===x?'selected':''}>${x}</option>`).join('')}
-                </select></div>
-                <div class="form-group"><label>2. Porte da Empresa</label><select id="ci_itg_porte" onchange="runITGDiagnosis()">
-                  ${['Microempresa (ME)','Empresa de Pequeno Porte (EPP)','Médio Porte','Grande Porte'].map(x=>`<option ${c.ci_itg_porte===x?'selected':''}>${x}</option>`).join('')}
-                </select></div>
-                <div class="form-group form-full"><label>3. Complexidade Operacional</label><select id="ci_itg_complex" onchange="runITGDiagnosis()">
-                  ${['Baixa (Sem estoque relevante, sem financiamento, rotina simples)','Média (Com estoque, controle financeiro ativo, dívidas estruturadas)','Alta (Financiamentos, Crescimento Acelerado, Auditoria)'].map(x=>`<option ${c.ci_itg_complex===x?'selected':''}>${x}</option>`).join('')}
-                </select></div>
-                <div class="form-group form-full"><label>4. Finalidade da Contabilidade (Regra de Ouro)</label><select id="ci_itg_finalidade" onchange="runITGDiagnosis()">
-                  ${['Somente Cumprimento Fiscal / Obrigações','Apoio a Tomada de Decisão / Relatórios Gerenciais e Crescimento'].map(x=>`<option ${c.ci_itg_finalidade===x?'selected':''}>${x}</option>`).join('')}
-                </select></div>
-              </div>
-
-              <!-- ALERTA AUTOMATICO -->
-              <div style="margin-top:16px;">
-                 <label style="font-size:11px;font-weight:700;color:#0ea5e9;display:block;margin-bottom:8px;text-transform:uppercase">🧠 Diagnóstico Automático (Regra Técnica)</label>
-                 <div id="ci_alerta_itg" style="padding:14px;border-radius:6px;background:#fff;border-left:4px solid var(--warning);font-size:13px;color:var(--text);box-shadow:var(--shadow)">
-                   Selecione as variáveis acima para definir a norma contábil aplicável.
-                 </div>
-                 <input type="hidden" id="ci_itg_norma_calc" value="${c.ci_itg_norma_calc||''}">
-                 <input type="hidden" id="ci_itg_risco_calc" value="${c.ci_itg_risco_calc||''}">
-              </div>
             </div>
           </div>
-        </div>
 
         <div id="tab-bancos" class="tab-panel">
           <div class="form-grid">
@@ -735,6 +736,7 @@ function openModal(mode, id=null) {
                           <input type="number" id="tr_qtd_func" value="${c.trab?.qtd_func || c.qtd_funcionarios || ''}" onchange="runTrabDiagnosis()" style="width:60px;padding:2px 4px;font-size:11px;border:1px solid #ccc;border-radius:4px" placeholder="0">
                        </div>
                        <label style="font-size:12px"><input type="checkbox" id="tr_tem_prol" onchange="runTrabDiagnosis()" ${c.tem_prolabore?'checked':''}> Possui sócios com pró-labore?</label>
+                       <label style="font-size:12px;margin-left:16px;color:#475569"><input type="checkbox" id="tr_tem_retirada" onchange="runTrabDiagnosis()" ${c.trab?.tem_retirada?'checked':''}> Há questionamento/definição sobre a retirada de pró-labore?</label>
                        <label style="font-size:12px"><input type="checkbox" id="tr_tem_aut" onchange="runTrabDiagnosis()" ${c.trab?.tem_aut?'checked':''}> Possui autônomos/RPA?</label>
                        <label style="font-size:12px"><input type="checkbox" id="tr_tem_estag" onchange="runTrabDiagnosis()" ${c.trab?.tem_estag?'checked':''}> Possui estagiários?</label>
                     </div>
@@ -742,6 +744,7 @@ function openModal(mode, id=null) {
                   <div>
                     <h3 style="font-size:13px;color:var(--primary-dark);margin-bottom:8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">📁 BLOCO 4 — Documentação</h3>
                     <div class="checkbox-group" style="display:flex;flex-direction:column;gap:4px">
+                       <label style="font-size:12px"><input type="checkbox" id="tr_doc_soc" onchange="runTrabDiagnosis()" ${c.trab?.doc_soc?'checked':''}> Contratos Sociais e Alterações disponíveis?</label>
                        <label style="font-size:12px"><input type="checkbox" id="tr_doc_contr" onchange="runTrabDiagnosis()" ${c.trab?.doc_contr?'checked':''}> Contratos de trabalho disponíveis?</label>
                        <label style="font-size:12px"><input type="checkbox" id="tr_doc_ponto" onchange="runTrabDiagnosis()" ${c.trab?.doc_ponto?'checked':''}> Controle de ponto vigente?</label>
                        <label style="font-size:12px"><input type="checkbox" id="tr_doc_folha" onchange="runTrabDiagnosis()" ${c.trab?.doc_folha?'checked':''}> Folha assinada eletrônica ou física?</label>
@@ -956,6 +959,7 @@ function saveCliente(mode) {
         qtd_func: document.getElementById('tr_qtd_func')?.value || '',
         tem_aut: document.getElementById('tr_tem_aut')?.checked,
         tem_estag: document.getElementById('tr_tem_estag')?.checked,
+        tem_retirada: document.getElementById('tr_tem_retirada')?.checked,
         folha_proc: document.getElementById('tr_folha_proc')?.checked,
         esoc_st: document.getElementById('tr_esoc_st')?.value,
         fgts_st: document.getElementById('tr_fgts_st')?.value,
@@ -965,6 +969,7 @@ function saveCliente(mode) {
         r_atraso: document.getElementById('tr_r_atraso')?.checked,
         r_prol_sem: document.getElementById('tr_r_prol_sem')?.checked,
         r_div_esoc: document.getElementById('tr_r_div_esoc')?.checked,
+        doc_soc: document.getElementById('tr_doc_soc')?.checked,
         doc_contr: document.getElementById('tr_doc_contr')?.checked,
         doc_ponto: document.getElementById('tr_doc_ponto')?.checked,
         doc_folha: document.getElementById('tr_doc_folha')?.checked,
@@ -1132,7 +1137,7 @@ window.runITGDiagnosis = () => {
     if(divRisco) { divRisco.innerHTML = `Nível de Risco: ${risco}`; divRisco.style.background = riscoColor; }
 
     let msg = `<b style="font-size:14px;color:var(--primary-dark)">🎯 Norma Recomendada: ${norma}</b> <br><br>`;
-    msg += `<b>📌 Base Estratégica:</b> Aplicabilidade obrigatória complementar da <b>ITG 2000</b> (Escrituração Central). <br>`;
+    msg += `<b>📌 Principais pontos de atenção desta norma para a escrituração:</b> Aplicabilidade obrigatória complementar da <b>ITG 2000</b> (Escrituração Central). <br>`;
     
     // Alertas de risco consultivo
     if (complex.includes('Alta') && finalidade.includes('Cumprimento')) {
@@ -1572,6 +1577,7 @@ function gerarParecer() {
      texto += `Finalidade   : ${cliente.ci_itg_finalidade || '—'}\n`;
      texto += `==> Norma Aplicável Recomendada : ${cliente.ci_itg_norma_calc}\n`;
      texto += `==> Risco Técnico Operacional   : ${cliente.ci_itg_risco_calc || '—'}\n`;
+     texto += `==> Atenção para a escrituração : Aplicabilidade obrigatória complementar da ITG 2000.\n`;
   }
 
   const dbEntregas = DB.get('entregas_ecd') || {};
