@@ -421,16 +421,16 @@ function openModal(mode, id=null) {
             <div class="form-group"><label>Status</label><select id="f-status">
               ${['Ativo','Inativo','Encerrada','Especial','Avaliar'].map(s=>`<option ${c.status===s?'selected':''}>${s}</option>`).join('')}
             </select></div>
-            <div class="form-group form-full"><label>Razão Social</label><input id="f-nome" value="${c.nome}" required placeholder="Nome completo da empresa"></div>
+            <div class="form-group form-full"><label>Razão Social</label><input id="f-nome" value="${c.nome}" required placeholder="Nome completo da empresa" onblur="if(typeof window.autoClassifyITG==='function') window.autoClassifyITG()"></div>
             <div class="form-group"><label>CNPJ</label><input id="f-cnpj" value="${c.cnpj}" placeholder="00.000.000/0001-00"></div>
-            <div class="form-group"><label>Regime Tributário</label><select id="f-regime">
+            <div class="form-group"><label>Regime Tributário</label><select id="f-regime" onchange="if(typeof window.autoClassifyITG==='function') window.autoClassifyITG()">
               ${['Simples Nacional','Lucro Presumido','Lucro Real','MEI','A definir'].map(r=>`<option ${c.regime===r?'selected':''}>${r}</option>`).join('')}
             </select></div>
             <div class="form-group"><label>CNAE</label><input id="f-cnae" value="${c.cnae||''}" placeholder="0000-0/00"></div>
             <div class="form-group"><label>Tipo de Operação</label><select id="f-tipo" onchange="if(typeof window.handleTipoOperacaoChange==='function') window.handleTipoOperacaoChange()">
               ${['Serviço','Comércio','Indústria','Misto'].map(t=>`<option ${c.tipo_operacao===t?'selected':''}>${t}</option>`).join('')}
             </select></div>
-            <div class="form-group"><label>Complexidade</label><select id="f-comp">
+            <div class="form-group"><label>Complexidade</label><select id="f-comp" onchange="if(typeof window.autoClassifyITG==='function') window.autoClassifyITG()">
               ${['Simples','Intermediário','Alta'].map(x=>`<option ${c.complexidade===x?'selected':''}>${x}</option>`).join('')}
             </select></div>
             <div class="form-group"><label>Inscrição Municipal</label><input id="f-im" value="${c.im||''}"></div>
@@ -909,6 +909,7 @@ function openModal(mode, id=null) {
     if (obgContainer) obgContainer.innerHTML = '<div class="empty-state" style="padding:20px;text-align:center"><div style="font-size:24px;margin-bottom:10px">📁</div><p>Cadastre e salve o cliente primeiro para liberar o checklist de Onboarding.</p></div>';
   }
   setTimeout(() => {
+    if(typeof window.autoClassifyITG === 'function') window.autoClassifyITG();
     if(typeof runITGDiagnosis === 'function') runITGDiagnosis();
     if(typeof updateMovFinanceiraAlerts === 'function') updateMovFinanceiraAlerts();
     if(typeof runTrabDiagnosis === 'function') runTrabDiagnosis();
@@ -1150,6 +1151,46 @@ window.runITGDiagnosis = () => {
 
     divAlerta.innerHTML = msg;
     divAlerta.style.borderLeftColor = riscoColor;
+};
+
+window.autoClassifyITG = () => {
+    const nome = (document.getElementById('f-nome')?.value || '').toLowerCase();
+    const regime = document.getElementById('f-regime')?.value || '';
+    const comp = document.getElementById('f-comp')?.value || '';
+    
+    const itgTipo = document.getElementById('ci_itg_tipo');
+    const itgPorte = document.getElementById('ci_itg_porte');
+    const itgComplex = document.getElementById('ci_itg_complex');
+
+    if (!itgTipo || !itgPorte || !itgComplex) return;
+
+    // 1. Tipo de Entidade
+    if (nome.includes('cooperativa') || nome.includes('coop.')) {
+        itgTipo.value = 'Cooperativa';
+    } else if (nome.includes('associacao') || nome.includes('associação') || nome.includes('instituto') || nome.includes('igreja') || nome.includes('sindicato') || nome.includes('ong')) {
+        itgTipo.value = 'Entidade sem fins lucrativos (Terceiro Setor)';
+    } else if (regime === 'Simples Nacional' || regime === 'MEI') {
+        itgTipo.value = 'Simples Nacional';
+    } else if (regime === 'Lucro Presumido' || regime === 'Lucro Real') {
+        itgTipo.value = 'Empresa com fins lucrativos';
+    }
+
+    // 2. Porte (Inferência básica pelo regime/complexidade se aplicável)
+    if (regime === 'MEI') itgPorte.value = 'Microempresa (ME)';
+    else if (regime === 'Lucro Real') itgPorte.value = 'Grande Porte';
+    else if (comp === 'Alta' && regime !== 'Simples Nacional') itgPorte.value = 'Médio Porte';
+
+    // 3. Complexidade Operacional
+    if (comp === 'Simples') {
+        itgComplex.value = 'Baixa (Sem estoque relevante, sem financiamento, rotina simples)';
+    } else if (comp === 'Intermediário') {
+        itgComplex.value = 'Média (Com estoque, controle financeiro ativo, dívidas estruturadas)';
+    } else if (comp === 'Alta') {
+        itgComplex.value = 'Alta (Financiamentos, Crescimento Acelerado, Auditoria)';
+    }
+
+    // Dispara a revalidação da Norma ITG automaticamente
+    if (typeof runITGDiagnosis === 'function') runITGDiagnosis();
 };
 
 window.handleTipoOperacaoChange = () => {
