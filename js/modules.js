@@ -1625,7 +1625,47 @@ function _renderEscritVisaoGeral(ativos, checklists, anoAtual, abas) {
 <div style="display:flex;flex-wrap:wrap;gap:12px">${cards}</div>`;
 }
 
-// ── Sub-view: CHECKLIST POR CLIENTE ──────────────────────
+// ── HELPER FUNCTIONS FOR MATRIX ──────────────────────────
+window.saveChkItemMatrix = function(clienteId, comp, key, val, sel) {
+  sel.className = `status-select-m ${val}`;
+  const checklists = DB.get('checklists') || {};
+  const k = `${clienteId}_${comp}`;
+  checklists[k] = checklists[k] || {};
+  checklists[k][key] = val;
+  DB.set('checklists', checklists);
+  render();
+};
+
+window.calcFechamentoCompetencia = function(clienteId, comp, categorias, checklists) {
+  const key = `${clienteId}_${comp}`;
+  const saved = checklists[key] || {};
+  let totalDoc = 0;
+  let recebidos = 0;
+  let divergentes = 0;
+  let emAndamento = false;
+
+  categorias.forEach(cat => {
+    cat.items.forEach(item => {
+      totalDoc++;
+      const val = saved[item.key] || 'nao_enviado';
+      if (val === 'recebido') recebidos++;
+      else if (val !== 'nao_enviado' && val !== 'aguardando') {
+        emAndamento = true;
+        if (val === 'divergente') divergentes++;
+      }
+    });
+  });
+
+  if (totalDoc === 0) return { text: '-', bg: '#f8fafc', color: '#94a3b8' };
+  if (recebidos === totalDoc) return { text: '🔒 Fechado', bg: '#f0fdf4', color: '#16a34a' };
+  if (recebidos > 0 && recebidos < totalDoc) return { text: '🔄 Parcial', bg: '#fef3c7', color: '#d97706' };
+  if (divergentes > 0) return { text: '⚠️ Diverg.', bg: '#fef2f2', color: '#ef4444' };
+  if (emAndamento) return { text: '▶️ Em andamento', bg: '#eff6ff', color: '#2563eb' };
+  
+  return { text: '⏹️ Não Iniciado', bg: '#f8fafc', color: '#64748b' };
+};
+
+// ── Sub-view: CHECKLIST POR CLIENTE (MATRIZ) ──────────────────────
 function _renderEscritChecklist(clientes, ativos, checklists) {
   const selectorOptions = ativos.map(c =>
     `<option value="${c.id}" ${chkClienteId === c.id ? 'selected' : ''}>#${c.id} — ${c.nome}</option>`
@@ -1636,10 +1676,14 @@ function _renderEscritChecklist(clientes, ativos, checklists) {
   const appData = cliente?.app_data || {};
   const driveUrl = cliente?.drive_url || appData?.drive_url || '';
 
+  const mesesOptions = ['01','02','03','04','05','06','07','08','09','10','11','12']
+    .map(m => `<option value="2025-${m}" ${state.competencia==='2025-'+m?'selected':''}>${m}/2025</option>`)
+    .join('');
+
   const driveBtn = driveUrl
     ? `<a href="${driveUrl}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🔗 Abrir Drive</a>
        <button id="btn-sync-drive" class="btn btn-primary btn-sm" style="font-size:12px;background:#7c3aed;border-color:#7c3aed"
-         onclick="sincronizarDrive('${chkClienteId}','${driveUrl}','${state.competencia}')">🔄 Sincronizar Drive</button>`
+         onclick="sincronizarDrive('${chkClienteId}','${driveUrl}','${state.competencia}')">🔄 Sincronizar Mês (${state.competencia})</button>`
     : `<span style="font-size:11px;color:#94a3b8;font-style:italic">📁 Cadastre o link do Drive nos Dados Gerais do cliente</span>`;
 
   const topBar = `
@@ -1650,8 +1694,12 @@ function _renderEscritChecklist(clientes, ativos, checklists) {
     <option value="">— Selecione o cliente —</option>${selectorOptions}
   </select>
   ${chkClienteId ? `
+    <span style="font-weight:600;margin-left:12px;white-space:nowrap;font-size:13px">Mês (Sincronizar/Parecer):</span>
+    <select onchange="state.competencia=this.value;render()" style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;background:#fff">
+      ${mesesOptions}
+    </select>
     ${driveBtn}
-    <button class="btn btn-success btn-sm" onclick="gerarParecer()">📄 Gerar Parecer</button>
+    <button class="btn btn-success btn-sm" style="font-size:12px" onclick="gerarParecer()">📄 Gerar Parecer</button>
   ` : ''}
 </div>
 ${chkClienteId && driveUrl ? `
@@ -1659,15 +1707,12 @@ ${chkClienteId && driveUrl ? `
 <div id="drive-sync-result" style="display:none;padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:12px;font-size:12px"></div>
 ` : ''}`;
 
-
   if (!chkClienteId) return topBar +
-    `<div class="empty-state"><div class="empty-icon">📁</div><p>Selecione um cliente para visualizar e registrar a documentação recebida para escrituração de 2025.</p></div>`;
+    `<div class="empty-state"><div class="empty-icon">📁</div><p>Selecione um cliente para visualizar a Matriz de Execução Contábil.</p></div>`;
 
   if (!cliente) return topBar;
 
-  // Reutiliza toda a lógica do checklist existente
-  const key    = `${chkClienteId}_${state.competencia}`;
-  const saved  = checklists[key] || {};
+  // Filtra itens dinamicamente pelo diagnóstico do cliente
 
   const categorias = CHECKLIST_TEMPLATE.map(cat => {
     const items = cat.items.filter(item => {
@@ -1721,51 +1766,110 @@ ${chkClienteId && driveUrl ? `
     return { ...cat, items };
   }).filter(cat => cat.items.length > 0);
 
-  const totalItems = categorias.reduce((a,c) => a + c.items.length, 0);
-  const doneItems  = categorias.reduce((a,c) => a + c.items.filter(i => saved[i.key]==='recebido').length, 0);
-  const pct = totalItems ? Math.round((doneItems/totalItems)*100) : 0;
-  const corPct = pct===100?'#10b981':pct>50?'#f59e0b':'#ef4444';
+  // ── GERAR MATRIZ DE COMPETÊNCIAS ────────────────────────────────
+  const meses = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const ano = '2025';
 
-  const catHtml = categorias.map(cat => {
-    const catDone = cat.items.filter(i => saved[i.key] === 'recebido').length;
-    const itemsHtml = cat.items.map(item => {
-      const val = saved[item.key] || 'aguardando';
-      return `<div class="checklist-item">
-        <div style="flex:1">
-          <div class="checklist-item-name">${item.nome}</div>
-          ${item.obs ? `<div class="checklist-item-sub">${item.obs}</div>` : ''}
-        </div>
-        <select class="status-select ${val}" onchange="saveChkItem('${item.key}',this.value,this)">
-          <option value="aguardando"  ${val==='aguardando' ?'selected':''}>⏳ Aguardando</option>
-          <option value="recebido"    ${val==='recebido'   ?'selected':''}>✅ Recebido</option>
-          <option value="incompleto"  ${val==='incompleto' ?'selected':''}>⚠️ Incompleto</option>
-          <option value="nao_enviado" ${val==='nao_enviado'?'selected':''}>❌ Não enviado</option>
-          <option value="divergente"  ${val==='divergente' ?'selected':''}>🔎 Divergente</option>
-        </select>
-      </div>`;
+  const cabecalhoMeses = meses.map(m => `<th style="width:105px">Mês ${m}/${ano}</th>`).join('');
+
+  const linhas = categorias.map(cat => {
+    let html = `<tr><td colspan="13" style="background:#f1f5f9;font-weight:800;padding:8px 12px;font-size:11px;color:#334155;text-transform:uppercase">${cat.cat}</td></tr>`;
+    
+    html += cat.items.map(item => {
+      let row = `<tr>
+        <td style="position:sticky;left:0;background:#fff;z-index:1;min-width:280px;max-width:350px">
+          <div style="font-weight:600;font-size:12px;color:#0f172a;line-height:1.2">${item.nome}</div>
+          ${item.obs ? `<div style="font-size:10px;color:#64748b;margin-top:3px;line-height:1.2">${item.obs}</div>` : ''}
+        </td>`;
+      
+      row += meses.map(m => {
+        const comp = `${ano}-${m}`;
+        const key = `${chkClienteId}_${comp}`;
+        const savedData = checklists[key] || {};
+        const actualVal = savedData[item.key] || 'aguardando';
+
+        return `<td style="padding:4px">
+          <select class="status-select-m ${actualVal}" onchange="saveChkItemMatrix('${chkClienteId}','${comp}','${item.key}',this.value,this)">
+             <option value="aguardando"  ${actualVal==='aguardando' ?'selected':''}>⏳ Aguardando</option>
+             <option value="solicitado"  ${actualVal==='solicitado' ?'selected':''}>📨 Solicitado</option>
+             <option value="recebido"    ${actualVal==='recebido'   ?'selected':''}>✅ OK</option>
+             <option value="incompleto"  ${actualVal==='incompleto' ?'selected':''}>⚠️ Incomp.</option>
+             <option value="divergente"  ${actualVal==='divergente' ?'selected':''}>🔎 Diverg.</option>
+             <option value="nao_enviado" ${actualVal==='nao_enviado'?'selected':''}>❌ Não ent.</option>
+          </select>
+        </td>`;
+      }).join('');
+      
+      row += `</tr>`;
+      return row;
     }).join('');
-    return `<div class="checklist-category">
-      <div class="checklist-header"><span>${cat.cat}</span><span class="cat-count">${catDone}/${cat.items.length}</span></div>
-      <div class="checklist-body">${itemsHtml}</div>
-    </div>`;
+    
+    return html;
   }).join('');
+
+  const fechamento = meses.map(m => {
+      const comp = `${ano}-${m}`;
+      const statusComp = calcFechamentoCompetencia(chkClienteId, comp, categorias, checklists);
+      return `<td style="background:${statusComp.bg};color:${statusComp.color};font-weight:800;font-size:11px;text-align:center">
+        ${statusComp.text}
+      </td>`;
+  }).join('');
+
+  const tableHtml = `
+    <style>
+      .status-select-m { font-size:11px; padding:6px 2px; border-radius:6px; border:1px solid #e2e8f0; font-weight:700; cursor:pointer; width:100%; box-sizing:border-box; outline:none; appearance:none; text-align:center; text-align-last:center; transition:all 0.2s; }
+      .status-select-m:hover { border-color:#cbd5e1; filter:brightness(0.95); }
+      .status-select-m.aguardando { background:#f8fafc; color:#64748b; }
+      .status-select-m.solicitado { background:#fdf4ff; color:#c026d3; border-color:#f5d0fe; }
+      .status-select-m.recebido { background:#f0fdf4; color:#16a34a; border-color:#bbf7d0; }
+      .status-select-m.incompleto { background:#fffbeb; color:#d97706; border-color:#fde68a; }
+      .status-select-m.nao_enviado { background:#fef2f2; color:#ef4444; border-color:#fecaca; }
+      .status-select-m.divergente { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
+      .matrix-table { width:100%; border-collapse:collapse; }
+      .matrix-table th, .matrix-table td { padding:8px; border:1px solid #e2e8f0; }
+      .matrix-table th { background:#f8fafc; font-size:11px; font-weight:800; color:#1e293b; text-align:center; white-space:nowrap; }
+      .matrix-table td { vertical-align:middle; background:#fff; }
+      
+      /* Oculta seta do select para economizar espaco */
+      .status-select-m::-ms-expand { display: none; }
+      .status-select-m { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+    </style>
+    <div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);background:#fff;margin-bottom:40px">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;position:sticky;left:0;z-index:2;background:#f8fafc">📁 Fonte de Dados / Documento Exigido</th>
+            ${cabecalhoMeses}
+          </tr>
+        </thead>
+        <tbody>
+          ${linhas}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td style="text-align:right;font-weight:800;position:sticky;left:0;background:#f8fafc;z-index:2;font-size:12px;color:#0f172a">🏁 STATUS DA COMPETÊNCIA</td>
+            ${fechamento}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
 
   return `${topBar}
 <div style="display:flex;gap:16px;align-items:flex-start">
-  ${buildMonthPicker(checklists)}
   <div style="flex:1">
-    <div class="card mb-4" style="padding:14px 18px">
-      <div class="flex justify-between items-center mb-2">
+    <div class="card mb-4" style="padding:16px 20px;border-left:4px solid #7c3aed;background:linear-gradient(to right, #fbfbfe, #fff)">
+      <div class="flex justify-between items-center">
         <div>
-          <strong style="font-size:14px">#${cliente.id} — ${cliente.nome}</strong>
-          <span class="text-muted text-sm" style="margin-left:12px">${fmtComp(state.competencia)} · ${regimedIcon(cliente.regime)}</span>
+          <strong style="font-size:18px;color:#0f172a">#${cliente.id} — ${cliente.nome}</strong>
+          <span style="font-size:12px;color:#64748b;margin-left:12px;background:#e2e8f0;padding:2px 8px;border-radius:99px;font-weight:700">${cliente.regime}</span>
         </div>
-        <strong style="color:${corPct}">${doneItems}/${totalItems} (${pct}%)</strong>
       </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${corPct}"></div></div>
-      ${pct===100?'<div style="margin-top:8px;font-size:12px;color:#10b981;font-weight:600">✅ Documentação completa para este período!</div>':''}
+      <div style="font-size:13px;color:#475569;margin-top:6px">
+        Matriz de execução. Exibindo <strong>exclusivamente</strong> obrigações aplicáveis com base nos controles (diagnóstico) deste cliente.
+      </div>
     </div>
-    ${catHtml}
+    ${tableHtml}
     <div id="parecer-area"></div>
   </div>
 </div>`;
