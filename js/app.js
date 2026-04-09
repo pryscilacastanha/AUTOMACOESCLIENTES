@@ -42,6 +42,23 @@ function navigate(page, clienteId=null) {
   render();
 }
 
+let searchTimeout;
+window.handleSearch = (val) => {
+  state.filtro = val;
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    let focusEl = document.activeElement;
+    let isSearch = focusEl && focusEl.id === 'search-input';
+    render();
+    if (isSearch) {
+      setTimeout(() => {
+        const el = document.getElementById('search-input');
+        if (el) { el.focus(); el.setSelectionRange(val.length, val.length); }
+      }, 50);
+    }
+  }, 350);
+};
+
 function render() {
   const main = document.getElementById('main-content');
   try {
@@ -199,7 +216,7 @@ ${pendObs.length ? `<div class="card mb-4" style="border-left:4px solid var(--wa
     <div style="display:flex;gap:10px;align-items:center">
       <div class="search-bar" style="width:280px">
         <span>🔍</span>
-        <input id="search-input" type="text" placeholder="Buscar nome, CNPJ ou código..." value="${state.filtro||''}" oninput="state.filtro=this.value;render()">
+        <input id="search-input" type="text" placeholder="Buscar nome, CNPJ ou código..." value="${state.filtro||''}" oninput="window.handleSearch(this.value)">
       </div>
       <button class="btn btn-primary btn-sm" onclick="openModal('new')">+ Novo</button>
     </div>
@@ -239,7 +256,7 @@ function renderClientes() {
 <div class="flex justify-between items-center mb-4">
   <div class="search-bar" style="width:320px">
     <span>🔍</span>
-    <input id="search-input" type="text" placeholder="Buscar por nome, CNPJ ou código..." value="${state.filtro}" oninput="state.filtro=this.value;render()">
+    <input id="search-input" type="text" placeholder="Buscar por nome, CNPJ ou código..." value="${state.filtro}" oninput="window.handleSearch(this.value)">
   </div>
   <button class="btn btn-primary" onclick="openModal('new')">+ Novo Cliente</button>
 </div>
@@ -406,7 +423,7 @@ function openModal(mode, id=null) {
         <button class="tab-btn active" onclick="switchTab(this,'tab-geral')">Dados Gerais</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-controles')">Controles Internos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-onboarding')">Validação de Documentos</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-bancos')">Mov. Financeiras</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-bancos')">Gestão Financeira e Bancos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-parcelamentos')">Passivos e Parcelamentos</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-trabalhista')">Estrutura Trab. / Risco</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-situacao-fiscal')">Situação Fiscal (Débitos)</button>
@@ -521,32 +538,7 @@ function openModal(mode, id=null) {
               <div style="font-size:10px;color:var(--danger);margin-top:6px;font-style:italic">👉 Sem controle = Risco SPED Fiscal</div>
             </div>
 
-            <!-- CAIXA -->
-            <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border)">
-              <div style="font-weight:700;margin-bottom:8px;font-size:12px;color:var(--primary-dark)">2. Caixa e Bancos</div>
-              <div class="form-group"><label>Controle de caixa?</label><select id="ci_cx_possui" onchange="if(typeof window.handleCaixaBancosChange==='function') window.handleCaixaBancosChange()">
-                ${['Não possui','Controle manual (caderno/planilha)','Controle em sistema','Parcial'].map(x=>`<option ${c.ci_cx_possui===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
-              <div class="form-group"><label>Frequência (Caixa)</label><select id="ci_cx_freq">
-                ${['N/A','Diário','Semanal','Eventual'].map(x=>`<option ${c.ci_cx_freq===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
-              <div class="form-group" style="padding-top:12px;border-top:1px solid #e2e8f0;margin-top:12px"><label>Possui conta bancária?</label><select id="ci_banco_possui" onchange="if(typeof window.handleCaixaBancosChange==='function') window.handleCaixaBancosChange()">
-                ${['Sim','Não'].map(x=>`<option ${c.ci_banco_possui===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
-              <div class="form-group"><label>Forma de controle bancário</label><select id="ci_banco_forma">
-                ${['N/A','Não controla','Apenas arquiva extrato','Conciliação manual (planilha)','Conciliação em sistema'].map(x=>`<option ${c.ci_banco_forma===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
-              <div class="form-group"><label>Situação da conciliação</label><select id="ci_banco_sit">
-                ${['N/A','Não conciliado','Parcialmente conciliado','Conciliado'].map(x=>`<option ${c.ci_banco_sit===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
-              <div class="form-group"><label>Frequência</label><select id="ci_cx_freq">
-                ${['N/A','Diária','Semanal','Mensal'].map(x=>`<option ${c.ci_cx_freq===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
-              <div class="form-group"><label>Separação PF x PJ?</label><select id="ci_cx_sep">
-                ${['N/A','Sim','Não'].map(x=>`<option ${c.ci_cx_sep===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
-              <div style="font-size:10px;color:var(--danger);margin-top:6px;font-style:italic">👉 Sem separar = Contabilidade vira estimativa</div>
-            </div>
+
 
             <!-- BENS -->
             <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border)">
@@ -598,13 +590,40 @@ function openModal(mode, id=null) {
           </div>
 
         <div id="tab-bancos" class="tab-panel">
-          <div class="form-grid">
-            <div class="form-group form-full">
-              <label>Instituições Financeiras Vinculadas</label>
-              <div class="checkbox-group" style="max-height:150px;overflow-y:auto;border:1px solid #e2e8f0;padding:8px;border-radius:6px">${bancosHtml}</div>
+          <div style="display:flex;gap:16px;margin-bottom:20px;">
+            <!-- CAIXA -->
+            <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border)">
+              <div style="font-weight:700;margin-bottom:8px;font-size:12px;color:var(--primary-dark)">1. Caixa e Bancos</div>
+              <div class="form-group"><label>Controle de caixa?</label><select id="ci_cx_possui" onchange="if(typeof window.handleCaixaBancosChange==='function') window.handleCaixaBancosChange()">
+                ${['Não possui','Controle manual (caderno/planilha)','Controle em sistema','Parcial'].map(x=>`<option ${c.ci_cx_possui===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Frequência (Caixa)</label><select id="ci_cx_freq">
+                ${['N/A','Diário','Semanal','Eventual'].map(x=>`<option ${c.ci_cx_freq===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group" style="padding-top:12px;border-top:1px solid #e2e8f0;margin-top:12px"><label>Possui conta bancária?</label><select id="ci_banco_possui" onchange="if(typeof window.handleCaixaBancosChange==='function') window.handleCaixaBancosChange()">
+                ${['Sim','Não'].map(x=>`<option ${c.ci_banco_possui===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Forma de controle bancário</label><select id="ci_banco_forma">
+                ${['N/A','Não controla','Apenas arquiva extrato','Conciliação manual (planilha)','Conciliação em sistema'].map(x=>`<option ${c.ci_banco_forma===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Situação da conciliação</label><select id="ci_banco_sit">
+                ${['N/A','Não conciliado','Parcialmente conciliado','Conciliado'].map(x=>`<option ${c.ci_banco_sit===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div class="form-group"><label>Separação PF x PJ?</label><select id="ci_cx_sep">
+                ${['N/A','Sim','Não'].map(x=>`<option ${c.ci_cx_sep===x?'selected':''}>${x}</option>`).join('')}
+              </select></div>
+              <div style="font-size:10px;color:var(--danger);margin-top:6px;font-style:italic">👉 Sem separar = Contabilidade vira estimativa</div>
             </div>
-            <div class="form-group form-full"><label>Outro banco / instituição (nome livre)</label><input id="f-banco-outro" value="${c.banco_outro||''}" placeholder="Ex: Sicredi, Cresol, Conta Internacional..."></div>
+            
+            <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border)">
+              <div style="font-weight:700;margin-bottom:8px;font-size:12px;color:var(--primary-dark)">2. Instituições Vinculadas</div>
+              <div class="form-group form-full">
+                <div class="checkbox-group" style="max-height:220px;overflow-y:auto;border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#fff">${bancosHtml}</div>
+              </div>
+              <div class="form-group form-full" style="margin-top:12px"><label>Outro banco / instituição (nome livre)</label><input id="f-banco-outro" value="${c.banco_outro||''}" placeholder="Ex: Sicredi, Cresol, Conta Internacional..."></div>
+            </div>
           </div>
+
 
           <!-- DIAGNOSTICO BANCARIO -->
           <div style="background:#f8fafc;padding:16px;border-radius:8px;border:1px solid var(--border);margin-top:20px;">
