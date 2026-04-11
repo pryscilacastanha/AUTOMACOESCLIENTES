@@ -2224,29 +2224,59 @@ function renderAuditoria() {
        </div>`;
 
   // ── AUTO: Obrigações Acessórias entregues ──
-  const obrigData = DB.get('obrigacoes') || {};
-  const anoAtual = state.competencia.split('-')[0];
-  const obgsAnuais = ['DEFIS','ECD','ECF','RAIS','DIRF','DASN-MEI'];
-  const obgStatusRows = obgsAnuais.map(cod => {
-    const k = `${audClienteId}_${cod}_${anoAtual}`;
-    const d = obrigData[k] || {};
-    const s = d.status || 'pendente';
-    const hasFile = d.arquivo_nome;
-    const badge = s==='entregue'?'badge-green':s==='em_atraso'?'badge-red':'badge-gray';
-    const lbl   = s==='entregue'?'✅ Entregue':s==='em_atraso'?'🔴 Em Atraso':'⏳ Pendente';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--border)">
-      <strong style="min-width:80px;font-size:12px">${cod}</strong>
-      <span class="badge ${badge}">${lbl}</span>
-      ${d.data_entrega ? `<span class="text-muted text-sm">${d.data_entrega}</span>` : ''}
-      ${hasFile ? `<span style="font-size:12px">📎 ${d.arquivo_nome}</span>` : ''}
-      <span style="margin-left:auto"></span>
+  const obgsAcessAux = ['ECF','RAIS','DIRF','DASN-MEI'];
+  const obgDataDb = DB.get('obrigacoes') || {};
+  const ecdDefisDb = DB.get('entregas_ecd') || {};
+  const anoAtualStr = parseInt(state.competencia.split('-')[0]) || new Date().getFullYear();
+  const cliDataEcd = ecdDefisDb[cliente.id] || {anos:{}, defis_anos:{}};
+  
+  const autoSt = (tipo) => {
+    if (tipo==='ecd') return cliente.regime === 'Simples Nacional' ? 'Não aplicável' : 'Pendente';
+    if (tipo==='defis') return cliente.regime === 'Simples Nacional' ? 'Pendente' : 'Não aplicável';
+    return 'Pendente';
+  };
+  
+  const stColor = st => {
+    const s = String(st).toLowerCase();
+    if (s.includes('transmitida') || s.includes('entregue') || s.includes('concluído')) return '#10b981';
+    if (s.includes('não aplicável')) return '#94a3b8';
+    return '#ef4444';
+  };
+  
+  const boxHtml = (title, status) => {
+    const rawSt = String(status).toLowerCase();
+    const lbl = rawSt === 'entregue' ? 'Transmitida' : rawSt === 'em_atraso' ? 'Em Atraso' : rawSt === 'pendente' ? 'Pendente' : status;
+    return `<div style="flex:1;min-width:90px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px">${title}</div>
+      <div style="font-size:11px;font-weight:600;color:${stColor(lbl)};padding:2px 0;background:#fff;border-radius:4px;border:1px solid ${stColor(lbl)}33">${lbl}</div>
     </div>`;
+  };
+
+  const ecdBoxes = [2022, 2023, 2024, 2025].map(a => boxHtml(`ECD ${a}`, cliDataEcd.anos?.[a]?.status || autoSt('ecd'))).join('');
+  const defisBoxes = [2023, 2024, 2025].map(a => boxHtml(`DEFIS ${a}`, cliDataEcd.defis_anos?.[a]?.status || autoSt('defis'))).join('');
+  
+  const auxBoxes = obgsAcessAux.map(cod => {
+     const k = `${cliente.id}_${cod}_${anoAtualStr}`;
+     const status = obgDataDb[k]?.status || 'Pendente';
+     return boxHtml(`${cod} ${anoAtualStr}`, status);
   }).join('');
 
-  const obgAcessSection = `<div class="card mb-4">
-    <div style="font-weight:700;font-size:14px;margin-bottom:6px">📋 Obrigações Acessórias — ${anoAtual}</div>
-    <div>${obgStatusRows}</div>
-    <div class="text-muted text-sm mt-2" style="padding:0 14px">Gerencie entregas e anexos no módulo <button class="btn btn-ghost btn-sm" onclick="navigate('obrigacoes')">📋 Obrigações Acessórias</button></div>
+  const obgAcessSection = `<div class="card mb-4" style="padding:16px 20px;">
+    <div style="font-weight:700;font-size:14px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+      📋 Painel Estratégico de Obrigações
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;">📊 OBRIGAÇÕES CONTÁBEIS (ECD)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${ecdBoxes}</div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;">📊 SIMPLES NACIONAL (DEFIS)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${defisBoxes}</div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;">📅 OUTRAS DECLARAÇÕES (${anoAtualStr})</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${auxBoxes}</div>
+    </div>
   </div>`;
 
   // ── Manual apontamentos ──

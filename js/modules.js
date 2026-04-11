@@ -2132,14 +2132,7 @@ function renderParecerPage() {
   }));
 
   // ─── OBRIGAÇÕES ACESSÓRIAS ───
-  const obrigData = DB.get('obrigacoes') || {};
   const anoAtual = comp.split('-')[0];
-  const obgsAnuais = ['DEFIS','ECD','ECF','RAIS','DIRF','DASN-MEI'];
-  const obgsStatus = obgsAnuais.map(cod => {
-    const k = `${cliente.id}_${cod}_${anoAtual}`;
-    const d = obrigData[k] || {};
-    return { cod, status: d.status || 'pendente', data: d.data_entrega || '' };
-  });
 
   // ─── APONTAMENTOS MANUAIS ───
   const audData = DB.get('auditoria') || {};
@@ -2249,17 +2242,59 @@ function renderParecerPage() {
   }
 
   // ── OBRIGAÇÕES ACESSÓRIAS ──
-  html += `<div class="card mb-4">
-    <div style="font-weight:700;font-size:14px;margin-bottom:6px">📋 Obrigações Acessórias — ${anoAtual}</div>
-    <div>${obgsStatus.map(o => {
-      const badge = o.status==='entregue'?'badge-green':o.status==='em_atraso'?'badge-red':'badge-gray';
-      const lbl = o.status==='entregue'?'✅ Entregue':o.status==='em_atraso'?'🔴 Em Atraso':'⏳ Pendente';
-      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--border)">
-        <strong style="min-width:80px;font-size:12px">${o.cod}</strong>
-        <span class="badge ${badge}">${lbl}</span>
-        ${o.data ? `<span class="text-muted text-sm">${o.data}</span>` : ''}
-      </div>`;
-    }).join('')}</div>
+  const obgsAcessAux = ['ECF','RAIS','DIRF','DASN-MEI'];
+  const obgDataDb = DB.get('obrigacoes') || {};
+  const ecdDefisDb = DB.get('entregas_ecd') || {};
+  const anoAtualStr = parseInt(comp.split('-')[0]) || new Date().getFullYear();
+  const cliDataEcd = ecdDefisDb[cliente.id] || {anos:{}, defis_anos:{}};
+  
+  const autoSt = (tipo) => {
+    if (tipo==='ecd') return cliente.regime === 'Simples Nacional' ? 'Não aplicável' : 'Pendente';
+    if (tipo==='defis') return cliente.regime === 'Simples Nacional' ? 'Pendente' : 'Não aplicável';
+    return 'Pendente';
+  };
+  
+  const stColor = st => {
+    const s = String(st).toLowerCase();
+    if (s.includes('transmitida') || s.includes('entregue') || s.includes('concluído')) return '#10b981';
+    if (s.includes('não aplicável')) return '#94a3b8';
+    return '#ef4444';
+  };
+  
+  const boxHtml = (title, status) => {
+    const rawSt = String(status).toLowerCase();
+    const lbl = rawSt === 'entregue' ? 'Transmitida' : rawSt === 'em_atraso' ? 'Em Atraso' : rawSt === 'pendente' ? 'Pendente' : status;
+    return `<div style="flex:1;min-width:90px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px">${title}</div>
+      <div style="font-size:11px;font-weight:600;color:${stColor(lbl)};padding:2px 0;background:#fff;border-radius:4px;border:1px solid ${stColor(lbl)}33">${lbl}</div>
+    </div>`;
+  };
+
+  const ecdBoxes = [2022, 2023, 2024, 2025].map(a => boxHtml(`ECD ${a}`, cliDataEcd.anos?.[a]?.status || autoSt('ecd'))).join('');
+  const defisBoxes = [2023, 2024, 2025].map(a => boxHtml(`DEFIS ${a}`, cliDataEcd.defis_anos?.[a]?.status || autoSt('defis'))).join('');
+  
+  const auxBoxes = obgsAcessAux.map(cod => {
+     const k = `${cliente.id}_${cod}_${anoAtualStr}`;
+     const status = obgDataDb[k]?.status || 'Pendente';
+     return boxHtml(`${cod} ${anoAtualStr}`, status);
+  }).join('');
+
+  html += `<div class="card mb-4" style="padding:16px 20px;">
+    <div style="font-weight:700;font-size:14px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+      📋 Painel Estratégico de Obrigações
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;">📊 OBRIGAÇÕES CONTÁBEIS (ECD)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${ecdBoxes}</div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;">📊 SIMPLES NACIONAL (DEFIS)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${defisBoxes}</div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;">📅 OUTRAS DECLARAÇÕES (${anoAtualStr})</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${auxBoxes}</div>
+    </div>
   </div>`;
 
   // ── APONTAMENTOS MANUAIS ──
@@ -2408,6 +2443,9 @@ function gerarDadosParecer(cliId) {
     bancoInfo: (typeof concState !== 'undefined' && concState.clienteId === cliId) ? concState.bancoInfo : {},
     escritorio: localStorage.getItem('esc_nome') || 'Criscontab & Madeira Contabilidade',
     dataGeracao: new Date().toLocaleString('pt-BR'),
+    obgDataDb: DB.get('obrigacoes') || {},
+    cliDataEcd: (DB.get('entregas_ecd') || {})[cliId] || {anos:{}, defis_anos:{}},
+    anoAtualStr: parseInt(comp.split('-')[0]) || new Date().getFullYear(),
   };
 }
 
@@ -2614,6 +2652,55 @@ function gerarHtmlParecer(d) {
       </span>
     </div>
     ${chkSection}
+  </div>
+
+  <!-- SEÇÃO PAINEL ESTRATÉGICO DE OBRIGAÇÕES -->
+  <div class="section" style="border-top:1px solid #e2e8f0">
+    <div class="section-title">
+      <span>📋 Painel Estratégico de Obrigações</span>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;">📊 OBRIGAÇÕES CONTÁBEIS (ECD)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${[2022, 2023, 2024, 2025].map(a => {
+           const st = d.cliDataEcd.anos?.[a]?.status || (d.cliente.regime === 'Simples Nacional' ? 'Não aplicável' : 'Pendente');
+           const lbl = String(st).toLowerCase() === 'entregue' ? 'Transmitida' : String(st).toLowerCase() === 'em_atraso' ? 'Em Atraso' : String(st).toLowerCase() === 'pendente' ? 'Pendente' : st;
+           const cor = String(lbl).toLowerCase().includes('transmitida') ? '#10b981' : String(lbl).toLowerCase().includes('não aplicável') ? '#94a3b8' : '#ef4444';
+           return `<div style="flex:1;min-width:90px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+             <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px">ECD ${a}</div>
+             <div style="font-size:11px;font-weight:600;color:${cor};padding:2px 0;background:#fff;border-radius:4px;border:1px solid ${cor}33">${lbl}</div>
+           </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;">📊 SIMPLES NACIONAL (DEFIS)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${[2023, 2024, 2025].map(a => {
+           const st = d.cliDataEcd.defis_anos?.[a]?.status || (d.cliente.regime === 'Simples Nacional' ? 'Pendente' : 'Não aplicável');
+           const lbl = String(st).toLowerCase() === 'entregue' ? 'Transmitida' : String(st).toLowerCase() === 'em_atraso' ? 'Em Atraso' : String(st).toLowerCase() === 'pendente' ? 'Pendente' : st;
+           const cor = String(lbl).toLowerCase().includes('transmitida') ? '#10b981' : String(lbl).toLowerCase().includes('não aplicável') ? '#94a3b8' : '#ef4444';
+           return `<div style="flex:1;min-width:90px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+             <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px">DEFIS ${a}</div>
+             <div style="font-size:11px;font-weight:600;color:${cor};padding:2px 0;background:#fff;border-radius:4px;border:1px solid ${cor}33">${lbl}</div>
+           </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;">📅 OUTRAS DECLARAÇÕES (${d.anoAtualStr})</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${['ECF','RAIS','DIRF','DASN-MEI'].map(cod => {
+           const st = d.obgDataDb[`${d.cliente.id}_${cod}_${d.anoAtualStr}`]?.status || 'Pendente';
+           const lbl = String(st).toLowerCase() === 'entregue' ? 'Transmitida' : String(st).toLowerCase() === 'em_atraso' ? 'Em Atraso' : String(st).toLowerCase() === 'pendente' ? 'Pendente' : st;
+           const cor = String(lbl).toLowerCase().includes('transmitida') ? '#10b981' : '#ef4444';
+           return `<div style="flex:1;min-width:90px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+             <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px">${cod}</div>
+             <div style="font-size:11px;font-weight:600;color:${cor};padding:2px 0;background:#fff;border-radius:4px;border:1px solid ${cor}33">${lbl}</div>
+           </div>`;
+        }).join('')}
+      </div>
+    </div>
   </div>
 
   <!-- SEÇÃO PONTOS DE ATENÇÃO — LANÇAMENTOS BANCÁRIOS SEM CLASSIFICAÇÃO -->
