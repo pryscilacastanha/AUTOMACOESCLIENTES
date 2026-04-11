@@ -456,6 +456,7 @@ function getContasAnaliticas() {
       if (!c.tipo || c.tipo === 'A' || c.tipo === '' || c.tipo === 'C') {
         contas.push({
           codigo: c.codigo || c.classificacao || '',
+          cod_interno: c.cod_interno || '',
           descricao: c.descricao || c.nome || '',
           grupo: c.grupo || '',
           plano: p.nome || p.id || '',
@@ -478,7 +479,7 @@ function abrirAutocompleteConta(idx, campo, inputEl) {
   const contas = getContasAnaliticas();
   const query = (inputEl.value || '').toLowerCase();
   const filtered = query.length < 1 ? contas.slice(0, 50) : contas.filter(c => {
-    const searchStr = `${c.codigo} ${c.descricao}`.toLowerCase();
+    const searchStr = `${c.cod_interno} ${c.codigo} ${c.descricao}`.toLowerCase();
     return query.split(/\s+/).every(w => searchStr.includes(w));
   }).slice(0, 50);
 
@@ -498,7 +499,8 @@ function abrirAutocompleteConta(idx, campo, inputEl) {
     dropdown.innerHTML = filtered.map((c, i) => `
       <div class="conc-ac-item" data-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .1s"
         onmouseenter="this.style.background='#eff6ff'" onmouseleave="this.style.background=''"
-        onclick="selecionarContaAuto(${idx},'${campo}','${(c.codigo||'').replace(/'/g,"\\'")}','${(c.descricao||'').replace(/'/g,"\\'")}')">
+        onclick="selecionarContaAuto('${idx}','${campo}','${(c.cod_interno||'').replace(/'/g,"\\'")}','${(c.codigo||'').replace(/'/g,"\\'")}','${(c.descricao||'').replace(/'/g,"\\'")}')">
+        <span style="font-family:monospace;background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap">${c.cod_interno ? `Cód: ${c.cod_interno}` : '-'}</span>
         <span style="font-family:monospace;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;white-space:nowrap">${c.codigo}</span>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155">${c.descricao}</span>
         <span style="font-size:9px;color:#94a3b8;white-space:nowrap">${c.natureza === 'D' ? '⬆D' : c.natureza === 'C' ? '⬇C' : ''}</span>
@@ -523,26 +525,72 @@ function _fecharAutocompleteFora(e) {
   }
 }
 
-function selecionarContaAuto(idx, campo, codigo, descricao) {
-  const am = concState.amarracoes[idx];
-  if (!am) return;
-  const label = `${codigo} — ${descricao}`;
-  am[campo] = label;
-  am.confianca = 'Alta';
+function selecionarContaAuto(idx, campo, cod_interno, codigo, descricao) {
+  const label = cod_interno ? `${codigo} — ${descricao} (Cód: ${cod_interno})` : `${codigo} — ${descricao}`;
+  
+  if (idx === 'bulk') {
+    const inputEl = document.getElementById(`bulk-${campo}`);
+    if (inputEl) inputEl.value = label;
+  } else {
+    const am = concState.amarracoes[idx];
+    if (am) {
+      am[campo] = label;
+      am.confianca = 'Alta';
+    }
+  }
+
   const dd = document.getElementById('conc-ac-dropdown');
   if (dd) dd.remove();
   document.removeEventListener('click', _fecharAutocompleteFora, true);
   _concAutoOpen = null;
-  render();
+  if (idx !== 'bulk') render();
 }
 
 function filtrarAutocompleteConta(idx, campo, inputEl) {
-  // Atualizar o valor no state sem re-render
-  const am = concState.amarracoes[idx];
-  if (am) am[campo] = inputEl.value;
-  // Re-abrir dropdown com novo filtro
+  if (idx !== 'bulk') {
+    const am = concState.amarracoes[idx];
+    if (am) am[campo] = inputEl.value;
+  }
   abrirAutocompleteConta(idx, campo, inputEl);
 }
+
+// ─── AÇÕES EM LOTE ───
+window.toggleConcRow = function(idx, checked) {
+  if (!concState.selectedRows) concState.selectedRows = {};
+  if (checked) concState.selectedRows[idx] = true;
+  else delete concState.selectedRows[idx];
+  render();
+};
+
+window.toggleAllConcRows = function(checked) {
+  concState.selectedRows = {};
+  if (checked) {
+    concState.transacoes.forEach((t, i) => concState.selectedRows[i] = true);
+  }
+  render();
+};
+
+window.aplicarEmLote = function() {
+  const debVal = document.getElementById('bulk-debito')?.value || '';
+  const credVal = document.getElementById('bulk-credito')?.value || '';
+  if (!debVal && !credVal) { alert('Informe ao menos a conta a débito ou crédito.'); return; }
+  
+  const selectedIndices = Object.keys(concState.selectedRows || {});
+  if (!selectedIndices.length) return;
+
+  selectedIndices.forEach(idx => {
+    const am = concState.amarracoes[idx];
+    if (am) {
+      if (debVal) am.debito = debVal;
+      if (credVal) am.credito = credVal;
+      if (debVal || credVal) am.confianca = 'Alta';
+    }
+  });
+
+  concState.selectedRows = {}; // limpar seleção após aplicar
+  render();
+  alert(`✅ Lote aplicado a ${selectedIndices.length} registro(s)!`);
+};
 
 // ─── GRID DE AMARRAÇÃO ───
 function renderConcGrid() {
@@ -583,6 +631,7 @@ function renderConcGrid() {
   const classificados = Object.values(concState.amarracoes).filter(a => a.confianca === 'Alta').length;
   const pendentes = txns.length - classificados;
 
+  if (!concState.selectedRows) concState.selectedRows = {};
   const escHtml = (s) => (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 
   const rows = filtered.map((t, fi) => {
@@ -593,8 +642,10 @@ function renderConcGrid() {
     const confBadge = isAlta
       ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">✅ Alta</span>'
       : '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⚠️ Manual</span>';
+    const isChecked = concState.selectedRows[idx] ? 'checked' : '';
 
     return `<tr style="${rowBg}border-bottom:1px solid var(--border)">
+      <td style="padding:8px;text-align:center"><input type="checkbox" ${isChecked} onchange="toggleConcRow(${idx}, this.checked)" style="transform:scale(1.2)"></td>
       <td style="padding:8px;font-size:12px;text-align:center;color:var(--text-muted)">${t.data}</td>
       <td style="padding:8px;font-size:12px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(t.descricao)}">${t.descricao}</td>
       <td style="padding:8px;font-size:12px;text-align:right;font-weight:700;color:${t.tipo==='credito'?'var(--success)':'var(--danger)'}">
@@ -605,14 +656,14 @@ function renderConcGrid() {
           onfocus="abrirAutocompleteConta(${idx},'debito',this)"
           oninput="filtrarAutocompleteConta(${idx},'debito',this)"
           onchange="concState.amarracoes[${idx}].debito=this.value"
-          style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:4px 6px;font-size:11px" title="Pesquisar conta débito" placeholder="🔍 Pesquisar conta...">
+          style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:4px 6px;font-size:11px" title="Pesquisar conta débito" placeholder="🔍 Pesquisar...">
       </td>
       <td style="padding:8px;font-size:11px;position:relative">
         <input class="conc-ac-input" value="${escHtml(am.credito||'')}"
           onfocus="abrirAutocompleteConta(${idx},'credito',this)"
           oninput="filtrarAutocompleteConta(${idx},'credito',this)"
           onchange="concState.amarracoes[${idx}].credito=this.value"
-          style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:4px 6px;font-size:11px" title="Pesquisar conta crédito" placeholder="🔍 Pesquisar conta...">
+          style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:4px 6px;font-size:11px" title="Pesquisar conta crédito" placeholder="🔍 Pesquisar...">
       </td>
       <td style="padding:8px;font-size:11px">
         <input value="${escHtml(am.historico||'')}" onchange="concState.amarracoes[${idx}].historico=this.value"
@@ -633,6 +684,22 @@ function renderConcGrid() {
     concState.colFilters = {data:'',descricao:'',valor:'',debito:'',credito:'',historico:'',conf:''};
     render();
   };
+
+  const selCount = Object.keys(concState.selectedRows || {}).length;
+  const bulkBar = selCount > 0 ? `
+    <div style="background:#e0f2fe;border:1px solid #bae6fd;padding:10px 16px;display:flex;gap:12px;align-items:center;border-radius:8px;margin-bottom:12px">
+      <span style="font-weight:700;color:#0369a1">${selCount} linha(s) selecionada(s)</span>
+      <div style="width:1px;height:24px;background:#bae6fd"></div>
+      <div style="flex:1;position:relative">
+        <input id="bulk-debito" class="form-input" placeholder="Em Lote: Conta a Débito..." onfocus="abrirAutocompleteConta('bulk','debito',this)" oninput="filtrarAutocompleteConta('bulk','debito',this)" style="width:100%;font-size:12px">
+      </div>
+      <div style="flex:1;position:relative">
+        <input id="bulk-credito" class="form-input" placeholder="Em Lote: Conta a Crédito..." onfocus="abrirAutocompleteConta('bulk','credito',this)" oninput="filtrarAutocompleteConta('bulk','credito',this)" style="width:100%;font-size:12px">
+      </div>
+      <button class="btn btn-primary" onclick="aplicarEmLote()">🔄 Aplicar Lote</button>
+      <button class="btn btn-ghost" onclick="window.toggleAllConcRows(false)">Sair</button>
+    </div>
+  ` : '';
 
   return `
 <div class="card mb-4" style="background:linear-gradient(135deg,#0f172a,#1e3a5f);color:#fff;padding:18px 24px;border-radius:12px">
@@ -672,11 +739,14 @@ function renderConcGrid() {
   </div>
 </div>
 
+${bulkBar}
+
 <div class="card" style="padding:0;border-radius:12px;overflow:hidden">
   <div class="table-wrap" style="overflow-x:auto;max-height:60vh">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead style="position:sticky;top:0;z-index:2">
         <tr style="background:#f1f5f9;border-bottom:2px solid #cbd5e1">
+          <th style="padding:10px 8px;text-align:center;min-width:30px"><input type="checkbox" onchange="toggleAllConcRows(this.checked)" style="transform:scale(1.2)"></th>
           <th style="padding:10px 8px;text-align:center;font-size:11px;min-width:80px">DATA</th>
           <th style="padding:10px 8px;text-align:left;font-size:11px;min-width:200px">DESCRIÇÃO</th>
           <th style="padding:10px 8px;text-align:right;font-size:11px;min-width:110px">VALOR</th>
@@ -687,6 +757,7 @@ function renderConcGrid() {
           <th style="padding:10px 8px;text-align:center;font-size:11px;min-width:40px">📖</th>
         </tr>
         <tr style="background:#e8edf3;border-bottom:1px solid #cbd5e1">
+          <th style="padding:4px 4px"></th>
           <th style="padding:4px 4px"><input type="text" placeholder="🔍" value="${escHtml(cf.data)}" oninput="concState.colFilters.data=this.value;render()" style="width:100%;border:1px solid #cbd5e1;border-radius:4px;padding:3px 5px;font-size:10px;background:#fff"></th>
           <th style="padding:4px 4px"><input type="text" placeholder="🔍 descrição..." value="${escHtml(cf.descricao)}" oninput="concState.colFilters.descricao=this.value;render()" style="width:100%;border:1px solid #cbd5e1;border-radius:4px;padding:3px 5px;font-size:10px;background:#fff"></th>
           <th style="padding:4px 4px"><input type="text" placeholder="🔍" value="${escHtml(cf.valor)}" oninput="concState.colFilters.valor=this.value;render()" style="width:100%;border:1px solid #cbd5e1;border-radius:4px;padding:3px 5px;font-size:10px;background:#fff"></th>
