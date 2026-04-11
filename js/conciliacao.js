@@ -469,91 +469,108 @@ function getContasAnaliticas() {
 }
 
 // ─── AUTOCOMPLETE DE CONTA CONTÁBIL ───
-let _concAutoOpen = null; // track which autocomplete is open
+let _concAutoOpen = null;
 
 function abrirAutocompleteConta(idx, campo, inputEl) {
-  const existingDrop = document.getElementById('conc-ac-dropdown');
+  var existingDrop = document.getElementById('conc-ac-dropdown');
   if (existingDrop) existingDrop.remove();
-  _concAutoOpen = { idx, campo };
+  _concAutoOpen = { idx: idx, campo: campo };
 
-  const contas = getContasAnaliticas();
-  const query = (inputEl.value || '').toLowerCase();
-  const filtered = query.length < 1 ? contas.slice(0, 50) : contas.filter(c => {
-    const searchStr = `${c.cod_interno} ${c.codigo} ${c.descricao}`.toLowerCase();
-    return query.split(/\s+/).every(w => searchStr.includes(w));
+  var contas = getContasAnaliticas();
+  var query = (inputEl.value || '').toLowerCase();
+  var filtered = query.length < 1 ? contas.slice(0, 50) : contas.filter(function(c) {
+    var searchStr = ((c.cod_interno||'') + ' ' + (c.codigo||'') + ' ' + (c.descricao||'')).toLowerCase();
+    return query.split(/\s+/).every(function(w) { return searchStr.includes(w); });
   }).slice(0, 50);
 
-  const rect = inputEl.getBoundingClientRect();
-  const dropdown = document.createElement('div');
+  var rect = inputEl.getBoundingClientRect();
+  var dropdown = document.createElement('div');
   dropdown.id = 'conc-ac-dropdown';
-  dropdown.style.cssText = `
-    position:fixed;top:${rect.bottom+2}px;left:${rect.left}px;width:${Math.max(rect.width, 380)}px;
-    max-height:280px;overflow-y:auto;background:#fff;border:1px solid #cbd5e1;
-    border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.18);z-index:9999;
-    font-size:12px;
-  `;
+  dropdown.style.cssText =
+    'position:fixed;top:' + (rect.bottom+2) + 'px;left:' + rect.left + 'px;width:' + Math.max(rect.width,380) + 'px;' +
+    'max-height:280px;overflow-y:auto;background:#fff;border:1px solid #cbd5e1;' +
+    'border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.18);z-index:9999;font-size:12px;';
 
-  if (filtered.length === 0) {
-    dropdown.innerHTML = '<div style="padding:12px;color:#94a3b8;text-align:center">Nenhuma conta encontrada</div>';
-  } else {
-    dropdown.innerHTML = filtered.map((c, i) => `
-      <div class="conc-ac-item" data-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .1s"
-        onmouseenter="this.style.background='#eff6ff'" onmouseleave="this.style.background=''"
-        onclick="selecionarContaAuto('${idx}','${campo}','${(c.cod_interno||'').replace(/'/g,"\\'")}','${(c.codigo||'').replace(/'/g,"\\'")}','${(c.descricao||'').replace(/'/g,"\\'")}')">
-        <span style="font-family:monospace;background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap">${c.cod_interno ? `Cód: ${c.cod_interno}` : '-'}</span>
-        <span style="font-family:monospace;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;white-space:nowrap">${c.codigo}</span>
-        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155">${c.descricao}</span>
-        <span style="font-size:9px;color:#94a3b8;white-space:nowrap">${c.natureza === 'D' ? '⬆D' : c.natureza === 'C' ? '⬇C' : ''}</span>
-      </div>
-    `).join('');
-  }
-
+  dropdown.innerHTML = _buildDropdownHtml(idx, campo, filtered);
   document.body.appendChild(dropdown);
 
-  // Fechar ao clicar fora
-  setTimeout(() => {
-    document.addEventListener('click', _fecharAutocompleteFora, true);
+  setTimeout(function() {
+    document.addEventListener('mousedown', _fecharAutocompleteFora, true);
   }, 50);
 }
 
+function _buildDropdownHtml(idx, campo, filtered) {
+  if (filtered.length === 0) {
+    return '<div style="padding:12px;color:#94a3b8;text-align:center">Nenhuma conta encontrada</div>';
+  }
+  return filtered.map(function(c) {
+    var ci = (c.cod_interno||'').replace(/'/g, "\\'");
+    var cc = (c.codigo||'').replace(/'/g, "\\'");
+    var cd = (c.descricao||'').replace(/'/g, "\\'");
+    var codBadge = c.cod_interno ? ('Cód: ' + c.cod_interno) : '-';
+    var nat = c.natureza === 'D' ? '⬆D' : (c.natureza === 'C' ? '⬇C' : '');
+    return '<div class="conc-ac-item" style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .1s"'
+      + ' onmouseenter="this.style.background='#eff6ff'" onmouseleave="this.style.background=''"'
+      + ' onmousedown="event.preventDefault();selecionarContaAuto('' + idx + '','' + campo + '','' + ci + '','' + cc + '','' + cd + '')">'
+      + '<span style="font-family:monospace;background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap">' + codBadge + '</span>'
+      + '<span style="font-family:monospace;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;white-space:nowrap">' + (c.codigo||'') + '</span>'
+      + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155">' + (c.descricao||'') + '</span>'
+      + '<span style="font-size:9px;color:#94a3b8;white-space:nowrap">' + nat + '</span>'
+      + '</div>';
+  }).join('');
+}
+
 function _fecharAutocompleteFora(e) {
-  const dd = document.getElementById('conc-ac-dropdown');
+  var dd = document.getElementById('conc-ac-dropdown');
   if (dd && !dd.contains(e.target) && !e.target.classList.contains('conc-ac-input')) {
     dd.remove();
-    document.removeEventListener('click', _fecharAutocompleteFora, true);
+    document.removeEventListener('mousedown', _fecharAutocompleteFora, true);
     _concAutoOpen = null;
   }
 }
 
 function selecionarContaAuto(idx, campo, cod_interno, codigo, descricao) {
-  const label = cod_interno ? `${codigo} — ${descricao} (Cód: ${cod_interno})` : `${codigo} — ${descricao}`;
-  
+  var label = cod_interno
+    ? (codigo + ' — ' + descricao + ' (Cód: ' + cod_interno + ')')
+    : (codigo + ' — ' + descricao);
+
   if (idx === 'bulk') {
-    const inputEl = document.getElementById(`bulk-${campo}`);
+    var inputEl = document.getElementById('bulk-' + campo);
     if (inputEl) inputEl.value = label;
   } else {
-    const am = concState.amarracoes[idx];
-    if (am) {
-      am[campo] = label;
-      am.confianca = 'Alta';
-    }
+    var am = concState.amarracoes[idx];
+    if (am) { am[campo] = label; am.confianca = 'Alta'; }
   }
 
-  const dd = document.getElementById('conc-ac-dropdown');
+  var dd = document.getElementById('conc-ac-dropdown');
   if (dd) dd.remove();
-  document.removeEventListener('click', _fecharAutocompleteFora, true);
+  document.removeEventListener('mousedown', _fecharAutocompleteFora, true);
   _concAutoOpen = null;
   if (idx !== 'bulk') render();
 }
 
 function filtrarAutocompleteConta(idx, campo, inputEl) {
+  // Atualiza state sem chamar render() para não perder o foco
   if (idx !== 'bulk') {
-    const am = concState.amarracoes[idx];
+    var am = concState.amarracoes[idx];
     if (am) am[campo] = inputEl.value;
   }
-  abrirAutocompleteConta(idx, campo, inputEl);
-}
 
+  // Reutiliza dropdown já aberto — só atualiza o HTML
+  var contas = getContasAnaliticas();
+  var query = (inputEl.value || '').toLowerCase();
+  var filtered = query.length < 1 ? contas.slice(0, 50) : contas.filter(function(c) {
+    var searchStr = ((c.cod_interno||'') + ' ' + (c.codigo||'') + ' ' + (c.descricao||'')).toLowerCase();
+    return query.split(/\s+/).every(function(w) { return searchStr.includes(w); });
+  }).slice(0, 50);
+
+  var dd = document.getElementById('conc-ac-dropdown');
+  if (dd) {
+    dd.innerHTML = _buildDropdownHtml(idx, campo, filtered);
+  } else {
+    abrirAutocompleteConta(idx, campo, inputEl);
+  }
+}
 // ─── AÇÕES EM LOTE ───
 window.toggleConcRow = function(idx, checked) {
   if (!concState.selectedRows) concState.selectedRows = {};
@@ -863,9 +880,39 @@ function exportarLayoutUnico() {
   const clientes = DB.get('clientes') || [];
   const cli = clientes.find(c => c.id === concState.clienteId);
 
-  // Extrair código da conta: se no formato "01.1.1.01.001 — Caixa", pegar o código
+  // Lista de contas analíticas disponíveis no plano de contas
+  const contas = getContasAnaliticas();
+
+  // Busca o código da conta no plano a partir do label armazenado (ex.: "12345 — Fornecedor a pagar (Cód: 9876)")
+  function buscarCodigo(label) {
+    if (!label) return '';
+    // Primeiro tenta encontrar cod_interno dentro do label
+    const internoMatch = label.match(/Cód:\s*(\S+)/i);
+    if (internoMatch && internoMatch[1]) {
+      // Procura a conta que possua esse cod_interno no plano
+      const conta = contas.find(c => c.cod_interno && c.cod_interno.toString() === internoMatch[1]);
+      if (conta && conta.codigo) return conta.codigo;
+    }
+    // Caso não tenha cod_interno ou não encontre, usa o código antes de " — "
+    const parts = label.split(' — ');
+    if (parts.length >= 2) {
+      const possCodigo = parts[0].trim();
+      const conta = contas.find(c => c.codigo && c.codigo.toString() === possCodigo);
+      if (conta) return conta.codigo;
+      // Se não encontrar, devolve o próprio trecho (fallback)
+      return possCodigo;
+    }
+    // Fallback genérico
+    return '';
+  }
+
+  // Layout: DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO
   function extrairCodigo(contaStr) {
     if (!contaStr) return '';
+    // Primeiro tenta encontrar cod_interno dentro do label, ex: "Cód: 12345"
+    const internoMatch = contaStr.match(/Cód:\s*(\S+)/i);
+    if (internoMatch && internoMatch[1]) return internoMatch[1].trim();
+    // Caso não tenha cod_interno, usa o código antes de " — "
     const parts = contaStr.split(' — ');
     if (parts.length >= 2) return parts[0].trim();
     // Fallback: retornar sem parênteses
@@ -876,8 +923,8 @@ function exportarLayoutUnico() {
   const header = 'DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO\r\n';
   const rows = txns.map((t, idx) => {
     const am = concState.amarracoes[idx] || {};
-    const debCode = extrairCodigo(am.debito);
-    const credCode = extrairCodigo(am.credito);
+    const debCode = buscarCodigo(am.debito);
+    const credCode = buscarCodigo(am.credito);
     const valor = t.valor.toFixed(2).replace('.', ',');
     const hist = (am.historico || t.descricao || '').replace(/;/g, ',').replace(/\r?\n/g, ' ').slice(0, 200);
     return `${t.data};${debCode};${credCode};${valor};${hist}`;
