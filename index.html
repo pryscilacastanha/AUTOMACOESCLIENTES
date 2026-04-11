@@ -39,9 +39,6 @@
       <button class="nav-item" data-page="obrigacoes" onclick="navigate('obrigacoes')">
         <span class="nav-icon">📋</span><span>Obrigações</span>
       </button>
-      <button class="nav-item" data-page="auditoria" onclick="navigate('auditoria')">
-        <span class="nav-icon">🔍</span><span>Auditoria</span>
-      </button>
     </div>
 
     <div class="sidebar-divider"></div>
@@ -55,6 +52,9 @@
     <div class="sidebar-divider"></div>
 
     <div class="sidebar-section">
+      <button class="nav-item" data-page="conciliacao" onclick="navigate('conciliacao')">
+        <span class="nav-icon">🏦</span><span>Conciliação Inteligente</span>
+      </button>
       <button class="nav-item" data-page="importacao" onclick="navigate('importacao')">
         <span class="nav-icon">🤖</span><span>Importar com IA</span>
       </button>
@@ -109,9 +109,11 @@
 <script src="js/data.js"></script>
 <script src="js/gemini.js"></script>
 <script src="js/supabase-client.js"></script>
-<script src="js/app.js"></script>
-<script src="js/modules.js"></script>
+<script src="js/app.js?v=2.3"></script>
+<script src="js/modules.js?v=2.3"></script>
 <script src="js/seed.js"></script>
+<script src="js/planos-data.js"></script>
+<script src="js/conciliacao.js?v=2.2"></script>
 <script src="js/chat-agent.js"></script>
 <script src="js/drive-sync.js"></script>
 <!-- Google Identity Services para OAuth2 do Drive -->
@@ -128,6 +130,8 @@
     try {
       if (typeof bootstrapAppOnce === 'function') bootstrapAppOnce();
       else if (typeof bootstrapApp === 'function') bootstrapApp();
+      // Carregar planos de contas SCI pré-embutidos
+      if (typeof seedPlanosContas === 'function') seedPlanosContas();
     } catch(e) {
       console.error('[index.html] bootstrapApp falhou:', e);
     }

@@ -538,92 +538,205 @@ function renderPlanoContas() {
 
   if (pcView === 'historico') {
     if (!historico) return topBar + `<div class="empty-state"><div class="empty-icon">📚</div><p>Nenhum modelo histórico importado.<br>Use o botão "Importar Modelo Histórico (CSV)" acima.</p></div>`;
-    const rows = historico.contas.slice(0,200).map(c => renderContaRow(c)).join('');
+    const rows = historico.contas.slice(0,500).map(c => renderContaRow(c)).join('');
     return `${topBar}
 <div class="card mb-4" style="border-left:4px solid #0f766e;padding:14px 20px;display:flex;align-items:center;gap:10px">
   <strong>📚 Modelo Histórico — ${historico.nome}</strong>
   <span class="text-muted text-sm">${historico.contas.length} contas · Importado em ${historico.data}</span>
   <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportarDominioUnico('historico')">⬇️ Exportar Domínio Único</button>
 </div>
-<div class="card"><div class="table-wrap"><table>
-  <thead><tr><th>Cód.</th><th>Descrição</th><th>Tipo</th><th>Nível</th><th>Natureza</th></tr></thead>
-  <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Sem contas</td></tr>'}</tbody>
-</table></div></div>`;
+${renderPlanoContasTable(historico.contas)}`;
   }
 
   if (pcView === 'detail' && pcPlanId !== null) {
-    const plano = planos.find(p => p.id === pcPlanId);
+    const plano = planos.find(p => String(p.id) === String(pcPlanId));
     if (!plano) { pcView='list'; return renderPlanoContas(); }
-    const rows = plano.contas.slice(0,500).map(c => renderContaRow(c)).join('');
+    const totalAnaliticas = plano.contas.filter(c => !c.tipo || c.tipo === 'A').length;
+    const totalSinteticas = plano.contas.filter(c => c.tipo === 'T').length;
+    const totalConsolidadas = plano.contas.filter(c => c.tipo === 'C').length;
+    const grupos = [...new Set(plano.contas.map(c => c.grupo).filter(Boolean))];
     return `${topBar}
-<div class="card mb-4" style="border-left:4px solid var(--primary);padding:14px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-  <button class="btn btn-ghost btn-sm" onclick="pcView='list';pcPlanId=null;render()">← Voltar</button>
-  <strong>${plano.nome}</strong>
-  <span class="text-muted text-sm">${plano.contas.length} contas · ${plano.data}</span>
-  <div style="margin-left:auto;display:flex;gap:8px">
-    <button class="btn btn-ghost btn-sm" onclick="exportarDominioUnico(${pcPlanId})">⬇️ Exportar Domínio Único</button>
-    <button class="btn btn-danger btn-sm" onclick="excluirPlano(${pcPlanId})">🗑️ Excluir</button>
+<div class="card mb-4" style="border-left:4px solid var(--primary);padding:14px 20px">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <button class="btn btn-ghost btn-sm" onclick="pcView='list';pcPlanId=null;render()">← Voltar</button>
+    <strong style="font-size:15px">${plano.nome}</strong>
+    <span class="text-muted text-sm">${plano.contas.length} contas · ${plano.data}</span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="exportarDominioUnico('${pcPlanId}')">⬇️ Exportar Domínio Único</button>
+      <button class="btn btn-danger btn-sm" onclick="excluirPlano(event,'${pcPlanId}')">🗑️ Excluir</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <span style="background:#e0f2fe;color:#0369a1;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600">📊 Analíticas: ${totalAnaliticas}</span>
+    <span style="background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600">📁 Totalizadoras: ${totalSinteticas}</span>
+    <span style="background:#ede9fe;color:#6d28d9;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600">🔗 Consolidadas: ${totalConsolidadas}</span>
+    ${grupos.map(g => `<span style="background:#f1f5f9;color:#475569;padding:4px 10px;border-radius:6px;font-size:11px">${g}</span>`).join('')}
   </div>
 </div>
-<div class="card"><div class="table-wrap"><table>
-  <thead><tr><th>Cód.</th><th>Descrição</th><th>Tipo</th><th>Nível</th><th>Natureza</th></tr></thead>
-  <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Sem contas</td></tr>'}</tbody>
-</table></div></div>`;
+${renderPlanoContasTable(plano.contas)}`;
   }
 
   // ── LIST VIEW ──
   if (!planos.length) return topBar + `<div class="empty-state"><div class="empty-icon">📊</div><p>Nenhum plano de contas importado.<br>Use o botão "Importar Plano (CSV)" acima.</p></div>`;
 
   const cards = planos.map(p => `
-<div class="card" style="display:flex;align-items:center;gap:14px;padding:16px 20px;margin-bottom:10px;cursor:pointer" onclick="pcPlanId=${p.id};pcView='detail';render()">
+<div class="card" style="display:flex;align-items:center;gap:14px;padding:16px 20px;margin-bottom:10px;cursor:pointer" onclick="pcPlanId='${p.id}';pcView='detail';render()">
   <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary-light),var(--accent));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📊</div>
   <div style="flex:1">
     <div style="font-weight:700">${p.nome}</div>
     <div class="text-muted text-sm">${p.contas.length} contas · Importado em ${p.data}</div>
   </div>
-  <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();pcPlanId=${p.id};exportarDominioUnico(${p.id})">⬇️ Exportar</button>
-  <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();excluirPlano(${p.id})">🗑️</button>
+  <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();exportarDominioUnico('${p.id}')">⬇️ Exportar</button>
+  <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();excluirPlano(event,'${p.id}')">🗑️</button>
 </div>`).join('');
 
   return `${topBar}${cards}`;
 }
 
+// ─── RENDERIZAR TABELA DO PLANO DE CONTAS ───
+function renderPlanoContasTable(contas) {
+  const rows = contas.slice(0, 800).map(c => renderContaRow(c)).join('');
+  return `
+<div class="card" style="padding:0;border-radius:12px;overflow:hidden">
+  <div class="table-wrap" style="overflow-x:auto;max-height:65vh">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead style="position:sticky;top:0;z-index:2">
+        <tr style="background:#f1f5f9;border-bottom:2px solid #cbd5e1">
+          <th style="padding:10px 8px;text-align:center;font-size:11px;min-width:50px;background:#f8fafc">CÓD</th>
+          <th style="padding:10px 8px;text-align:left;font-size:11px;min-width:140px">CLASSIFICAÇÃO</th>
+          <th style="padding:10px 8px;text-align:center;font-size:11px;min-width:60px">TIPO</th>
+          <th style="padding:10px 8px;text-align:left;font-size:11px;min-width:250px">NOME</th>
+          <th style="padding:10px 8px;text-align:left;font-size:11px;min-width:80px">APELIDO</th>
+          <th style="padding:10px 8px;text-align:center;font-size:11px;min-width:90px">GRUPO</th>
+          <th style="padding:10px 8px;text-align:center;font-size:11px;min-width:120px">RELATÓRIO</th>
+          <th style="padding:10px 8px;text-align:center;font-size:11px;min-width:80px">PLANO</th>
+          <th style="padding:10px 8px;text-align:center;font-size:11px;min-width:70px">SALDO</th>
+        </tr>
+      </thead>
+      <tbody>${rows || '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px">Sem contas</td></tr>'}</tbody>
+    </table>
+  </div>
+</div>`;
+}
+
 function renderContaRow(c) {
-  const tipo = c.tipo || c.Tipo || c[2] || '';
-  const nivel = c.nivel || c.Nivel || c[3] || '';
-  const natureza = c.natureza || c.Natureza || c[4] || '';
-  const cod  = c.codigo || c.Codigo || c[0] || '';
-  const desc = c.descricao || c.Descricao || c[1] || '';
-  return `<tr>
-    <td style="font-family:monospace;font-size:12px">${cod}</td>
-    <td>${'&nbsp;'.repeat((parseInt(nivel)||1)*2)}${desc}</td>
-    <td><span class="badge badge-${tipo==='S'?'blue':tipo==='A'?'green':'gray'}">${tipo==='S'?'Sintética':tipo==='A'?'Analítica':tipo||'—'}</span></td>
-    <td style="text-align:center">${nivel}</td>
-    <td>${natureza}</td>
+  const classif = c.classificacao || c.codigo || '';
+  const nivel = (classif.match(/\./g) || []).length;
+  const indent = '&nbsp;'.repeat(nivel * 3);
+  const nome = (c.descricao || c.nome || '').replace(/^\s+/, '');
+
+  const tipoMap = { 'T': { label: 'Totaliz.', badge: 'badge-yellow', icon: '📁' }, 'C': { label: 'Consolid.', badge: 'badge-purple', icon: '🔗' } };
+  const tipoInfo = tipoMap[c.tipo] || { label: 'Analítica', badge: 'badge-green', icon: '' };
+  const isTotaliz = c.tipo === 'T' || c.tipo === 'C';
+
+  const grupoColors = { 'Ativo':'#dcfce7', 'Passivo':'#fef3c7', 'Receita':'#dbeafe', 'Despesa':'#fee2e2', 'Custos':'#fce7f3' };
+  const grupoBg = grupoColors[c.grupo] || '#f1f5f9';
+
+  return `<tr style="${isTotaliz ? 'background:#f8fafc;font-weight:700;' : ''}border-bottom:1px solid #f1f5f9">
+    <td style="padding:6px 8px;font-size:11px;text-align:center;color:var(--text-muted);font-family:monospace">${c.cod_interno || ''}</td>
+    <td style="padding:6px 8px;font-family:monospace;font-size:12px;white-space:nowrap;color:${isTotaliz ? 'var(--primary-dark)' : 'var(--text)'}">${indent}${classif}</td>
+    <td style="padding:6px 8px;text-align:center"><span class="badge ${tipoInfo.badge}" style="font-size:10px">${tipoInfo.icon} ${tipoInfo.label}</span></td>
+    <td style="padding:6px 8px;font-size:12px;${isTotaliz ? 'font-weight:700;color:var(--text)' : 'color:#334155'}">${indent}${nome}</td>
+    <td style="padding:6px 8px;font-size:11px;color:var(--text-muted)">${c.apelido || ''}</td>
+    <td style="padding:6px 8px;text-align:center"><span style="background:${grupoBg};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600">${c.grupo || '—'}</span></td>
+    <td style="padding:6px 8px;text-align:center;font-size:10px;color:var(--text-muted)">${c.relatorio || ''}</td>
+    <td style="padding:6px 8px;text-align:center;font-size:10px;color:var(--text-muted);font-family:monospace">${c.plano_padrao || ''}</td>
+    <td style="padding:6px 8px;text-align:center;font-size:10px;color:var(--text-muted)">${c.saldo || ''}</td>
   </tr>`;
 }
 
+// ─── PARSER CSV COM SUPORTE AO LAYOUT SCI (22 colunas) ───
 function parseContasCSV(text) {
   const lines = text.trim().split('\n').filter(l => l.trim());
-  const sep   = lines[0].includes(';') ? ';' : ',';
-  const header = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g,'').toLowerCase());
-  return lines.slice(1).map(line => {
-    const cols = line.split(sep).map(v => v.trim().replace(/^"|"$/g,''));
-    const obj = {};
-    // Detect columns by header or by position
-    if (header.some(h => h.includes('cod') || h.includes('conta'))) {
-      header.forEach((h,i) => obj[h] = cols[i]);
-      // Normalize key names
+  const sep = lines[0].includes(';') ? ';' : ',';
+  const headerRaw = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, ''));
+  const header = headerRaw.map(h => h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+
+  // ── Detectar formato SCI (22 colunas: +/-;Código;Classificação;Tipo;Nome;...) ──
+  const isSCI = header.length >= 12 && (
+    header.some(h => h.includes('classificacao') || h.includes('+/-')) ||
+    header.some(h => h.includes('plano padrao') || h.includes('plano padrão'))
+  );
+
+  if (isSCI) {
+    // Mapear posições das colunas SCI
+    const colIdx = {};
+    const colMap = {
+      '+/-': '+/-', 'codigo': 'cod_interno', 'classificacao': 'classificacao',
+      'tipo': 'tipo', 'nome': 'descricao', 'apelido': 'apelido',
+      'grupo': 'grupo', 'relatorio': 'relatorio', 'filtro': 'filtro',
+      'formula': 'formula', 'condicao': 'condicao',
+      'plano padrao': 'plano_padrao', 'saldo': 'saldo',
+      'codigo subconta': 'cod_subconta', 'grupo subconta': 'grupo_subconta',
+      'natureza subconta': 'nat_subconta',
+    };
+    header.forEach((h, i) => {
+      for (const [key, field] of Object.entries(colMap)) {
+        if (h.includes(key)) { colIdx[field] = i; break; }
+      }
+    });
+
+    console.log('[PlanoContas] Formato SCI detectado. Colunas:', colIdx);
+
+    return lines.slice(1).map(line => {
+      const cols = line.split(sep).map(v => v.trim().replace(/^"|"$/g, ''));
+      const classif = cols[colIdx.classificacao] || '';
+      const tipo = (cols[colIdx.tipo] || '').trim().toUpperCase();
+      const nome = (cols[colIdx.descricao] || '').trim();
+      if (!classif && !nome) return null;
+
       return {
-        codigo:    obj['codigo'] || obj['cod'] || obj['conta'] || cols[0] || '',
+        cod_interno: cols[colIdx.cod_interno] || '',
+        classificacao: classif,
+        codigo: classif,  // alias para compatibilidade
+        tipo: tipo || '',  // T=Totalizador, C=Consolidada, vazio=Analítica
+        descricao: nome,
+        nome: nome,
+        apelido: cols[colIdx.apelido] || '',
+        grupo: cols[colIdx.grupo] || '',
+        relatorio: cols[colIdx.relatorio] || '',
+        plano_padrao: cols[colIdx.plano_padrao] || '',
+        saldo: cols[colIdx.saldo] || '',
+        natureza: (cols[colIdx.grupo] || '').toLowerCase().includes('ativo') ? 'D'
+                : (cols[colIdx.grupo] || '').toLowerCase().includes('passivo') ? 'C'
+                : (cols[colIdx.grupo] || '').toLowerCase().includes('receita') ? 'C'
+                : (cols[colIdx.grupo] || '').toLowerCase().includes('despesa') ? 'D'
+                : 'DC',
+        nivel: (classif.match(/\./g) || []).length + 1,
+      };
+    }).filter(Boolean);
+  }
+
+  // ── Formato genérico (CSV simples) ──
+  return lines.slice(1).map(line => {
+    const cols = line.split(sep).map(v => v.trim().replace(/^"|"$/g, ''));
+    const obj = {};
+    if (header.some(h => h.includes('cod') || h.includes('conta') || h.includes('classificacao'))) {
+      header.forEach((h, i) => obj[h] = cols[i]);
+      const classif = obj['classificacao'] || obj['codigo'] || obj['cod'] || obj['conta'] || cols[0] || '';
+      return {
+        codigo: classif,
+        classificacao: classif,
         descricao: obj['descricao'] || obj['nome'] || obj['description'] || cols[1] || '',
-        tipo:      (obj['tipo'] || cols[2] || '').charAt(0).toUpperCase(),
-        nivel:     obj['nivel'] || obj['level'] || cols[3] || '',
-        natureza:  obj['natureza'] || obj['dc'] || cols[4] || '',
+        tipo: (obj['tipo'] || cols[2] || '').charAt(0).toUpperCase(),
+        nivel: (classif.match(/\./g) || []).length + 1,
+        natureza: obj['natureza'] || obj['dc'] || cols[4] || '',
+        grupo: obj['grupo'] || '',
+        apelido: obj['apelido'] || '',
+        relatorio: obj['relatorio'] || '',
+        plano_padrao: '',
+        saldo: '',
+        cod_interno: '',
       };
     }
-    return { codigo: cols[0]||'', descricao: cols[1]||'', tipo: (cols[2]||'').charAt(0).toUpperCase(), nivel: cols[3]||'', natureza: cols[4]||'' };
-  }).filter(c => c.codigo);
+    return {
+      codigo: cols[0] || '', classificacao: cols[0] || '',
+      descricao: cols[1] || '', tipo: (cols[2] || '').charAt(0).toUpperCase(),
+      nivel: ((cols[0] || '').match(/\./g) || []).length + 1,
+      natureza: cols[4] || '', grupo: '', apelido: '', relatorio: '',
+      plano_padrao: '', saldo: '', cod_interno: '',
+    };
+  }).filter(c => c.codigo || c.descricao);
 }
 
 function importarPlano(input) {
@@ -631,16 +744,30 @@ function importarPlano(input) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    const contas = parseContasCSV(e.target.result);
+    let text = e.target.result;
+    // Tentar detectar encoding — se tiver caracteres inválidos, re-ler como latin1
+    const contas = parseContasCSV(text);
     const planos = DB.get('planos_contas') || [];
-    const nome   = file.name.replace(/\.(csv|txt)$/i,'');
-    const id     = Date.now();
-    planos.push({ id, nome, contas, data: new Date().toLocaleDateString('pt-BR') });
+    const nome = file.name.replace(/\.(csv|txt)$/i, '');
+    const id = Date.now();
+    // Extrair plano padrão automaticamente (primeiro valor encontrado)
+    const planoPadrao = contas.find(c => c.plano_padrao)?.plano_padrao || '';
+    const totalAnaliticas = contas.filter(c => !c.tipo || c.tipo === 'A' || c.tipo === '').length;
+    const totalSinteticas = contas.filter(c => c.tipo === 'T').length;
+    const totalConsolidadas = contas.filter(c => c.tipo === 'C').length;
+    planos.push({
+      id, nome, contas,
+      data: new Date().toLocaleDateString('pt-BR'),
+      planoPadrao,
+      stats: { analiticas: totalAnaliticas, sinteticas: totalSinteticas, consolidadas: totalConsolidadas },
+    });
     DB.set('planos_contas', planos);
     pcPlanId = id; pcView = 'detail';
+    console.log(`[PlanoContas] Importado: ${nome} — ${contas.length} contas (A:${totalAnaliticas} T:${totalSinteticas} C:${totalConsolidadas}) Plano:${planoPadrao}`);
     render();
   };
-  reader.readAsText(file, 'UTF-8');
+  // Tentar ISO-8859-1 primeiro (padrão dos CSVs do SCI/Domínio)
+  reader.readAsText(file, 'ISO-8859-1');
   input.value = '';
 }
 
@@ -650,26 +777,49 @@ function importarHistorico(input) {
   const reader = new FileReader();
   reader.onload = e => {
     const contas = parseContasCSV(e.target.result);
-    const nome   = file.name.replace(/\.(csv|txt)$/i,'');
+    const nome = file.name.replace(/\.(csv|txt)$/i, '');
     DB.set('plano_historico', { nome, contas, data: new Date().toLocaleDateString('pt-BR') });
     pcView = 'historico';
     render();
   };
-  reader.readAsText(file, 'UTF-8');
+  reader.readAsText(file, 'ISO-8859-1');
   input.value = '';
 }
 
-function excluirPlano(id) {
-  if (!confirm('Excluir este plano de contas?')) return;
-  let planos = DB.get('planos_contas') || [];
-  planos = planos.filter(p => p.id !== id);
-  DB.set('planos_contas', planos);
-  pcPlanId = null; pcView = 'list';
-  render();
+let _excluirPendente = null;
+function excluirPlano(evt, id) {
+  if (evt && evt.stopPropagation) evt.stopPropagation();
+  const idStr = String(id);
+  // Segundo clique = confirmar exclusão
+  if (_excluirPendente === idStr) {
+    let planos = DB.get('planos_contas') || [];
+    planos = planos.filter(p => String(p.id) !== idStr);
+    DB.set('planos_contas', planos);
+    _excluirPendente = null;
+    pcPlanId = null; pcView = 'list';
+    render();
+    return;
+  }
+  // Primeiro clique = mostrar confirmação
+  _excluirPendente = idStr;
+  const btn = evt?.target?.closest?.('button') || evt?.target;
+  if (btn) {
+    btn.innerHTML = '⚠️ Confirmar?';
+    btn.style.background = '#dc2626';
+    btn.style.color = '#fff';
+    btn.style.padding = '6px 12px';
+  }
+  // Auto-cancelar após 3 segundos
+  setTimeout(() => {
+    if (_excluirPendente === idStr) {
+      _excluirPendente = null;
+      render();
+    }
+  }, 3000);
 }
 
 // ─── EXPORTAR NO LAYOUT DOMÍNIO ÚNICO ───
-// Domínio Único espera: Codigo;Descricao;Tipo(S/A);Nivel;Natureza(D/C/DC)
+// Layout SCI completo: +/-;Código;Classificação;Tipo;Nome;Apelido;Grupo;Relatório;Filtro;Fórmula;Condição;Plano padrão;Saldo;...
 function exportarDominioUnico(planIdOrHistorico) {
   let contas, nome;
   if (planIdOrHistorico === 'historico') {
@@ -678,24 +828,22 @@ function exportarDominioUnico(planIdOrHistorico) {
     contas = h.contas; nome = h.nome;
   } else {
     const planos = DB.get('planos_contas') || [];
-    const p = planos.find(x => x.id === planIdOrHistorico);
+    const p = planos.find(x => String(x.id) === String(planIdOrHistorico));
     if (!p) return;
     contas = p.contas; nome = p.nome;
   }
-  // Cabeçalho layout Domínio Único
-  const header = 'CODIGO;DESCRICAO;TIPO;NIVEL;NATUREZA;CONTA_REDUZIDA;CONTA_RESULTADO\r\n';
+  // Cabeçalho no formato SCI
+  const header = '+/-;Código;Classificação;Tipo;Nome;Apelido;Grupo;Relatório;Filtro;Fórmula;Condição;Plano padrão;Saldo\r\n';
   const rows = contas.map(c => {
-    const cod  = (c.codigo||'').replace(/;/g,'');
-    const desc = (c.descricao||'').replace(/;/g,'');
-    const tipo = c.tipo === 'A' ? 'A' : 'S';      // Analítica / Sintética
-    const niv  = c.nivel || '1';
-    const nat  = c.natureza || 'DC';               // Devedora, Credora ou DC
-    return `${cod};${desc};${tipo};${niv};${nat};;`;
+    const classif = (c.classificacao || c.codigo || '').replace(/;/g, '');
+    const desc = (c.descricao || c.nome || '').replace(/;/g, '').trim();
+    const tipo = c.tipo || '';  // T, C, ou vazio
+    return `;${c.cod_interno||''};${classif};${tipo};${desc};${c.apelido||''};${c.grupo||''};${c.relatorio||''};;;;${c.plano_padrao||''};${c.saldo||''}`;
   }).join('\r\n');
   const blob = new Blob(['\ufeff' + header + rows], { type: 'text/csv;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = `PlanoContas_DominioUnico_${nome.replace(/\s/g,'_')}.csv`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `PlanoContas_SCI_${nome.replace(/\s/g, '_')}.csv`;
   a.click(); URL.revokeObjectURL(url);
 }
 
@@ -1856,47 +2004,110 @@ function renderParecerPage() {
   const ativos = clientes.filter(c => c.status === 'Ativo').sort((a,b) => a.nome.localeCompare(b.nome));
   const comp = state.competencia;
 
-  // Selector
+  // Selector bar
   let html = `
-  <div class="card mb-4">
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <div style="font-weight:700;font-size:15px">📄 Parecer Técnico sobre Escrituração</div>
-      <select style="flex:1;min-width:280px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px"
-        onchange="parecerClienteId=this.value;render()">
-        <option value="">— Selecione um cliente —</option>
-        ${ativos.map(c => `<option value="${c.id}" ${parecerClienteId===c.id?'selected':''}>#${c.id} — ${c.nome}</option>`).join('')}
-      </select>
-    </div>
-    <p class="text-muted text-sm" style="margin-top:8px">
-      Selecione um cliente para gerar o parecer técnico da competência <strong>${fmtComp(comp)}</strong>.
-      O relatório analisa pendências documentais com base nas normas CPC/ITG e classifica os riscos.
-    </p>
+  <div class="card mb-4" style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#f8fafc;border-left:4px solid var(--primary)">
+    <span style="font-weight:700;font-size:15px">📄 Parecer Técnico</span>
+    <select style="flex:1;min-width:280px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px"
+      onchange="parecerClienteId=this.value;render()">
+      <option value="">— Selecione um cliente —</option>
+      ${ativos.map(c => `<option value="${c.id}" ${parecerClienteId===c.id?'selected':''}>#${c.id} — ${c.nome}</option>`).join('')}
+    </select>
+    <input type="month" value="${comp}" onchange="state.competencia=this.value;render()"
+      style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
   </div>`;
 
   if (!parecerClienteId) {
-    html += `<div class="empty-state"><div class="empty-icon">📄</div><p>Selecione um cliente acima para gerar o parecer técnico.</p></div>`;
+    html += `<div class="empty-state"><div class="empty-icon">📄</div><p>Selecione um cliente acima para visualizar o painel de Parecer Técnico.</p></div>`;
     return html;
   }
 
   const cliente = clientes.find(c => c.id === parecerClienteId);
   if (!cliente) { parecerClienteId = null; return renderParecerPage(); }
 
-  // Info do cliente
-  html += `
-  <div class="card mb-4">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-      <div>
-        <div style="font-weight:700;font-size:16px">${cliente.nome}</div>
-        <span class="text-muted text-sm">CNPJ: ${cliente.cnpj} · ${regimedIcon(cliente.regime)}</span>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary btn-sm" onclick="gerarEExibirParecer('${cliente.id}')">📄 Gerar Parecer Escrituração</button>
-        <button class="btn btn-success btn-sm" onclick="gerarEExibirParecerCPC('${cliente.id}')">📋 Análise CPC/ITG</button>
-      </div>
-    </div>
-  </div>`;
+  // ─── CLASSIFICAÇÃO NORMATIVA (Engine CPC / ITG / NBC TG) ───
+  const classif = (() => {
+    // Entidades especiais
+    if (cliente.sem_fins_lucrativos || cliente.ci_itg_tipo === 'Entidade sem fins lucrativos (Terceiro Setor)') return {
+      norma: 'ITG 2002', emoji: '🏛️', porte: 'Entidade sem Fins Lucrativos',
+      desc: 'Entidade que não distribui resultados (associações, fundações, igrejas).',
+      aplicacao: 'Exige demonstrações específicas (DFC, DFPS) e notas explicativas sobre gratuidade.',
+      base_legal: 'Resolução CFC n.º 1.409/12 · ITG 2002',
+      extra: 'ITG 2000 também se aplica para a escrituração contábil geral.',
+      passos: ['✅ Passo 1: Entidade sem fins lucrativos → ITG 2002'],
+      redacao: 'A entidade se enquadra como Entidade sem Finalidade de Lucros, nos termos da ITG 2002, estando sujeita às normas específicas de reconhecimento, mensuração e divulgação aplicáveis a este tipo de entidade.'
+    };
+    if (cliente.cooperativa || cliente.ci_itg_tipo === 'Cooperativa') return {
+      norma: 'ITG 2004', emoji: '🤝', porte: 'Cooperativa',
+      desc: 'Entidade cooperativa com norma própria.',
+      aplicacao: 'Exige tratamento específico das sobras e perdas, resultado por ato cooperativo e não cooperativo.',
+      base_legal: 'Resolução CFC n.º 1.516/16 · ITG 2004',
+      extra: 'ITG 2000 aplica-se para a escrituração.',
+      passos: ['✅ Passo 1: Não é sem fins lucrativos', '✅ Passo 2: É cooperativa → ITG 2004'],
+      redacao: 'A entidade é classificada como Cooperativa, nos termos da ITG 2004. A escrituração contábil deve segregar ato cooperativo de ato não cooperativo, com demonstrações específicas.'
+    };
+    // Porte do cliente
+    const porte = cliente.ci_itg_porte || '';
+    const regime = cliente.regime || '';
+    const complex = cliente.ci_itg_complex || '';
+    const finalidade = cliente.ci_itg_finalidade || '';
+    const isMEI = regime === 'MEI';
+    const isSN = regime === 'Simples Nacional';
+    const isME = porte.includes('Microempresa') || isMEI;
+    const isEPP = porte.includes('Pequeno Porte') || isSN;
+    const isMedia = porte.includes('Médio');
+    const isGrande = porte.includes('Grande');
+    const querRobustez = finalidade.includes('Tomada de Decisão') || complex.includes('Alta');
 
-  // Resumo do checklist
+    if (isGrande) return {
+      norma: 'CPC Completo (IFRS)', emoji: '📚', porte: 'Grande Empresa',
+      desc: 'Ativo > R$ 240 mi OU Receita > R$ 300 mi (Lei 11.638/07). Auditoria obrigatória.',
+      aplicacao: 'Normas Brasileiras de Contabilidade Técnicas Gerais (NBC TG) equivalentes ao IFRS Full. Inclui CPC 00, 26, 27, 32, 47, 48, 06.',
+      base_legal: 'Lei 11.638/07 · Lei 6.404/76 · CPCs aprovados pelo CPC/CVM',
+      extra: 'ITG 2000 se aplica para escrituração. Exige demonstrações completas com notas explicativas.',
+      passos: ['✅ Passo 1: Não é sem fins lucrativos', '✅ Passo 2: Não é cooperativa', '✅ Passo 3: Empresa de grande porte → CPC Completo (IFRS)'],
+      redacao: 'A entidade é classificada como Empresa de Grande Porte, nos termos da Lei 11.638/07, devendo adotar as Normas Brasileiras de Contabilidade em sua integralidade (NBC TG / CPC Completo), equivalentes ao IFRS internacional.'
+    };
+    if (isMedia) return {
+      norma: 'CPC PME (NBC TG 1000)', emoji: '📊', porte: 'Média Empresa',
+      desc: 'Acima de EPP e abaixo de grande porte. Sem obrigação pública.',
+      aplicacao: 'NBC TG 1000 (R2) — Contabilidade para Pequenas e Médias Empresas. Versão simplificada do IFRS.',
+      base_legal: 'Resolução CFC n.º 1.255/09 · NBC TG 1000',
+      extra: 'Menos exigência de valor justo e menos disclosures que o CPC Completo.',
+      passos: ['✅ Passo 1: Não é sem fins lucrativos', '✅ Passo 2: Não é cooperativa', '✅ Passo 3: Não é ME/EPP', '✅ Passo 4: Empresa de médio porte → CPC PME'],
+      redacao: 'A entidade é classificada como Empresa de Médio Porte, adotando a NBC TG 1000 (R2) — Contabilidade para Pequenas e Médias Empresas, em consonância com as Normas Brasileiras de Contabilidade.'
+    };
+    if (isEPP && querRobustez) return {
+      norma: 'CPC PME (NBC TG 1000)', emoji: '📊', porte: 'Empresa de Pequeno Porte (EPP) — Robustez',
+      desc: 'EPP que optou por maior robustez: busca crédito, demonstrações mais completas, sócios exigentes.',
+      aplicacao: 'NBC TG 1000 (R2). Embora possa usar ITG 1000, optou por maior qualidade informacional.',
+      base_legal: 'LC 123/2006 · NBC TG 1000',
+      extra: 'A escolha considera necessidade de tomada de decisão, complexidade e exigência externa.',
+      passos: ['✅ Passo 1: Não é sem fins lucrativos', '✅ Passo 2: Não é cooperativa', '✅ Passo 3: É EPP mas necessita maior robustez → CPC PME'],
+      redacao: 'Embora classificada como Empresa de Pequeno Porte (EPP) nos termos da LC 123/2006, a entidade adota a NBC TG 1000 (R2) — Contabilidade para Pequenas e Médias Empresas, considerando a necessidade de maior qualidade informacional para suporte à tomada de decisão.'
+    };
+    if (isME || isEPP || isMEI || isSN) return {
+      norma: 'ITG 1000', emoji: '🏪', porte: isMEI ? 'MEI' : isME ? 'Microempresa (ME)' : 'Empresa de Pequeno Porte (EPP)',
+      desc: isMEI ? 'Microempreendedor Individual.' : isME ? 'Receita bruta anual até R$ 360.000.' : 'Receita anual entre R$ 360.000 e R$ 4.800.000.',
+      aplicacao: 'ITG 1000 — Modelo Contábil para ME e EPP. Contabilidade simplificada, menos notas explicativas, menor rigor técnico.',
+      base_legal: 'Resolução CFC n.º 1.418/12 · ITG 1000 · LC 123/2006',
+      extra: 'ITG 2000 aplica-se paralelamente para garantir integridade da escrituração.',
+      passos: ['✅ Passo 1: Não é sem fins lucrativos', '✅ Passo 2: Não é cooperativa', '✅ Passo 3: ME/EPP → ITG 1000'],
+      redacao: `A entidade é classificada como ${isMEI?'Microempreendedor Individual (MEI)':isME?'Microempresa (ME)':'Empresa de Pequeno Porte (EPP)'}, nos termos da Lei Complementar nº 123/2006, estando enquadrada no regime simplificado de tributação. Para fins contábeis, adota-se a Interpretação Técnica Geral ITG 1000 — Modelo Contábil para Microempresa e Empresa de Pequeno Porte, em consonância com as Normas Brasileiras de Contabilidade aplicáveis.`
+    };
+    // Default
+    return {
+      norma: 'ITG 1000', emoji: '📋', porte: 'A Classificar',
+      desc: 'Complete o cadastro do cliente (porte, regime, tipo de entidade) para classificação automática.',
+      aplicacao: 'Preencha as variáveis de enquadramento nos Dados Gerais do cliente.',
+      base_legal: '—',
+      extra: 'ITG 2000 sempre aplicável para escrituração.',
+      passos: ['⚠️ Classificação pendente — preencha dados do cliente'],
+      redacao: ''
+    };
+  })();
+
+  // ─── RESUMO DOCUMENTAL ───
   const chkSaved = (DB.get('checklists')||{})[`${cliente.id}_${comp}`] || {};
   const template = CHECKLIST_TEMPLATE || [];
   let totalItems = 0, recebidos = 0, pendentes = 0, pendList = [];
@@ -1910,28 +2121,174 @@ function renderParecerPage() {
   });
   const pct = totalItems > 0 ? Math.round((recebidos/totalItems)*100) : 0;
 
+  // ─── ONBOARDING PENDÊNCIAS ───
+  const obgSaved = (DB.get('onboarding')||{})[cliente.id] || {};
+  let obgPend = [];
+  (typeof C006_TEMPLATE !== 'undefined' ? C006_TEMPLATE : []).forEach(sec => sec.items.forEach(item => {
+    const k = sec.section+'_'+item.cod+'_'+item.nome;
+    const v = obgSaved[k] || 'pendente';
+    if (v !== 'concluido' && v !== 'cliente_nao_possui')
+      obgPend.push({ nome: item.nome, status: v, secao: sec.section, cod: item.cod });
+  }));
+
+  // ─── OBRIGAÇÕES ACESSÓRIAS ───
+  const obrigData = DB.get('obrigacoes') || {};
+  const anoAtual = comp.split('-')[0];
+  const obgsAnuais = ['DEFIS','ECD','ECF','RAIS','DIRF','DASN-MEI'];
+  const obgsStatus = obgsAnuais.map(cod => {
+    const k = `${cliente.id}_${cod}_${anoAtual}`;
+    const d = obrigData[k] || {};
+    return { cod, status: d.status || 'pendente', data: d.data_entrega || '' };
+  });
+
+  // ─── APONTAMENTOS MANUAIS ───
+  const audData = DB.get('auditoria') || {};
+  const audKey = `${cliente.id}_${comp}`;
+  const audItems = audData[audKey] || [];
+
+  // ─── LANÇAMENTOS SEM CLASSIFICAÇÃO ───
+  let lancPend = 0;
+  if (typeof concState !== 'undefined' && concState.transacoes && concState.clienteId === cliente.id) {
+    concState.transacoes.forEach((t, idx) => {
+      const am = concState.amarracoes[idx] || {};
+      if (!am.debito || am.debito.includes('Valores a Classificar') || !am.credito || am.credito.includes('Valores a Classificar') || am.confianca !== 'Alta') lancPend++;
+    });
+  }
+
+  // ─── BUILD HTML ───
+  html += `
+  <div class="card mb-4">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-weight:700;font-size:16px">${cliente.nome}</div>
+        <span class="text-muted text-sm">CNPJ: ${cliente.cnpj || '—'} · ${regimedIcon(cliente.regime)}</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="emitirParecerAvulso('${cliente.id}')">📄 Gerar Parecer Escrituração</button>
+        <button class="btn btn-success btn-sm" onclick="gerarEExibirParecerCPC('${cliente.id}')">📋 Análise CPC/ITG</button>
+        <button class="btn btn-sm" style="background:#d97706;color:#fff;border-color:#d97706" onclick="gerarRelatorioLancamentos('${cliente.id}')">⚠️ Lançamentos s/ Classificação</button>
+        <button class="btn btn-sm" style="background:#7c3aed;color:#fff;border-color:#7c3aed" onclick="addAudItem()">+ Apontamento Manual</button>
+      </div>
+    </div>
+  </div>`;
+
+  // ── CLASSIFICAÇÃO NORMATIVA ──
+  html += `
+  <div class="card mb-4" style="border-left:4px solid #2563eb">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <div style="font-weight:700;font-size:14px">⚖️ Classificação Normativa — CPC / ITG / NBC TG</div>
+      <span style="background:#eff6ff;color:#1d4ed8;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700">${classif.norma}</span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:14px;background:#f8fafc;border-radius:10px;padding:16px;border:1px solid #e2e8f0">
+      <div style="font-size:32px;line-height:1">${classif.emoji}</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:15px;color:#1e293b;margin-bottom:4px">${classif.norma} — ${classif.porte}</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:6px">${classif.desc}</div>
+        <div style="font-size:12px;color:#334155;line-height:1.6;margin-bottom:10px;background:#fff;padding:10px;border-radius:6px;border:1px solid #e2e8f0">
+          <strong>📌 Aplicação:</strong> ${classif.aplicacao}
+        </div>
+        <div style="margin-bottom:8px">
+          ${classif.passos.map(p=>`<div style="font-size:11px;color:#334155;padding:3px 0;line-height:1.5">${p}</div>`).join('')}
+        </div>
+        <div style="font-size:11px;color:#64748b;margin-bottom:8px"><strong>Base legal:</strong> ${classif.base_legal}</div>
+        <div style="background:#eff6ff;border-radius:6px;padding:8px 12px;font-size:11px;color:#1d4ed8">
+          📌 ${classif.extra}
+        </div>
+        ${classif.redacao ? `<div style="margin-top:10px;background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:10px 12px;font-size:11px;color:#78716c;line-height:1.7">
+          <strong>📝 Sugestão de redação para parecer:</strong><br>"${classif.redacao}"
+        </div>` : ''}
+      </div>
+    </div>
+  </div>`;
+
+  // ── RESUMO DOCUMENTAL ──
   html += `
   <div class="card mb-4">
     <div style="font-weight:700;font-size:14px;margin-bottom:12px">📊 Resumo Documental — ${fmtComp(comp)}</div>
-    <div class="cards-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+    <div class="cards-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
       <div class="stat-card"><div class="stat-icon blue">📥</div><div><div class="stat-label">Recebidos</div><div class="stat-value">${recebidos}</div></div></div>
       <div class="stat-card"><div class="stat-icon red">⏳</div><div><div class="stat-label">Pendentes</div><div class="stat-value">${pendentes}</div></div></div>
       <div class="stat-card"><div class="stat-icon green">📈</div><div><div class="stat-label">Conformidade</div><div class="stat-value">${pct}%</div></div></div>
+      <div class="stat-card"><div class="stat-icon yellow">⚠️</div><div><div class="stat-label">Lanç. s/ Classif.</div><div class="stat-value">${lancPend}</div></div></div>
     </div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
   </div>`;
 
-  // Pendências
+  // ── PENDÊNCIAS CHECKLIST ──
   if (pendList.length > 0) {
     html += `<div class="card mb-4">
-      <div style="font-weight:700;font-size:14px;margin-bottom:12px">⚠️ Pendências (${pendList.length})</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:12px">✅ Docs Pendentes — Checklist ${fmtComp(comp)} <span class="badge badge-red">${pendList.length}</span></div>
+      <div style="max-height:300px;overflow-y:auto">
       <table><thead><tr><th>Documento</th><th>Status</th></tr></thead><tbody>
       ${pendList.map(p => `<tr><td>${p.nome}</td><td><span class="badge badge-${p.status==='incompleto'?'yellow':p.status==='divergente'?'purple':'red'}">${p.status.replace('_',' ')}</span></td></tr>`).join('')}
-      </tbody></table></div>`;
+      </tbody></table></div></div>`;
+  } else {
+    html += `<div class="card mb-4" style="border-left:4px solid var(--success);padding:12px 18px">
+      <strong>✅ Checklist ${fmtComp(comp)}</strong>
+      <span class="text-muted text-sm" style="margin-left:8px">${Object.keys(chkSaved).length ? 'Todos os documentos recebidos.' : 'Nenhum item registrado ainda.'}</span>
+    </div>`;
   }
 
-  // Área do parecer gerado
-  html += `<div id="parecer-page-output"></div>`;
+  // ── ONBOARDING PENDENTE ──
+  if (obgPend.length > 0) {
+    html += `<div class="card mb-4">
+      <div style="font-weight:700;font-size:14px;margin-bottom:12px">📁 Onboarding Pendente <span class="badge badge-yellow">${obgPend.length}</span></div>
+      <div style="max-height:250px;overflow-y:auto">
+      ${obgPend.slice(0, 20).map(p => `<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px">
+        <span style="font-size:10px;color:var(--text-muted);min-width:60px">${p.secao}·${p.cod}</span>
+        <span style="flex:1">${p.nome}</span>
+        <span class="badge badge-${p.status==='pendente'?'gray':'yellow'}">${p.status}</span>
+      </div>`).join('')}
+      ${obgPend.length > 20 ? `<div style="padding:8px;text-align:center;font-size:11px;color:var(--text-muted)">+ ${obgPend.length-20} itens adicionais</div>` : ''}
+      </div></div>`;
+  } else {
+    html += `<div class="card mb-4" style="border-left:4px solid var(--success);padding:12px 18px">
+      <strong>✅ Onboarding</strong>
+      <span class="text-muted text-sm" style="margin-left:8px">Todos os documentos de cadastro concluídos.</span>
+    </div>`;
+  }
+
+  // ── OBRIGAÇÕES ACESSÓRIAS ──
+  html += `<div class="card mb-4">
+    <div style="font-weight:700;font-size:14px;margin-bottom:6px">📋 Obrigações Acessórias — ${anoAtual}</div>
+    <div>${obgsStatus.map(o => {
+      const badge = o.status==='entregue'?'badge-green':o.status==='em_atraso'?'badge-red':'badge-gray';
+      const lbl = o.status==='entregue'?'✅ Entregue':o.status==='em_atraso'?'🔴 Em Atraso':'⏳ Pendente';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--border)">
+        <strong style="min-width:80px;font-size:12px">${o.cod}</strong>
+        <span class="badge ${badge}">${lbl}</span>
+        ${o.data ? `<span class="text-muted text-sm">${o.data}</span>` : ''}
+      </div>`;
+    }).join('')}</div>
+  </div>`;
+
+  // ── APONTAMENTOS MANUAIS ──
+  const manualHtml = audItems.length === 0
+    ? `<p class="text-muted text-sm" style="padding:10px 0">Nenhum apontamento manual. Use "+ Apontamento Manual" acima.</p>`
+    : audItems.map((it,i) => {
+        const rC = {baixo:'risk-low',medio:'risk-med',alto:'risk-high'}[it.risco]||'risk-low';
+        return `<div class="audit-item">
+          <div class="audit-item-header">
+            <div class="risk-indicator ${rC}"></div>
+            <strong style="flex:1">${it.item}</strong>
+            <span class="badge ${it.risco==='alto'?'badge-red':it.risco==='medio'?'badge-yellow':'badge-green'}">${it.risco}</span>
+            <button class="btn btn-danger btn-sm" onclick="delAudItem(${i})">✕</button>
+          </div>
+          <div class="audit-fields">
+            <div class="form-group"><label>Observação</label><textarea rows="2" onchange="updateAud(${i},'obs',this.value)">${it.obs||''}</textarea></div>
+            <div class="form-group"><label>Impacto</label><textarea rows="2" onchange="updateAud(${i},'impacto',this.value)">${it.impacto||''}</textarea></div>
+            <div class="form-group"><label>Ação Recomendada</label><textarea rows="2" onchange="updateAud(${i},'acao',this.value)">${it.acao||''}</textarea></div>
+            <div class="form-group"><label>Risco</label>
+              <select onchange="updateAud(${i},'risco',this.value)">
+                ${['baixo','medio','alto'].map(r=>`<option ${it.risco===r?'selected':''}>${r}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+  html += `<div class="card mb-4"><div style="font-weight:700;font-size:14px;margin-bottom:10px">✏️ Apontamentos Manuais</div>${manualHtml}</div>`;
+
   return html;
 }
 
@@ -2012,6 +2369,33 @@ function gerarDadosParecer(cliId) {
     };
   })();
 
+  // ── Lançamentos bancários sem classificação (da Conciliação Inteligente) ──
+  const lancSemClassif = [];
+  if (typeof concState !== 'undefined' && concState.transacoes && concState.transacoes.length > 0 && concState.clienteId === cliId) {
+    concState.transacoes.forEach((t, idx) => {
+      const am = concState.amarracoes[idx] || {};
+      const semDebito = !am.debito || am.debito.includes('Valores a Classificar');
+      const semCredito = !am.credito || am.credito.includes('Valores a Classificar');
+      const confBaixa = am.confianca !== 'Alta';
+      if (semDebito || semCredito || confBaixa) {
+        lancSemClassif.push({
+          data: t.data,
+          descricao: t.descricao,
+          valor: t.valor,
+          tipo: t.tipo,
+          debito: am.debito || '—',
+          credito: am.credito || '—',
+          historico: am.historico || t.descricao,
+          confianca: am.confianca || 'Manual',
+          motivo: semDebito && semCredito ? 'Sem conta débito e crédito'
+                : semDebito ? 'Sem conta débito'
+                : semCredito ? 'Sem conta crédito'
+                : 'Classificação de baixa confiança'
+        });
+      }
+    });
+  }
+
   return {
     cliente, comp,
     pendenciasChk, pendenciasObg,
@@ -2019,6 +2403,9 @@ function gerarDadosParecer(cliId) {
     totalChk, recebidosChk,
     totalObg, concluidosObg,
     risco, itg,
+    lancSemClassif,
+    totalTransacoes: (typeof concState !== 'undefined' && concState.clienteId === cliId) ? concState.transacoes.length : 0,
+    bancoInfo: (typeof concState !== 'undefined' && concState.clienteId === cliId) ? concState.bancoInfo : {},
     escritorio: localStorage.getItem('esc_nome') || 'Criscontab & Madeira Contabilidade',
     dataGeracao: new Date().toLocaleString('pt-BR'),
   };
@@ -2229,6 +2616,65 @@ function gerarHtmlParecer(d) {
     ${chkSection}
   </div>
 
+  <!-- SEÇÃO PONTOS DE ATENÇÃO — LANÇAMENTOS BANCÁRIOS SEM CLASSIFICAÇÃO -->
+  ${d.lancSemClassif && d.lancSemClassif.length > 0 ? `
+  <div class="section" style="border-top:1px solid #e2e8f0">
+    <div class="section-title">
+      <span>⚠️ Pontos de Atenção — Lançamentos Bancários Sem Classificação</span>
+      <span class="tag" style="background:#fef2f2;color:#991b1b">${d.lancSemClassif.length} lançamento(s)</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a;margin-bottom:16px">
+      <span style="font-size:20px">📌</span>
+      <div style="font-size:12px;color:#92400e;line-height:1.6">
+        Os lançamentos abaixo foram importados do extrato bancário${d.bancoInfo.banco ? ' (<strong>'+d.bancoInfo.banco+'</strong>)' : ''}
+        e <strong>não possuem documento comprobatório</strong> ou <strong>não foi possível identificar a natureza da operação</strong>
+        pelo descritivo do extrato. Recomenda-se solicitar ao cliente a documentação complementar para viabilizar
+        a correta classificação contábil conforme <strong>ITG 2000 (R1) — item 6</strong>.
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead><tr style="background:#f1f5f9">
+        <th style="padding:8px;text-align:center;font-size:10px;border:1px solid #e2e8f0">DATA</th>
+        <th style="padding:8px;text-align:left;font-size:10px;border:1px solid #e2e8f0">DESCRIÇÃO</th>
+        <th style="padding:8px;text-align:right;font-size:10px;border:1px solid #e2e8f0">VALOR</th>
+        <th style="padding:8px;text-align:center;font-size:10px;border:1px solid #e2e8f0">⚠️ MOTIVO</th>
+      </tr></thead>
+      <tbody>
+        ${d.lancSemClassif.map(l => `
+          <tr style="border-bottom:1px solid #f1f5f9">
+            <td style="padding:6px 8px;text-align:center;border:1px solid #e2e8f0">${l.data}</td>
+            <td style="padding:6px 8px;border:1px solid #e2e8f0;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(l.descricao||'').replace(/"/g,'&quot;')}">${l.descricao}</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:700;color:${l.tipo==='credito'?'#059669':'#dc2626'};border:1px solid #e2e8f0">
+              ${l.tipo==='credito'?'+':'−'} R$ ${l.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}
+            </td>
+            <td style="padding:6px 8px;text-align:center;border:1px solid #e2e8f0">
+              <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700">${l.motivo}</span>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <div style="margin-top:14px;padding:12px 16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;font-size:11px;color:#475569;line-height:1.7">
+      <strong>📋 Recomendação técnica:</strong> Solicitar ao cliente os comprovantes (boletos, notas fiscais, contratos)
+      referentes aos lançamentos acima listados. Na ausência de documentação, registrar como "Valores a Classificar"
+      (Ativo/Passivo Circulante) até regularização, conforme dispõe o <strong>CPC 26 — Apresentação das Demonstrações Contábeis</strong>
+      e a <strong>ITG 2000 (R1) — Escrituração Contábil</strong>.
+    </div>
+  </div>
+  ` : `
+  <div class="section" style="border-top:1px solid #e2e8f0">
+    <div class="section-title">
+      <span>✅ Lançamentos Bancários</span>
+      <span class="tag" style="background:#ecfdf5;color:#065f46">Sem pendências</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#ecfdf5;border-radius:8px;border:1px solid #a7f3d0">
+      <span style="font-size:22px">✅</span>
+      <div><div style="font-weight:700;color:#065f46">Todos os Lançamentos Classificados</div>
+      <div style="font-size:12px;color:#047857;margin-top:2px">${d.totalTransacoes > 0 ? d.totalTransacoes + ' transações do extrato bancário foram classificadas corretamente.' : 'Nenhum extrato bancário importado para esta competência.'}</div></div>
+    </div>
+  </div>
+  `}
+
   <!-- RODAPÉ -->
   <div class="footer">
     <div>Documento gerado automaticamente pelo <strong>Sistema de Automação Contábil</strong></div>
@@ -2278,16 +2724,219 @@ function gerarEExibirParecer(cliId) {
   const d = gerarDadosParecer(cliId);
   if (!d) return;
   const html = gerarHtmlParecer(d);
-  // Renderiza inline removendo o <html>/<body> wrapper
-  const area = document.getElementById('parecer-page-output');
-  if (area) {
-    area.innerHTML = `<div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(30,58,95,.08)">
-      <iframe id="parecer-iframe" style="width:100%;border:none;min-height:700px" srcdoc="${html.replace(/"/g,'&quot;')}"></iframe>
-    </div>`;
-    // Auto-resize iframe
-    const fr = document.getElementById('parecer-iframe');
-    if (fr) fr.onload = () => { try { fr.style.height = (fr.contentWindow.document.body.scrollHeight + 40) + 'px'; } catch(e){} };
+  const w = window.open('', '_blank', 'width=950,height=750,scrollbars=yes');
+  if (!w) { alert('Popup bloqueado. Permita popups neste site.'); return; }
+  w.document.write(html);
+  w.document.close();
+}
+
+// ══════════════════════════════════════════════════════════
+// RELATÓRIO 2: LANÇAMENTOS SEM CLASSIFICAÇÃO — Relatório separado
+// Com dados básicos da empresa + lista de lançamentos não identificados
+// ══════════════════════════════════════════════════════════
+function gerarRelatorioLancamentos(cliId) {
+  const clientes = DB.get('clientes') || [];
+  const cliente = clientes.find(c => c.id === cliId);
+  if (!cliente) { alert('Cliente não encontrado.'); return; }
+
+  const escritorio = localStorage.getItem('esc_nome') || 'Criscontab & Madeira Contabilidade';
+  const comp = state.competencia;
+  const dataGeracao = new Date().toLocaleString('pt-BR');
+
+  // Buscar lançamentos sem classificação
+  const lancSemClassif = [];
+  if (typeof concState !== 'undefined' && concState.transacoes && concState.transacoes.length > 0 && concState.clienteId === cliId) {
+    concState.transacoes.forEach((t, idx) => {
+      const am = concState.amarracoes[idx] || {};
+      const semDebito = !am.debito || am.debito.includes('Valores a Classificar');
+      const semCredito = !am.credito || am.credito.includes('Valores a Classificar');
+      const confBaixa = am.confianca !== 'Alta';
+      if (semDebito || semCredito || confBaixa) {
+        lancSemClassif.push({
+          data: t.data,
+          descricao: t.descricao,
+          valor: t.valor,
+          tipo: t.tipo,
+          debito: am.debito || '—',
+          credito: am.credito || '—',
+          confianca: am.confianca || 'Manual',
+          motivo: semDebito && semCredito ? 'Sem conta débito e crédito identificada'
+                : semDebito ? 'Sem conta débito — necessita documento'
+                : semCredito ? 'Sem conta crédito — necessita documento'
+                : 'Classificação automática de baixa confiança — confirmar com cliente'
+        });
+      }
+    });
   }
+
+  if (lancSemClassif.length === 0) {
+    alert('✅ Todos os lançamentos deste cliente estão classificados!\n\nNão existem lançamentos pendentes de classificação para gerar o relatório.\n\nDica: Certifique-se de que o extrato bancário do cliente está importado na Conciliação Inteligente.');
+    return;
+  }
+
+  const totalCreditos = lancSemClassif.filter(l => l.tipo === 'credito').reduce((s, l) => s + l.valor, 0);
+  const totalDebitos = lancSemClassif.filter(l => l.tipo === 'debito').reduce((s, l) => s + l.valor, 0);
+  const bancoInfo = (typeof concState !== 'undefined') ? concState.bancoInfo : {};
+
+  const linhas = lancSemClassif.map((l, i) => `
+    <tr style="border-bottom:1px solid #e2e8f0;${i%2===0?'':'background:#fafbfc'}">
+      <td style="padding:10px 12px;font-size:12px;text-align:center;color:#475569;border:1px solid #eee">${i+1}</td>
+      <td style="padding:10px 12px;font-size:12px;text-align:center;border:1px solid #eee">${l.data}</td>
+      <td style="padding:10px 12px;font-size:12px;border:1px solid #eee;max-width:320px">${l.descricao}</td>
+      <td style="padding:10px 12px;font-size:12px;text-align:right;font-weight:700;color:${l.tipo==='credito'?'#059669':'#dc2626'};border:1px solid #eee">
+        ${l.tipo==='credito'?'+':'−'} R$ ${l.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}
+      </td>
+      <td style="padding:10px 12px;font-size:11px;color:#92400e;border:1px solid #eee">${l.motivo}</td>
+      <td style="padding:10px 12px;border:1px solid #eee">
+        <div style="border:1px dashed #cbd5e1;border-radius:4px;padding:6px;min-height:24px;font-size:10px;color:#94a3b8"></div>
+      </td>
+    </tr>
+  `).join('');
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório de Lançamentos — ${cliente.nome}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',sans-serif; background:#f1f5f9; color:#1e293b; padding:24px 16px; }
+  .page { max-width:900px; margin:0 auto; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,.08); }
+  @media print {
+    body { background:#fff; padding:0; }
+    .actions { display:none !important; }
+    .page { box-shadow:none; border-radius:0; max-width:100%; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="actions" style="display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+    <button onclick="window.print()" style="padding:8px 18px;border-radius:8px;border:none;background:#1e3a5f;color:#fff;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">🖨️ Imprimir / PDF</button>
+    <button onclick="window.close()" style="padding:8px 18px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#475569;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">✕ Fechar</button>
+  </div>
+
+  <!-- CABEÇALHO -->
+  <div style="background:linear-gradient(135deg,#92400e,#d97706);padding:28px 32px;color:#fff">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;opacity:.7;margin-bottom:6px">${escritorio}</div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:4px">Relatório de Lançamentos Sem Classificação</div>
+    <div style="font-size:12px;opacity:.75">Solicitação de Documentação Complementar · Competência: ${fmtComp(comp)}</div>
+  </div>
+
+  <!-- DADOS DA EMPRESA -->
+  <div style="padding:24px 32px;border-bottom:2px solid #f1f5f9">
+    <div style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px">📋 Dados da Empresa</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0">
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Razão Social</div>
+        <div style="font-size:14px;font-weight:700;color:#0f172a">${cliente.nome}</div>
+      </div>
+      <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0">
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">CNPJ</div>
+        <div style="font-size:14px;font-weight:700;color:#0f172a">${cliente.cnpj || '—'}</div>
+      </div>
+      <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0">
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Regime Tributário</div>
+        <div style="font-size:14px;font-weight:700;color:#0f172a">${cliente.regime || '—'}</div>
+      </div>
+      <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0">
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Responsável / Contato</div>
+        <div style="font-size:14px;font-weight:700;color:#0f172a">${cliente.responsavel || cliente.contato || '—'}</div>
+      </div>
+      ${bancoInfo.banco ? `
+      <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0">
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Banco / Conta</div>
+        <div style="font-size:14px;font-weight:700;color:#0f172a">${bancoInfo.banco || '—'} · Conta: ${bancoInfo.conta || '—'}</div>
+      </div>` : ''}
+      <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0">
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Data de Emissão</div>
+        <div style="font-size:14px;font-weight:700;color:#0f172a">${dataGeracao}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERTA AO CLIENTE -->
+  <div style="padding:20px 32px;border-bottom:2px solid #f1f5f9">
+    <div style="background:#fffbeb;border:2px solid #fcd34d;border-radius:10px;padding:16px 20px;display:flex;gap:12px;align-items:flex-start">
+      <span style="font-size:28px;line-height:1">⚠️</span>
+      <div>
+        <div style="font-weight:800;font-size:14px;color:#92400e;margin-bottom:6px">Atenção — Lançamentos que Necessitam Identificação</div>
+        <div style="font-size:12px;color:#78716c;line-height:1.7">
+          Prezado(a) cliente, durante a conciliação bancária do mês <strong>${fmtComp(comp)}</strong>,
+          identificamos <strong>${lancSemClassif.length} lançamento(s)</strong> em seu extrato bancário que
+          <strong>não possuem documentação comprobatória</strong> e/ou <strong>não foi possível identificar a origem/natureza</strong>
+          da operação apenas pelo descritivo do extrato.<br><br>
+          Solicitamos, por gentileza, que identifique cada item abaixo e nos envie os respectivos comprovantes
+          (boletos pagos, notas fiscais, recibos, contratos, etc.) para que possamos realizar a correta
+          classificação contábil.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESUMO FINANCEIRO -->
+  <div style="padding:16px 32px;border-bottom:2px solid #f1f5f9;display:flex;gap:16px;flex-wrap:wrap">
+    <div style="flex:1;background:#fef2f2;padding:12px 16px;border-radius:8px;text-align:center;min-width:140px">
+      <div style="font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase">Lançamentos Pendentes</div>
+      <div style="font-size:26px;font-weight:800;color:#dc2626">${lancSemClassif.length}</div>
+    </div>
+    <div style="flex:1;background:#ecfdf5;padding:12px 16px;border-radius:8px;text-align:center;min-width:140px">
+      <div style="font-size:10px;font-weight:700;color:#065f46;text-transform:uppercase">Total Créditos (entrada)</div>
+      <div style="font-size:18px;font-weight:800;color:#059669">R$ ${totalCreditos.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+    </div>
+    <div style="flex:1;background:#fef2f2;padding:12px 16px;border-radius:8px;text-align:center;min-width:140px">
+      <div style="font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase">Total Débitos (saída)</div>
+      <div style="font-size:18px;font-weight:800;color:#dc2626">R$ ${totalDebitos.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+    </div>
+  </div>
+
+  <!-- TABELA DE LANÇAMENTOS -->
+  <div style="padding:24px 32px">
+    <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+      <span>📊 Lançamentos para Identificação</span>
+      <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700">${lancSemClassif.length} itens</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="background:#1e293b">
+          <th style="padding:10px 12px;font-size:10px;color:#fff;text-align:center;font-weight:700;border:1px solid #334155">#</th>
+          <th style="padding:10px 12px;font-size:10px;color:#fff;text-align:center;font-weight:700;border:1px solid #334155">DATA</th>
+          <th style="padding:10px 12px;font-size:10px;color:#fff;text-align:left;font-weight:700;border:1px solid #334155">DESCRIÇÃO NO EXTRATO</th>
+          <th style="padding:10px 12px;font-size:10px;color:#fff;text-align:right;font-weight:700;border:1px solid #334155">VALOR</th>
+          <th style="padding:10px 12px;font-size:10px;color:#fff;text-align:center;font-weight:700;border:1px solid #334155">OBSERVAÇÃO</th>
+          <th style="padding:10px 12px;font-size:10px;color:#fff;text-align:center;font-weight:700;border:1px solid #334155">IDENTIFICAÇÃO CLIENTE</th>
+        </tr>
+      </thead>
+      <tbody>${linhas}</tbody>
+    </table>
+
+    <div style="margin-top:20px;font-size:11px;color:#64748b;line-height:1.8;padding:14px 16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+      <strong>📋 Instruções:</strong><br>
+      1. Identifique cada lançamento acima e preencha a coluna "Identificação Cliente".<br>
+      2. Anexe os comprovantes correspondentes (boletos, NFs, recibos, contratos, etc.).<br>
+      3. Caso não reconheça algum lançamento, sinalize para que possamos investigar junto ao banco.<br>
+      4. Devolver este relatório preenchido até <strong>5 dias úteis</strong> para viabilizar o fechamento contábil.<br>
+      <br>
+      <em>A ausência de documentação comprobatória compromete a fidedignidade das demonstrações contábeis
+      conforme ITG 2000 (R1) e pode gerar apontamentos em eventual fiscalização.</em>
+    </div>
+  </div>
+
+  <!-- RODAPÉ -->
+  <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8">
+    <div>Documento gerado pelo <strong style="color:#475569">${escritorio}</strong></div>
+    <div>${dataGeracao}</div>
+  </div>
+</div>
+</body>
+</html>`;
+
+  const w = window.open('', '_blank', 'width=950,height=750,scrollbars=yes');
+  if (!w) { alert('Popup bloqueado. Permita popups neste site.'); return; }
+  w.document.write(html);
+  w.document.close();
 }
 
 // Utilitário de impressão de texto legado (para gerarParecer no checklist)
@@ -2315,13 +2964,108 @@ function gerarTextoParecer(cliId) {
   return { texto, comp: d.comp };
 }
 
-// Gera e exibe análise CPC/ITG na página de parecer
+// Gera e exibe análise CPC/ITG em nova janela
 function gerarEExibirParecerCPC(cliId) {
-  gerarParecerCPC(cliId);
-  // Move o resultado gerado para a área de output da página
-  const cpcEl = document.getElementById('cpc-parecer');
-  const outEl = document.getElementById('parecer-page-output');
-  if (cpcEl && outEl) outEl.appendChild(cpcEl);
+  const clientes = DB.get('clientes') || [];
+  const cliente = clientes.find(c => c.id === cliId);
+  if (!cliente) { alert('Cliente não encontrado.'); return; }
+
+  const chkSaved = (DB.get('checklists')||{})[`${cliId}_${state.competencia}`] || {};
+  const obgSaved = (DB.get('onboarding')||{})[cliId] || {};
+  const rules = getCPCRules(cliente.regime);
+
+  const pendencias = [];
+  Object.entries(chkSaved).forEach(([k,v]) => {
+    if (v === 'recebido' || v === 'aguardando') return;
+    const rule = getCPCForItem(k.replace(/_/g,' '), cliente.regime);
+    pendencias.push({ nome: k.replace(/_/g,' '), status: v, rule });
+  });
+  if (typeof C006_TEMPLATE !== 'undefined') {
+    C006_TEMPLATE.forEach(sec => sec.items.forEach(item => {
+      const k = sec.section+'_'+item.cod+'_'+item.nome;
+      const st = obgSaved[k] || 'pendente';
+      if (st !== 'concluido' && st !== 'cliente_nao_possui') {
+        const rule = getCPCForItem(item.nome, cliente.regime);
+        pendencias.push({ nome: `(Onboarding) ${item.nome}`, status: st, rule });
+      }
+    }));
+  }
+
+  const altoRisco = pendencias.filter(p => p.rule?.risco === 'alto');
+  const medioRisco = pendencias.filter(p => p.rule?.risco === 'medio');
+  const baixoRisco = pendencias.filter(p => !p.rule || p.rule.risco === 'baixo');
+  const escritorio = localStorage.getItem('esc_nome') || 'Criscontab & Madeira Contabilidade';
+  const hoje = new Date().toLocaleDateString('pt-BR');
+
+  const renderPend = (lista, cor, label) => lista.length === 0 ? '' : `
+    <div style="margin:16px 0">
+      <div style="font-weight:700;font-size:13px;color:${cor};margin-bottom:10px">${label} (${lista.length})</div>
+      ${lista.map((p,i) => `<div style="background:#fff;border:1px solid #e2e8f0;border-left:4px solid ${cor};border-radius:8px;padding:12px;margin-bottom:8px">
+        <div style="font-weight:700;font-size:12px">${i+1}. ${p.nome}</div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px">Status: ${p.status}</div>
+        ${p.rule ? `<div style="font-size:11px;margin-top:6px;line-height:1.6">
+          <strong>Norma CPC:</strong> ${p.rule.cpc}<br>
+          <strong>Impacto:</strong> ${p.rule.impacto}<br>
+          ${p.rule.acao ? '<strong>Ação:</strong> '+p.rule.acao : ''}
+        </div>` : ''}
+      </div>`).join('')}
+    </div>`;
+
+  const riscoGeral = altoRisco.length ? '🔴 Alto Risco' : medioRisco.length ? '🟡 Médio Risco' : '🟢 Regular';
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Análise CPC/ITG — ${cliente.nome}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#1e293b;padding:24px}
+    .page{max-width:900px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+    @media print{body{background:#fff;padding:0}.actions{display:none!important}.page{box-shadow:none;border-radius:0;max-width:100%}}
+  </style></head><body>
+  <div class="page">
+    <div class="actions" style="display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+      <button onclick="window.print()" style="padding:8px 18px;border-radius:8px;border:none;background:#1e3a5f;color:#fff;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">🖨️ Imprimir / PDF</button>
+      <button onclick="window.close()" style="padding:8px 18px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#475569;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">✕ Fechar</button>
+    </div>
+    <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:28px 32px;color:#fff">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;opacity:.7">${escritorio}</div>
+      <div style="font-size:20px;font-weight:800;margin-top:6px">Análise Técnica de Conformidade — CPC/ITG/NBC TG</div>
+      <div style="font-size:12px;opacity:.75;margin-top:4px">${cliente.nome} · CNPJ: ${cliente.cnpj||'—'} · ${fmtComp(state.competencia)}</div>
+    </div>
+    <div style="padding:20px 32px;border-bottom:1px solid #e2e8f0;display:flex;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;text-align:center;min-width:140px">
+        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Regime</div>
+        <div style="font-size:15px;font-weight:800">${cliente.regime}</div>
+      </div>
+      <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;text-align:center;min-width:140px">
+        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Norma Base</div>
+        <div style="font-size:13px;font-weight:700">${rules.norma_base.split('—')[0].trim()}</div>
+      </div>
+      <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;text-align:center;min-width:140px">
+        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Risco Geral</div>
+        <div style="font-size:15px;font-weight:800">${riscoGeral}</div>
+      </div>
+      <div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;text-align:center;min-width:140px">
+        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Pendências</div>
+        <div style="font-size:22px;font-weight:800;color:${pendencias.length>0?'#dc2626':'#059669'}">${pendencias.length}</div>
+      </div>
+    </div>
+    <div style="padding:24px 32px">
+      ${pendencias.length === 0 ? '<div style="display:flex;align-items:center;gap:12px;padding:16px;background:#ecfdf5;border-radius:10px;border:1px solid #a7f3d0"><span style="font-size:24px">✅</span><div><strong style="color:#065f46">Situação Regular</strong><div style="font-size:12px;color:#047857;margin-top:2px">Toda a documentação recebida e em conformidade com as normas aplicáveis.</div></div></div>' : ''}
+      ${renderPend(altoRisco, '#ef4444', '⚠️ Pendências de Alto Risco')}
+      ${renderPend(medioRisco, '#f59e0b', '🟡 Pendências de Médio Risco')}
+      ${renderPend(baixoRisco, '#3b82f6', '🔵 Pendências de Baixo Risco')}
+    </div>
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8">
+      <div>Documento gerado pelo <strong style="color:#475569">${escritorio}</strong></div>
+      <div>${hoje}</div>
+    </div>
+  </div></body></html>`;
+
+  const w = window.open('', '_blank', 'width=950,height=750,scrollbars=yes');
+  if (!w) { alert('Popup bloqueado. Permita popups neste site.'); return; }
+  w.document.write(html);
+  w.document.close();
 }
 
 // Utilitário para imprimir texto

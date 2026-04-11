@@ -21,22 +21,24 @@ const CHECKLIST_TEMPLATE = [
   // ── 1. ATIVO ─────────────────────────────────────────────────────────────
   { cat:"🏦 1.1 ATIVO — CAIXA", icon:"🏦", items:[] },
   { cat:"🏦 1.2 ATIVO — BANCOS", icon:"🏦", items:[
-    {key:"operadoras",    nome:"Extrato de Operadoras de Cartão (múltiplas)", regimes:["todos"], condicao:"mf_cc_multi",   obs:"Cielo, Stone, PagSeguro, etc. Consolidado"},
-    {key:"antecipacao",   nome:"Relatório de Antecipação de Recebíveis",  regimes:["todos"], condicao:"mf_cc_antec",       obs:"⚠️ Essencial para conciliação BRUTO x LÍQUIDO"},
     {key:"cambio",        nome:"Extrato em Moeda Estrangeira + Conversão Câmbio", regimes:["todos"], condicao:"mf_oe_moeda", obs:"⚠️ Variação ativa obrigatória"}
   ]},
   { cat:"📈 1.3 ATIVO — RELATÓRIOS E CONTAS A RECEBER", icon:"📈", items:[
     {key:"cr",           nome:"Relatório de Contas a Receber",                      regimes:["todos"], condicao:null,       obs:"Clientes e vencimentos"},
-    {key:"pix_estrut",   nome:"Relatório de Recebimentos via PIX Estruturado", regimes:["todos"], condicao:"mf_oe_pix",   obs:""},
-    {key:"subvencao",    nome:"Comprovante de Subvenção / Incentivo Fiscal", regimes:["todos"], condicao:"mf_oe_subv",    obs:"Direitos a receber ou já realizados"},
+    {key:"maquininha",   nome:"Extrato de Recebimentos em Maquininha (Cartão/PIX)", regimes:["todos"], condicao:"mf_cc_maq", obs:"Resumo de vendas"},
+    {key:"operadoras",   nome:"Extrato de Operadoras de Cartão (múltiplas)",        regimes:["todos"], condicao:"mf_cc_multi", obs:"Cielo, Stone, PagSeguro, etc. Consolidado"},
+    {key:"antecipacao",  nome:"Relatório de Antecipação de Recebíveis",             regimes:["todos"], condicao:"mf_cc_antec", obs:"⚠️ Essencial para conciliação BRUTO x LÍQUIDO"},
+    {key:"pix_estrut",   nome:"Relatório de Recebimentos via PIX Estruturado",      regimes:["todos"], condicao:"mf_oe_pix",   obs:""},
+    {key:"subvencao",    nome:"Comprovante de Subvenção / Incentivo Fiscal",        regimes:["todos"], condicao:"mf_oe_subv",  obs:"Direitos a receber ou já realizados"}
   ]},
   { cat:"💰 1.4 ATIVO — APLICAÇÕES FINANCEIRAS", icon:"💰", items:[
     {key:"aplicacoes",    nome:"Extrato de Aplicações Financeiras (CDB/RDB/Conta Rem)", regimes:["todos"], condicao:"mf_ia_auto", obs:"Rendimentos e IRRF retido"},
     {key:"fundos",        nome:"Extrato de Fundos de Investimento",       regimes:["todos"], condicao:"mf_ia_fundo",       obs:"Valor de cota e rendimentos mensais"},
     {key:"tesouro",       nome:"Extrato Tesouro Direto",                  regimes:["todos"], condicao:"mf_ia_td",          obs:"Via B3/XP/Corretora"},
+    {key:"capitaliza",    nome:"Título de Capitalização",                 regimes:["todos"], condicao:"mf_ia_cap",         obs:"Comprovantes de aportes e rendimentos"},
     {key:"outras_invest", nome:"Comprovante de Investimentos em Outras Empresas", regimes:["todos"], condicao:"mf_ia_outras", obs:"Participações societárias"},
     {key:"cripto",       nome:"Extrato de Criptoativos + Registro IN 1888", regimes:["todos"], condicao:"mf_oe_cripto",   obs:"Apesar de intangível, classificado aqui (Ativo Misto)"},
-    {key:"consorte",     nome:"Extrato de Consórcio",                     regimes:["todos"], condicao:"mf_oe_cons",       obs:""},
+    {key:"consorte",     nome:"Extrato de Consórcio",                     regimes:["todos"], condicao:"mf_oe_cons",       obs:""}
   ]},
   { cat:"🏭 1.5 ATIVO — BENS E ESTOQUES", icon:"🏭", items:[
     {key:"estoque",      nome:"Inventário / Movimentação de Estoque",               regimes:["todos"], condicao:"tem_estoque", obs:"Entradas, saídas e saldo final"},
@@ -48,6 +50,7 @@ const CHECKLIST_TEMPLATE = [
   { cat:"📋 2. PASSIVO OPERACIONAL", icon:"📋", items:[
     // Fornecedores
     {key:"cp",           nome:"Relatório de Contas a Pagar (Fornecedores)",         regimes:["todos"], condicao:null,       obs:"Fornecedores e vencimentos"},
+    {key:"cartao_corp",  nome:"Cartão Corporativo — Faturas Fechadas",              regimes:["todos"], condicao:"mf_cc_corp", obs:"Para conciliação de despesas do mês"},
 
     // Empréstimos e financiamentos
     {key:"contratos_fin", nome:"Contratos de Empréstimos/Financiamentos", regimes:["todos"], condicao:"mf_ef_banc",        obs:"Tabela SAC/PRICE para apropriação de juros e principal"},

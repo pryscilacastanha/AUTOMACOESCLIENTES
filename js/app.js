@@ -66,14 +66,15 @@ function render() {
       dashboard:'Carteira de Clientes — Diagnóstico', clientes:'Clientes',
       escrituracao:'📁 Escrituração 2025 — Documentação Recebida',
       checklist:'Escrituração 2025 — Documentação Recebida',
-      onboarding:'Onboarding de Clientes', auditoria:'Auditoria & Apontamentos',
+      onboarding:'Onboarding de Clientes', auditoria:'Parecer Técnico — Escrituração Contábil',
       educacao:'Educação do Cliente', importacao:'Importação com Gemini AI',
       configuracoes:'Configurações', obrigacoes:'Obrigações Acessórias',
       planocontas:'Plano de Contas', treinamento:'Treinamento da Equipe',
       integracao:'Integração — Import & Export',
       painel:'Escrituração 2025 — Visão Geral',
       controle:'Controle de Clientes — CM Contabilidade',
-      parecer:'Parecer Técnico — Escrituração Contábil'
+      parecer:'Parecer Técnico — Escrituração Contábil',
+      conciliacao:'Conciliação Inteligente — OFX/PDF'
     };
     document.getElementById('topbar-title').textContent = titles[state.page] || '';
     switch(state.page) {
@@ -82,7 +83,7 @@ function render() {
       case 'escrituracao':  main.innerHTML = renderEscrituracao(); break;
       case 'checklist':     main.innerHTML = renderEscrituracao(); break;
       case 'onboarding':    main.innerHTML = renderOnboarding(); break;
-      case 'auditoria':     main.innerHTML = renderAuditoria(); break;
+      case 'auditoria':     navigate('parecer'); break;
       case 'educacao':      main.innerHTML = renderEducacao(); break;
       case 'importacao':    main.innerHTML = renderImportacao(); break;
       case 'configuracoes': main.innerHTML = renderConfiguracoes(); break;
@@ -93,6 +94,7 @@ function render() {
       case 'painel':        main.innerHTML = renderEscrituracao(); break;
       case 'controle':      main.innerHTML = renderClientesAvancado(); break;
       case 'parecer':       main.innerHTML = renderParecerPage(); break;
+      case 'conciliacao':   main.innerHTML = renderConciliacao(); break;
     }
     attachEvents();
   } catch (err) {
@@ -481,35 +483,80 @@ function openModal(mode, id=null) {
           </div>
           <div class="form-group form-full mt-2"><label>Observações Gerais</label><textarea id="f-obs">${c.obs||''}</textarea></div>
           
-          <!-- MATURIDADE / ITG (DIAGNÓSTICO AUTOMÁTICO) -->
+          <!-- CLASSIFICAÇÃO CONTÁBIL INTELIGENTE -->
           <div style="margin-top:16px;background:#f0fdff;border:1px solid #7dd3fc;padding:12px;border-radius:8px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #bae6fd;padding-bottom:8px">
-              <div style="font-weight:700;font-size:14px;color:#0369a1">🚦 Classificação Contábil (Enquadramento ITG/NBC)</div>
-              <div style="background:#0284c7;color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;min-width:180px;text-align:center" id="ci_risco_display">Nível de Risco: A Calcular</div>
-            </div>
-            <div class="form-grid">
-              <div class="form-group"><label>1. Tipo de Entidade</label><select id="ci_itg_tipo" onchange="runITGDiagnosis()">
-                ${['Empresa com fins lucrativos','Simples Nacional','Entidade sem fins lucrativos (Terceiro Setor)','Cooperativa'].map(x=>`<option ${c.ci_itg_tipo===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
-              <div class="form-group"><label>2. Porte da Empresa</label><select id="ci_itg_porte" onchange="runITGDiagnosis()">
-                ${['Microempresa (ME)','Empresa de Pequeno Porte (EPP)','Médio Porte','Grande Porte'].map(x=>`<option ${c.ci_itg_porte===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
-              <div class="form-group form-full"><label>3. Complexidade Operacional</label><select id="ci_itg_complex" onchange="runITGDiagnosis()">
-                ${['Baixa (Sem estoque relevante, sem financiamento, rotina simples)','Média (Com estoque, controle financeiro ativo, dívidas estruturadas)','Alta (Financiamentos, Crescimento Acelerado, Auditoria)'].map(x=>`<option ${c.ci_itg_complex===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
-              <div class="form-group form-full"><label>4. Finalidade da Contabilidade (Regra de Ouro)</label><select id="ci_itg_finalidade" onchange="runITGDiagnosis()">
-                ${['Somente Cumprimento Fiscal / Obrigações','Apoio a Tomada de Decisão / Relatórios Gerenciais e Crescimento'].map(x=>`<option ${c.ci_itg_finalidade===x?'selected':''}>${x}</option>`).join('')}
-              </select></div>
+              <div style="font-weight:700;font-size:14px;color:#0369a1">🚦 Classificação Contábil Inteligente</div>
+              <div style="background:#0284c7;color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;min-width:180px;text-align:center" id="ci_risco_display">Nível: A Calcular</div>
             </div>
 
-            <!-- ALERTA AUTOMATICO -->
-            <div style="margin-top:16px;">
-               <label style="font-size:11px;font-weight:700;color:#0ea5e9;display:block;margin-bottom:8px;text-transform:uppercase">🧠 Diagnóstico Automático (Regra Técnica)</label>
-               <div id="ci_alerta_itg" style="padding:14px;border-radius:6px;background:#fff;border-left:4px solid var(--warning);font-size:13px;color:var(--text);box-shadow:var(--shadow)">
-                 Selecione as variáveis acima para definir a norma contábil aplicável.
-               </div>
-               <input type="hidden" id="ci_itg_norma_calc" value="${c.ci_itg_norma_calc||''}">
-               <input type="hidden" id="ci_itg_risco_calc" value="${c.ci_itg_risco_calc||''}">
+            <!-- ETAPA 1: CLASSIFICAÇÃO LEGAL -->
+            <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed #bae6fd">
+              <div style="font-size:11px;font-weight:700;color:#0ea5e9;text-transform:uppercase;margin-bottom:8px">📋 Etapa 1 — Classificação Legal</div>
+              <div class="form-grid">
+                <div class="form-group"><label>Tipo de Entidade</label><select id="ci_itg_tipo" onchange="runITGDiagnosis()">
+                  ${['Empresa com fins lucrativos','Simples Nacional','Entidade sem fins lucrativos (Terceiro Setor)','Cooperativa'].map(x=>`<option ${c.ci_itg_tipo===x?'selected':''}>${x}</option>`).join('')}
+                </select></div>
+                <div class="form-group"><label>Receita Bruta Anual (R$)</label>
+                  <input id="ci_receita_anual" value="${c.ci_receita_anual||''}" placeholder="Ex: 2.500.000" onchange="runITGDiagnosis()">
+                </div>
+                <div class="form-group"><label>Ativo Total (R$)</label>
+                  <input id="ci_ativo_total" value="${c.ci_ativo_total||''}" placeholder="Ex: 500.000" onchange="runITGDiagnosis()">
+                </div>
+                <div class="form-group"><label>Natureza Jurídica</label><select id="ci_nat_juridica" onchange="runITGDiagnosis()">
+                  ${['LTDA','S.A. Fechada','S.A. Aberta','EIRELI','SLU','MEI','Associação','Fundação','Cooperativa','Outro'].map(x=>`<option ${c.ci_nat_juridica===x?'selected':''}>${x}</option>`).join('')}
+                </select></div>
+                <div class="form-group"><label>Possui Auditoria Obrigatória?</label><select id="ci_tem_auditoria" onchange="runITGDiagnosis()">
+                  ${['Não','Sim'].map(x=>`<option ${c.ci_tem_auditoria===x?'selected':''}>${x}</option>`).join('')}
+                </select></div>
+                <div class="form-group"><label>Investidores Externos?</label><select id="ci_investidores" onchange="runITGDiagnosis()">
+                  ${['Não','Sim'].map(x=>`<option ${c.ci_investidores===x?'selected':''}>${x}</option>`).join('')}
+                </select></div>
+              </div>
+              <div id="ci_porte_auto" style="margin-top:8px;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;background:#e0f2fe;color:#0369a1;display:none"></div>
+            </div>
+
+            <!-- ETAPA 2: COMPLEXIDADE OPERACIONAL -->
+            <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed #bae6fd">
+              <div style="font-size:11px;font-weight:700;color:#0ea5e9;text-transform:uppercase;margin-bottom:8px">📊 Etapa 2 — Complexidade Operacional (Score)</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                ${[
+                  {id:'ci_cx_estoque', label:'Possui estoque relevante?', val:c.ci_cx_estoque},
+                  {id:'ci_cx_financ', label:'Possui financiamento/empréstimos?', val:c.ci_cx_financ},
+                  {id:'ci_cx_unidades', label:'Possui mais de uma unidade?', val:c.ci_cx_unidades},
+                  {id:'ci_cx_folha', label:'Possui folha complexa (>10 func)?', val:c.ci_cx_folha},
+                  {id:'ci_cx_planej', label:'Planejamento tributário ativo?', val:c.ci_cx_planej},
+                  {id:'ci_cx_externo', label:'Usuários externos exigem demonstr.?', val:c.ci_cx_externo}
+                ].map(f => `<label style="display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer">
+                  <input type="checkbox" id="${f.id}" ${f.val?'checked':''} onchange="runITGDiagnosis()">
+                  ${f.label}
+                </label>`).join('')}
+              </div>
+              <div id="ci_score_display" style="margin-top:8px;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;background:#f1f5f9;color:#475569">Score: 0 — Complexidade: Baixa</div>
+            </div>
+
+            <!-- ETAPA 3: FINALIDADE -->
+            <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed #bae6fd">
+              <div style="font-size:11px;font-weight:700;color:#0ea5e9;text-transform:uppercase;margin-bottom:8px">🎯 Etapa 3 — Finalidade da Contabilidade</div>
+              <div class="form-grid">
+                <div class="form-group"><label>Porte (automático / override)</label><select id="ci_itg_porte" onchange="runITGDiagnosis()">
+                  ${['— Automático —','Microempresa (ME)','Empresa de Pequeno Porte (EPP)','Médio Porte','Grande Porte'].map(x=>`<option ${c.ci_itg_porte===x?'selected':''}>${x}</option>`).join('')}
+                </select></div>
+                <div class="form-group"><label>Finalidade (Regra de Ouro)</label><select id="ci_itg_finalidade" onchange="runITGDiagnosis()">
+                  ${['Somente Cumprimento Fiscal / Obrigações','Apoio a Tomada de Decisão / Relatórios Gerenciais e Crescimento'].map(x=>`<option ${c.ci_itg_finalidade===x?'selected':''}>${x}</option>`).join('')}
+                </select></div>
+              </div>
+            </div>
+
+            <!-- OUTPUT AUTOMÁTICO -->
+            <div style="margin-top:8px">
+              <div style="font-size:11px;font-weight:700;color:#0ea5e9;display:block;margin-bottom:8px;text-transform:uppercase">🧠 Output Automático — Classificação Contábil</div>
+              <div id="ci_alerta_itg" style="padding:14px;border-radius:8px;background:#fff;border-left:4px solid var(--warning);font-size:13px;color:var(--text);box-shadow:var(--shadow)">
+                Preencha as etapas acima para classificação automática.
+              </div>
+              <input type="hidden" id="ci_itg_norma_calc" value="${c.ci_itg_norma_calc||''}">
+              <input type="hidden" id="ci_itg_risco_calc" value="${c.ci_itg_risco_calc||''}">
+              <input type="hidden" id="ci_itg_complex" value="${c.ci_itg_complex||''}">
             </div>
           </div>
 
@@ -688,6 +735,9 @@ function openModal(mode, id=null) {
                   </select></div>
                   <div class="form-group"><label>Conta remunerada?</label><select id="mf_ia_conta" onchange="updateMovFinanceiraAlerts()">
                       ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_conta && x==='Sim' || !c.mov_fin?.ia_conta && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                  </select></div>
+                  <div class="form-group"><label>Título de capitalização?</label><select id="mf_ia_cap" onchange="updateMovFinanceiraAlerts()">
+                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_cap && x==='Sim' || !c.mov_fin?.ia_cap && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Investimentos em outras empresas?</label><select id="mf_ia_outras" onchange="updateMovFinanceiraAlerts()">
                       ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_outras && x==='Sim' || !c.mov_fin?.ia_outras && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
@@ -1099,10 +1149,21 @@ function saveCliente(mode) {
     ci_itg_finalidade: (document.getElementById('ci_itg_finalidade')||{}).value,
     ci_itg_norma_calc: (document.getElementById('ci_itg_norma_calc')||{}).value,
     ci_itg_risco_calc: (document.getElementById('ci_itg_risco_calc')||{}).value,
+    ci_receita_anual: (document.getElementById('ci_receita_anual')||{}).value || '',
+    ci_ativo_total: (document.getElementById('ci_ativo_total')||{}).value || '',
+    ci_nat_juridica: (document.getElementById('ci_nat_juridica')||{}).value || '',
+    ci_tem_auditoria: (document.getElementById('ci_tem_auditoria')||{}).value || 'Não',
+    ci_investidores: (document.getElementById('ci_investidores')||{}).value || 'Não',
+    ci_cx_estoque: document.getElementById('ci_cx_estoque')?.checked || false,
+    ci_cx_financ: document.getElementById('ci_cx_financ')?.checked || false,
+    ci_cx_unidades: document.getElementById('ci_cx_unidades')?.checked || false,
+    ci_cx_folha: document.getElementById('ci_cx_folha')?.checked || false,
+    ci_cx_planej: document.getElementById('ci_cx_planej')?.checked || false,
+    ci_cx_externo: document.getElementById('ci_cx_externo')?.checked || false,
     ...(() => {
         let mf = {};
         ['ob_simples','ob_alto_vol','ob_transf','cc_maq','cc_corp','cc_antec','cc_multi',
-         'ef_banc','ef_finan','ef_capgiro','ef_reneg','ia_auto','ia_fundo','ia_td','ia_conta','ia_outras',
+         'ef_banc','ef_finan','ef_capgiro','ef_reneg','ia_auto','ia_fundo','ia_td','ia_conta','ia_cap','ia_outras',
          'oe_cons','oe_moeda','oe_pix','oe_subv','oe_cripto','sa_mistura','sa_faltacomp','sa_naoident','sa_saque','sa_multi'].forEach(id => {
             mf[id] = document.getElementById('mf_'+id) ? document.getElementById('mf_'+id).value === 'Sim' : false;
         });
@@ -1149,54 +1210,92 @@ function saveCliente(mode) {
 
 window.runITGDiagnosis = () => {
     const tipo = document.getElementById('ci_itg_tipo')?.value || '';
-    const porte = document.getElementById('ci_itg_porte')?.value || '';
-    const complex = document.getElementById('ci_itg_complex')?.value || '';
+    const porteOverride = document.getElementById('ci_itg_porte')?.value || '';
     const finalidade = document.getElementById('ci_itg_finalidade')?.value || '';
+    const temAuditoria = document.getElementById('ci_tem_auditoria')?.value === 'Sim';
+    const temInvestidores = document.getElementById('ci_investidores')?.value === 'Sim';
+    const natJuridica = document.getElementById('ci_nat_juridica')?.value || '';
 
-    let norma = 'A Definir';
-    let riscoColor = '#94a3b8';
-    let risco = 'A Definir';
-    
-    // Motor de Decisão base regra de ouro do Escritório
-    if (tipo === 'Cooperativa') {
-        norma = 'ITG 2004 (+ ITG 2000)';
-        risco = '🔴 Alto'; riscoColor = 'var(--danger)';
-    } else if (tipo.includes('Entidade sem fins')) {
-        if (complex.includes('Alta') || porte.includes('Médio') || porte.includes('Grande')) {
-             norma = 'ITG 2002 + NBC TG (Complementar)';
-             risco = '🔴 Alto'; riscoColor = 'var(--danger)';
-        } else {
-             norma = 'ITG 2002';
-             risco = '🟡 Médio'; riscoColor = 'var(--warning)';
-        }
-    } else if (tipo === 'Simples Nacional') {
-        if (complex.includes('Baixa') && finalidade.includes('Cumprimento')) {
-             norma = 'ITG 1000';
-             risco = '🟢 Baixo'; riscoColor = 'var(--success-dark)';
-        } else {
-             norma = 'NBC TG';
-             risco = complex.includes('Alta') ? '🔴 Alto' : '🟡 Médio'; 
-             riscoColor = complex.includes('Alta') ? 'var(--danger)' : 'var(--warning)';
-        }
-    } else if (tipo.includes('Empresa com fins')) {
-        if (complex.includes('Alta')) {
-             norma = 'NBC TG Completas';
-             risco = '🔴 Alto'; riscoColor = 'var(--danger)';
-        } else if (complex.includes('Média')) {
-             norma = 'ITG 1000 ou NBC TG (Avaliar)';
-             risco = '🟡 Médio'; riscoColor = 'var(--warning)';
-        } else {
-             if(finalidade.includes('Apoio a Tomada')) {
-                 norma = 'Migrar para NBC TG';
-                 risco = '🟡 Médio'; riscoColor = 'var(--warning)';
-             } else {
-                 norma = 'ITG 1000';
-                 risco = '🟢 Baixo'; riscoColor = 'var(--success-dark)';
-             }
-        }
+    // ETAPA 1: Receita e Ativo para porte automático
+    const parseNum = v => parseFloat((v||'').replace(/[^\d.,]/g,'').replace(/\./g,'').replace(',','.')) || 0;
+    const receita = parseNum(document.getElementById('ci_receita_anual')?.value);
+    const ativo = parseNum(document.getElementById('ci_ativo_total')?.value);
+
+    let porteAuto = '—';
+    if (ativo > 240000000 || receita > 300000000) porteAuto = 'Grande Porte';
+    else if (receita > 4800000) porteAuto = 'Médio Porte';
+    else if (receita > 360000) porteAuto = 'Empresa de Pequeno Porte (EPP)';
+    else if (receita > 0) porteAuto = 'Microempresa (ME)';
+
+    const porteEl = document.getElementById('ci_porte_auto');
+    if (porteEl && receita > 0) {
+      porteEl.style.display = 'block';
+      porteEl.innerHTML = `📊 Porte calculado pela receita: <strong>${porteAuto}</strong>${ativo > 0 ? ' · Ativo: R$ '+ativo.toLocaleString('pt-BR') : ''}`;
     }
 
-    // Grava nos campos dinâmicos pro BD e pro Parecer Técnico
+    // Porte efetivo (override manual ou automático)
+    const porte = (porteOverride && porteOverride !== '— Automático —') ? porteOverride : porteAuto;
+
+    // ETAPA 2: Score de complexidade
+    const cxFields = ['ci_cx_estoque','ci_cx_financ','ci_cx_unidades','ci_cx_folha','ci_cx_planej','ci_cx_externo'];
+    let score = 0;
+    cxFields.forEach(id => { if (document.getElementById(id)?.checked) score++; });
+    const complexidade = score >= 5 ? 'Alta' : score >= 3 ? 'Média' : 'Baixa';
+
+    const scoreEl = document.getElementById('ci_score_display');
+    const scoreColors = { Baixa:'#10b981', Média:'#f59e0b', Alta:'#ef4444' };
+    if (scoreEl) scoreEl.innerHTML = `Score: <strong>${score}/6</strong> — Complexidade: <strong style="color:${scoreColors[complexidade]}">${complexidade}</strong>`;
+
+    // Guardar complexidade no hidden
+    const cxHidden = document.getElementById('ci_itg_complex');
+    if (cxHidden) cxHidden.value = complexidade;
+
+    // ETAPA 3: Motor de decisão
+    let norma = 'A Definir', nivelTecnico = '', tipoEntrega = '';
+    let riscoColor = '#94a3b8', risco = 'A Definir';
+
+    // Entidades especiais
+    if (tipo === 'Cooperativa') {
+      norma = 'ITG 2004 (+ ITG 2000)'; nivelTecnico = 'Avançado'; tipoEntrega = 'Estratégico';
+      risco = '🔴 Alto'; riscoColor = '#ef4444';
+    } else if (tipo.includes('sem fins')) {
+      norma = 'ITG 2002'; nivelTecnico = complexidade === 'Alta' ? 'Avançado' : 'Intermediário';
+      tipoEntrega = complexidade === 'Alta' ? 'Estratégico' : 'Gerencial';
+      risco = complexidade === 'Alta' ? '🔴 Alto' : '🟡 Médio';
+      riscoColor = complexidade === 'Alta' ? '#ef4444' : '#f59e0b';
+    }
+    // Grande porte ou auditada
+    else if (porte.includes('Grande') || temAuditoria || natJuridica.includes('S.A.')) {
+      norma = 'CPC Completo (IFRS Full)'; nivelTecnico = 'Avançado'; tipoEntrega = 'Estratégico';
+      risco = '🔴 Alto'; riscoColor = '#ef4444';
+    }
+    // Média empresa
+    else if (porte.includes('Médio')) {
+      norma = 'CPC PME (NBC TG 1000)'; nivelTecnico = 'Intermediário'; tipoEntrega = 'Gerencial';
+      risco = '🟡 Médio'; riscoColor = '#f59e0b';
+    }
+    // ME/EPP com complexidade alta/média → CPC PME
+    else if ((porte.includes('ME') || porte.includes('EPP') || porte.includes('Pequeno')) && (complexidade === 'Alta' || complexidade === 'Média')) {
+      norma = 'CPC PME (NBC TG 1000)'; nivelTecnico = 'Intermediário'; tipoEntrega = 'Gerencial';
+      risco = '🟡 Médio'; riscoColor = '#f59e0b';
+    }
+    // ME/EPP com baixa complexidade
+    else if (porte.includes('ME') || porte.includes('EPP') || porte.includes('Pequeno') || porte.includes('Micro')) {
+      norma = 'ITG 1000'; nivelTecnico = 'Simplificado'; tipoEntrega = 'Operacional';
+      risco = '🟢 Baixo'; riscoColor = '#10b981';
+    }
+    // Finalidade consultiva override
+    if (finalidade.includes('Tomada de Decisão') && norma === 'ITG 1000') {
+      norma = 'CPC PME (NBC TG 1000)'; nivelTecnico = 'Intermediário'; tipoEntrega = 'Gerencial';
+      risco = '🟡 Médio'; riscoColor = '#f59e0b';
+    }
+    // Investidores externos forçam upgrade
+    if (temInvestidores && !norma.includes('CPC Completo')) {
+      norma = 'CPC PME (NBC TG 1000)'; nivelTecnico = 'Intermediário'; tipoEntrega = 'Gerencial';
+      if (risco === '🟢 Baixo') { risco = '🟡 Médio'; riscoColor = '#f59e0b'; }
+    }
+
+    // Grava nos campos
     const nf = document.getElementById('ci_itg_norma_calc');
     const rf = document.getElementById('ci_itg_risco_calc');
     if(nf) nf.value = norma;
@@ -1206,17 +1305,41 @@ window.runITGDiagnosis = () => {
     const divRisco = document.getElementById('ci_risco_display');
     if(!divAlerta) return;
 
-    if(divRisco) { divRisco.innerHTML = `Nível de Risco: ${risco}`; divRisco.style.background = riscoColor; }
+    if(divRisco) { divRisco.innerHTML = `${risco}`; divRisco.style.background = riscoColor; }
 
-    let msg = `<b style="font-size:14px;color:var(--primary-dark)">🎯 Norma Recomendada: ${norma}</b> <br><br>`;
-    msg += `<b>📌 Principais pontos de atenção desta norma para a escrituração:</b> Aplicabilidade obrigatória complementar da <b>ITG 2000</b> (Escrituração Central). <br>`;
-    
-    // Alertas de risco consultivo
-    if (complex.includes('Alta') && finalidade.includes('Cumprimento')) {
-         msg += `<br>🚨 <b>Sinal Vermelho Automático:</b> Cliente de Alta Complexidade classificado apenas para Cumprimento Fiscal! <b>Há forte risco operacional!</b> Evitar ITG 1000.`;
+    let msg = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">`;
+    msg += `<div style="background:#f0f9ff;padding:8px 12px;border-radius:6px;border:1px solid #bae6fd">
+      <div style="font-size:10px;font-weight:700;color:#0369a1;text-transform:uppercase">Porte</div>
+      <div style="font-size:14px;font-weight:800;color:#0f172a">${porte || '—'}</div>
+    </div>`;
+    msg += `<div style="background:#f0f9ff;padding:8px 12px;border-radius:6px;border:1px solid #bae6fd">
+      <div style="font-size:10px;font-weight:700;color:#0369a1;text-transform:uppercase">Norma Aplicável</div>
+      <div style="font-size:14px;font-weight:800;color:#0f172a">${norma}</div>
+    </div>`;
+    msg += `<div style="background:#f0f9ff;padding:8px 12px;border-radius:6px;border:1px solid #bae6fd">
+      <div style="font-size:10px;font-weight:700;color:#0369a1;text-transform:uppercase">Nível Técnico</div>
+      <div style="font-size:14px;font-weight:800;color:#0f172a">${nivelTecnico || '—'}</div>
+    </div>`;
+    msg += `<div style="background:#f0f9ff;padding:8px 12px;border-radius:6px;border:1px solid #bae6fd">
+      <div style="font-size:10px;font-weight:700;color:#0369a1;text-transform:uppercase">Tipo de Entrega</div>
+      <div style="font-size:14px;font-weight:800;color:#0f172a">${tipoEntrega || '—'}</div>
+    </div></div>`;
+
+    // Alertas de risco
+    if (complexidade === 'Alta' && finalidade.includes('Cumprimento')) {
+      msg += `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px 12px;font-size:12px;color:#991b1b;margin-top:8px">
+        🚨 <strong>Sinal Vermelho:</strong> Alta complexidade com finalidade apenas fiscal. Forte risco operacional — considere migração para CPC PME.
+      </div>`;
     }
-    if (tipo !== 'Cooperativa' && norma.includes('ITG 1000') && (complex.includes('Média') || finalidade.includes('Apoio a Tomada'))) {
-         msg += `<br>💡 <b>Orientação Consultiva:</b> Usar contabilidade gerencial. Pergunte-se "Essa contab é pros sócios ou pro fisco?". Migre para NBC TG.`;
+    if (norma === 'ITG 1000' && finalidade.includes('Tomada de Decisão')) {
+      msg += `<div style="background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:8px 12px;font-size:12px;color:#92400e;margin-top:8px">
+        💡 <strong>Oportunidade:</strong> Cliente busca inteligência gerencial. Elevar para CPC PME agrega valor e justifica precificação premium.
+      </div>`;
+    }
+    if (temInvestidores) {
+      msg += `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px 12px;font-size:12px;color:#1e40af;margin-top:8px">
+        📈 <strong>Investidores Externos:</strong> Demonstrações contábeis robustas são obrigatórias para suportar due diligence e compliance.
+      </div>`;
     }
 
     divAlerta.innerHTML = msg;
@@ -2169,32 +2292,36 @@ ${chkSection}${obgSection}${obgAcessSection}
 }
 
 function addAudItem() {
-
+  const clienteId = typeof parecerClienteId !== 'undefined' ? parecerClienteId : audClienteId;
+  if (!clienteId) { alert('Selecione um cliente primeiro.'); return; }
   const auditoria = DB.get('auditoria') || {};
-  const key = audClienteId + '_' + state.competencia;
+  const key = clienteId + '_' + state.competencia;
   auditoria[key] = auditoria[key] || [];
   auditoria[key].push({ item:'Novo apontamento', obs:'', impacto:'', acao:'', risco:'medio' });
   DB.set('auditoria', auditoria);
   render();
 }
 function addAudItemFromChk(itemKey, status) {
+  const clienteId = typeof parecerClienteId !== 'undefined' ? parecerClienteId : audClienteId;
   const auditoria = DB.get('auditoria') || {};
-  const key = audClienteId + '_' + state.competencia;
+  const key = clienteId + '_' + state.competencia;
   auditoria[key] = auditoria[key] || [];
   auditoria[key].push({ item: itemKey.replace(/_/g,' '), obs:`Status: ${status}`, impacto:'', acao:'', risco: status==='divergente'?'alto':'medio' });
   DB.set('auditoria', auditoria);
-  navigate('auditoria');
+  navigate('parecer');
 }
 function delAudItem(i) {
+  const clienteId = typeof parecerClienteId !== 'undefined' ? parecerClienteId : audClienteId;
   const auditoria = DB.get('auditoria') || {};
-  const key = audClienteId + '_' + state.competencia;
+  const key = clienteId + '_' + state.competencia;
   auditoria[key].splice(i,1);
   DB.set('auditoria', auditoria);
   render();
 }
 function updateAud(i, field, val) {
+  const clienteId = typeof parecerClienteId !== 'undefined' ? parecerClienteId : audClienteId;
   const auditoria = DB.get('auditoria') || {};
-  const key = audClienteId + '_' + state.competencia;
+  const key = clienteId + '_' + state.competencia;
   if (auditoria[key] && auditoria[key][i]) auditoria[key][i][field] = val;
   DB.set('auditoria', auditoria);
 }
