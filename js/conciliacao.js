@@ -973,27 +973,26 @@ function exportarLayoutUnico() {
     return possCodigo;
   }
 
-  // Layout: DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO
-  function extrairCodigo(contaStr) {
-    if (!contaStr) return '';
-    // Primeiro tenta encontrar cod_interno dentro do label, ex: "Cód: 12345"
-    const internoMatch = contaStr.match(/Cód:\s*(\S+)/i);
-    if (internoMatch && internoMatch[1]) return internoMatch[1].trim();
-    // Caso não tenha cod_interno, usa o código antes de " — "
-    const parts = contaStr.split(' — ');
-    if (parts.length >= 2) return parts[0].trim();
-    // Fallback: retornar sem parênteses
-    return contaStr.split(' (')[0].trim();
-  }
-
-  // Layout: DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO
   const rows = txns.map((t, idx) => {
     const am = concState.amarracoes[idx] || {};
     const debCode = extrairCodigoReduzido(am.debito);
     const credCode = extrairCodigoReduzido(am.credito);
-    const valor = t.valor.toFixed(2).replace('.', ',');
-    const hist = (am.historico || t.descricao || '').replace(/;/g, ',').replace(/\r?\n/g, ' ').slice(0, 200);
-    return `${t.data};${debCode};${credCode};${valor};${hist}`;
+    
+    // Converte DD/MM/YYYY para AAAAMMDD
+    const dParts = t.data.split('/');
+    const dateFormatted = dParts.length === 3 ? `${dParts[2]}${dParts[1]}${dParts[0]}` : t.data.replace(/\D/g, '');
+    
+    // SCI Leiaute: Valores numéricos separados por ponto (não vírgula)
+    const valor = t.valor.toFixed(2);
+    
+    // SCI Leiaute: Separador por vírgula, logo o histórico não pode conter vírgula!
+    const hist = (am.historico || t.descricao || '').replace(/,/g, '').replace(/;/g, ' ').replace(/\r?\n/g, ' ').slice(0, 200).trim();
+    
+    // 001(Seq), 002(Data), 003(DebCode), 004(CredCode), 005(Valor), 006(CodHist), 007(Comp)
+    const seq = idx + 1;
+    const codHist = 1; // Padrão Genérico
+    
+    return `${seq},${dateFormatted},${debCode},${credCode},${valor},${codHist},${hist}`;
   }).join('\r\n');
 
   // Gravar regras na memória para automação (Machine Learning Simples)
@@ -1059,8 +1058,13 @@ function renderConcExport() {
 
   return `
 <div class="card mb-4" style="background:linear-gradient(135deg,#065f46,#0d9488);color:#fff;padding:20px 28px;border-radius:12px">
-  <h3 style="font-size:16px;margin-bottom:4px">⬇️ Exportar para Layout Único</h3>
-  <p style="opacity:.8;font-size:12px">Gera arquivo TXT no layout de importação do Domínio Único (SCI). Layout: DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO</p>
+  <h3 style="font-size:16px;margin-bottom:4px">⬇️ Exportar Lançamentos Contábeis (Sistema Único)</h3>
+  <div style="opacity:.9;font-size:12px;display:flex;align-items:center;gap:6px">
+    <span>💡 Modelo de Layout Utilizado:</span>
+    <span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:12px;font-family:monospace;font-size:11px;display:flex;align-items:center;gap:6px">
+      📄 Leiaute_de_Importacao_TXT_Unico_modulo_contabil
+    </span>
+  </div>
 </div>
 
 ${naoClassificados > 0 ? `<div class="card mb-4" style="border-left:4px solid var(--warning);background:#fffbeb">
@@ -1084,13 +1088,16 @@ ${naoClassificados > 0 ? `<div class="card mb-4" style="border-left:4px solid va
 </div>
 
 <div class="card mb-4" style="border-left:4px solid var(--primary)">
-  <div style="font-weight:700;margin-bottom:8px">📄 Preview do Arquivo — Layout Único</div>
-  <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Formato: DATA;DÉBITO(código);CRÉDITO(código);VALOR;COMPLEMENTO</div>
+  <div style="font-weight:700;margin-bottom:8px">📄 Preview do Arquivo — Leiaute Único (TXT)</div>
+  <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Estrutura oficial SCI Modulo Contabil (Vírgula separando colunas, ponto separando decimal)</div>
   <div style="background:#f8fafc;padding:10px;border-radius:6px;font-family:monospace;font-size:11px;overflow-x:auto;white-space:pre;max-height:120px;overflow-y:auto;color:#334155">${txns.slice(0,5).map((t,i) => {
     const am = concState.amarracoes[i] || {};
-    const dc = (am.debito||'').split(' — ')[0].split(' (')[0].trim();
-    const cc = (am.credito||'').split(' — ')[0].split(' (')[0].trim();
-    return `${t.data};${dc};${cc};${t.valor.toFixed(2).replace('.',',')};${(am.historico||t.descricao||'').replace(/;/g,',').slice(0,60)}`;
+    const dParts = t.data.split('/');
+    const dateFormatted = dParts.length === 3 ? `${dParts[2]}${dParts[1]}${dParts[0]}` : t.data.replace(/\D/g, '');
+    const dc = extrairCodigoReduzidoPrev(am.debito);
+    const cc = extrairCodigoReduzidoPrev(am.credito);
+    const hist = (am.historico||t.descricao||'').replace(/,/g,'').slice(0,60).trim();
+    return `${i+1},${dateFormatted},${dc},${cc},${t.valor.toFixed(2)},1,${hist}`;
   }).join('\n')}</div>
 </div>
 
