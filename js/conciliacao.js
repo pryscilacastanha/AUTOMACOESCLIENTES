@@ -571,7 +571,9 @@ function _buildDropdownHtml(idx, campo, filtered) {
     var ci = (c.cod_interno||'').replace(/'/g, "\\'");
     var cc = (c.codigo||'').replace(/'/g, "\\'");
     var cd = (c.descricao||'').replace(/'/g, "\\'");
-    var codBadge = c.cod_interno ? ('Cód: ' + c.cod_interno) : '-';
+    var primaryCode = c.cod_interno ? c.cod_interno : (c.codigo||'');
+    var secondaryCode = c.cod_interno ? c.codigo : '';
+    
     var nat = c.natureza === 'D' ? '⬆D' : (c.natureza === 'C' ? '⬇C' : '');
     var isSintetica = (c.tipo === 'T' || c.tipo === 'S');
     var fontWeight = isSintetica ? '800' : '400';
@@ -583,9 +585,9 @@ function _buildDropdownHtml(idx, campo, filtered) {
     return '<div class="conc-ac-item" style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .1s"'
       + ' onmouseenter="this.style.background=\'' + bgHover + '\'" onmouseleave="this.style.background=\'\'"'
       + ' onmousedown="event.preventDefault();selecionarContaAuto(\'' + idx + '\',\'' + campo + '\',\'' + ci + '\',\'' + cc + '\',\'' + cd + '\')">'
-      + '<span style="font-family:monospace;background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap">' + codBadge + '</span>'
-      + '<span style="font-family:monospace;background:' + bgCode + ';color:' + colorCode + ';padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;white-space:nowrap">' + (c.codigo||'') + '</span>'
+      + '<span style="font-family:monospace;background:' + bgCode + ';color:' + colorCode + ';padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;white-space:nowrap">' + primaryCode + '</span>'
       + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:' + color + ';font-weight:' + fontWeight + '">' + (c.descricao||'') + '</span>'
+      + (secondaryCode ? '<span style="font-size:10px;color:#94a3b8;font-family:monospace">[' + secondaryCode + ']</span>' : '')
       + '<span style="font-size:9px;color:#94a3b8;white-space:nowrap">' + nat + '</span>'
       + '</div>';
   }).join('');
@@ -602,7 +604,7 @@ function _fecharAutocompleteFora(e) {
 
 function selecionarContaAuto(idx, campo, cod_interno, codigo, descricao) {
   var label = cod_interno
-    ? (codigo + ' — ' + descricao + ' (Cód: ' + cod_interno + ')')
+    ? (cod_interno + ' — ' + descricao + ' [' + codigo + ']')
     : (codigo + ' — ' + descricao);
 
   if (idx === 'bulk') {

@@ -713,7 +713,16 @@ function parseContasCSV(text) {
     const obj = {};
     if (header.some(h => h.includes('cod') || h.includes('conta') || h.includes('classificacao'))) {
       header.forEach((h, i) => obj[h] = cols[i]);
-      const classif = obj['classificacao'] || obj['codigo'] || obj['cod'] || obj['conta'] || cols[0] || '';
+      const classif = obj['classificacao'] || obj['conta'] || obj['codigo'] || obj['cod'] || cols[0] || '';
+      
+      // Se a planilha tem as duas colunas explicitly (Código e Classificacao), mapear Código para cod_interno!
+      let reducedCode = obj['cod_interno'] || obj['codigo reduzido'] || obj['reduzido'] || obj['cod interno'];
+      if (!reducedCode && obj['codigo'] && obj['classificacao']) {
+         reducedCode = obj['codigo']; // Quando tem ambos, "código" é de fato o código reduzido!
+      } else if (!reducedCode) {
+         reducedCode = obj['cod'] || '';
+      }
+
       return {
         codigo: classif,
         classificacao: classif,
@@ -726,7 +735,7 @@ function parseContasCSV(text) {
         relatorio: obj['relatorio'] || '',
         plano_padrao: '',
         saldo: '',
-        cod_interno: obj['cod_interno'] || obj['codigo reduzido'] || obj['reduzido'] || obj['cod interno'] || obj['cod'] || '',
+        cod_interno: reducedCode,
       };
     }
     return {
