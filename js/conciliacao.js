@@ -478,10 +478,10 @@ function abrirAutocompleteConta(idx, campo, inputEl) {
 
   var contas = getContasAnaliticas();
   var query = (inputEl.value || '').toLowerCase();
-  var filtered = query.length < 1 ? contas.slice(0, 200) : contas.filter(function(c) {
+  var filtered = query.length < 1 ? contas.slice(0, 900) : contas.filter(function(c) {
     var searchStr = ((c.cod_interno||'') + ' ' + (c.codigo||'') + ' ' + (c.descricao||'')).toLowerCase();
     return query.split(/\s+/).every(function(w) { return searchStr.includes(w); });
-  }).slice(0, 200);
+  }).slice(0, 900);
 
   var rect = inputEl.getBoundingClientRect();
   var dropdown = document.createElement('div');
@@ -559,10 +559,10 @@ function filtrarAutocompleteConta(idx, campo, inputEl) {
   // Reutiliza dropdown já aberto — só atualiza o HTML
   var contas = getContasAnaliticas();
   var query = (inputEl.value || '').toLowerCase();
-  var filtered = query.length < 1 ? contas.slice(0, 200) : contas.filter(function(c) {
+  var filtered = query.length < 1 ? contas.slice(0, 900) : contas.filter(function(c) {
     var searchStr = ((c.cod_interno||'') + ' ' + (c.codigo||'') + ' ' + (c.descricao||'')).toLowerCase();
     return query.split(/\s+/).every(function(w) { return searchStr.includes(w); });
-  }).slice(0, 200);
+  }).slice(0, 900);
 
   var dd = document.getElementById('conc-ac-dropdown');
   if (dd) {
