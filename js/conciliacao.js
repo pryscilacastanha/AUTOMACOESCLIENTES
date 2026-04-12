@@ -455,18 +455,17 @@ function getContasAnaliticas() {
   const contas = [];
   targetPlanos.forEach(p => {
     (p.contas || []).forEach(c => {
-      // Somente contas analíticas (ignorar sintéticas T e S)
-      if (c.tipo !== 'T' && c.tipo !== 'S') {
-        contas.push({
-          codigo: c.codigo || c.classificacao || '',
-          cod_interno: c.cod_interno || '',
-          descricao: c.descricao || c.nome || '',
-          apelido: c.apelido || '',
-          grupo: c.grupo || '',
-          plano: p.nome || p.id || '',
-          natureza: c.natureza || '',
-        });
-      }
+      // Retornar TODAS as contas para manter a estrutura do plano visível
+      contas.push({
+        codigo: c.codigo || c.classificacao || '',
+        cod_interno: c.cod_interno || '',
+        descricao: c.descricao || c.nome || '',
+        apelido: c.apelido || '',
+        grupo: c.grupo || '',
+        plano: p.nome || p.id || '',
+        natureza: c.natureza || '',
+        tipo: c.tipo || '' // preserva o tipo para visualização
+      });
     });
   });
   return contas;
@@ -550,12 +549,19 @@ function _buildDropdownHtml(idx, campo, filtered) {
     var cd = (c.descricao||'').replace(/'/g, "\\'");
     var codBadge = c.cod_interno ? ('Cód: ' + c.cod_interno) : '-';
     var nat = c.natureza === 'D' ? '⬆D' : (c.natureza === 'C' ? '⬇C' : '');
+    var isSintetica = (c.tipo === 'T' || c.tipo === 'S');
+    var fontWeight = isSintetica ? '800' : '400';
+    var color = isSintetica ? '#1e293b' : '#334155';
+    var bgHover = isSintetica ? '#f1f5f9' : '#eff6ff';
+    var bgCode = isSintetica ? '#fef3c7' : '#e0f2fe';
+    var colorCode = isSintetica ? '#b45309' : '#0369a1';
+
     return '<div class="conc-ac-item" style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .1s"'
-      + ' onmouseenter="this.style.background=\'#eff6ff\'" onmouseleave="this.style.background=\'\'"'
+      + ' onmouseenter="this.style.background=\'' + bgHover + '\'" onmouseleave="this.style.background=\'\'"'
       + ' onmousedown="event.preventDefault();selecionarContaAuto(\'' + idx + '\',\'' + campo + '\',\'' + ci + '\',\'' + cc + '\',\'' + cd + '\')">'
       + '<span style="font-family:monospace;background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap">' + codBadge + '</span>'
-      + '<span style="font-family:monospace;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;white-space:nowrap">' + (c.codigo||'') + '</span>'
-      + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155">' + (c.descricao||'') + '</span>'
+      + '<span style="font-family:monospace;background:' + bgCode + ';color:' + colorCode + ';padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;white-space:nowrap">' + (c.codigo||'') + '</span>'
+      + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:' + color + ';font-weight:' + fontWeight + '">' + (c.descricao||'') + '</span>'
       + '<span style="font-size:9px;color:#94a3b8;white-space:nowrap">' + nat + '</span>'
       + '</div>';
   }).join('');
@@ -927,26 +933,20 @@ function exportarLayoutUnico() {
   // Lista de contas analíticas disponíveis no plano de contas
   const contas = getContasAnaliticas();
 
-  // Busca o código da conta no plano a partir do label armazenado (ex.: "12345 — Fornecedor a pagar (Cód: 9876)")
-  function buscarCodigo(label) {
+  // Busca o código da conta no plano a partir do label armazenado (ex.: "01.1.2 — Banco (Cód: 123)")
+  function extrairCodigoReduzido(label) {
     if (!label) return '';
-    // Primeiro tenta encontrar cod_interno dentro do label
-    const internoMatch = label.match(/Cód:\s*(\S+)/i);
+    const internoMatch = label.match(/Cód:\s*([^\)]+)/i);
     if (internoMatch && internoMatch[1]) {
-      // Procura a conta que possua esse cod_interno no plano
-      const conta = contas.find(c => c.cod_interno && c.cod_interno.toString() === internoMatch[1]);
-      if (conta && conta.codigo) return conta.codigo;
+      return internoMatch[1].trim();
     }
-    // Caso não tenha cod_interno ou não encontre, usa o código antes de " — "
     const parts = label.split(' — ');
     if (parts.length >= 2) {
       const possCodigo = parts[0].trim();
       const conta = contas.find(c => c.codigo && c.codigo.toString() === possCodigo);
-      if (conta) return conta.codigo;
-      // Se não encontrar, devolve o próprio trecho (fallback)
+      if (conta && conta.cod_interno) return conta.cod_interno;
       return possCodigo;
     }
-    // Fallback genérico
     return '';
   }
 
@@ -967,8 +967,8 @@ function exportarLayoutUnico() {
   const header = 'DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO\r\n';
   const rows = txns.map((t, idx) => {
     const am = concState.amarracoes[idx] || {};
-    const debCode = buscarCodigo(am.debito);
-    const credCode = buscarCodigo(am.credito);
+    const debCode = extrairCodigoReduzido(am.debito);
+    const credCode = extrairCodigoReduzido(am.credito);
     const valor = t.valor.toFixed(2).replace('.', ',');
     const hist = (am.historico || t.descricao || '').replace(/;/g, ',').replace(/\r?\n/g, ' ').slice(0, 200);
     return `${t.data};${debCode};${credCode};${valor};${hist}`;
@@ -989,17 +989,19 @@ function renderConcExport() {
   const clientes = DB.get('clientes') || [];
   const cli = clientes.find(c => c.id === concState.clienteId);
 
-  function extrairCodigo(contaStr) {
-    if (!contaStr) return '';
-    const parts = contaStr.split(' — ');
+  function extrairCodigoReduzidoPrev(label) {
+    if (!label) return '';
+    const internoMatch = label.match(/Cód:\s*([^\)]+)/i);
+    if (internoMatch && internoMatch[1]) return internoMatch[1].trim();
+    const parts = label.split(' — ');
     if (parts.length >= 2) return parts[0].trim();
-    return contaStr.split(' (')[0].trim();
+    return label.split(' (')[0].trim();
   }
 
   const preview = txns.slice(0, 20).map((t, idx) => {
     const am = concState.amarracoes[idx] || {};
-    const debCode = extrairCodigo(am.debito);
-    const credCode = extrairCodigo(am.credito);
+    const debCode = extrairCodigoReduzidoPrev(am.debito);
+    const credCode = extrairCodigoReduzidoPrev(am.credito);
     return `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:6px 8px;font-size:11px;text-align:center">${t.data}</td>
       <td style="padding:6px 8px;font-size:11px"><span style="font-family:monospace;background:#e0f2fe;padding:1px 4px;border-radius:3px;font-size:10px">${debCode}</span> ${(am.debito||'').split(' — ')[1] || ''}</td>
