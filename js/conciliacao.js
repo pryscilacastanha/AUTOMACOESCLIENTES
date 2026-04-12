@@ -1,4 +1,4 @@
-// ══════════════════════════════════════════════════════════
+﻿// ══════════════════════════════════════════════════════════
 //  conciliacao.js — Módulo de Conciliação Inteligente
 //  Importação OFX/PDF · Amarração Contábil · Export Único
 // ══════════════════════════════════════════════════════════
@@ -493,7 +493,7 @@ function mapearContaParaPlano(nomeConta, descOriginal) {
   const contas = getContasAnaliticas();
   if (!contas.length) return nomeConta;
 
-  const baseText = nomeConta.split(' (')[0].toLowerCase(); // ignore "(Ativo Circulante)", etc
+  const baseText = nomeConta.split(' (')[0].toLowerCase();
   const query = baseText.replace(/[^a-zá-ü0-9 ]/g, '').split(/\s+/).filter(x => x.length > 2);
   const descTxn = (descOriginal || '').toLowerCase();
   
@@ -501,33 +501,24 @@ function mapearContaParaPlano(nomeConta, descOriginal) {
   let bestScore = 0;
   
   for (const c of contas) {
-    if (c.tipo === 'T' || c.tipo === 'S') continue; // Foca mapping em contas analíticas!
+    if (c.tipo === 'T' || c.tipo === 'S') continue;
     const descInfo = ((c.descricao||'') + ' ' + (c.grupo||'') + ' ' + (c.apelido||'')).toLowerCase();
     let score = query.reduce((acc, q) => acc + (descInfo.includes(q) ? 1 : 0), 0);
-    
-    // bonus if exact class phrase matches somewhere
     if (descInfo.includes(baseText)) score += 5;
-    
-    // exact match with common terms (Caixa/Bancos, Clientes, Fornecedores)
     if (baseText.includes('caixa/banco') && descInfo.includes('banco') && !descInfo.includes('despesa')) score += 10;
     if (baseText.includes('clientes') && descInfo.includes('cliente')) score += 10;
     if (baseText.includes('fornecedores') && (descInfo.includes('forneced') || descInfo.includes('pagar'))) score += 10;
-    
-    // Heurísticas complementares a partir do extrato real:
     if (descTxn.includes('pix') && (descInfo.includes('banco') || descInfo.includes('caixa'))) score += 2;
     if ((descTxn.includes('tarifa') || descTxn.includes('taxa')) && (descInfo.includes('tarifa') || descInfo.includes('taxa'))) score += 5;
     if (baseText.includes('salário') && descInfo.includes('salário')) score += 10;
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = c;
-    }
+    if (score > bestScore) { bestScore = score; bestMatch = c; }
   }
   
   if (bestMatch && bestScore > 0) {
-    var isValido = bestMatch.cod_interno && bestMatch.cod_interno !== '-' && bestMatch.cod_interno !== '0';
-    return isValido 
-      ? (bestMatch.codigo + ' — ' + bestMatch.descricao + ' (Cód: ' + bestMatch.cod_interno + ')')
+    // Formato novo: COD — Descricao (prioritiza cod_interno)
+    const isValido = bestMatch.cod_interno && bestMatch.cod_interno !== '-' && bestMatch.cod_interno !== '0';
+    return isValido
+      ? (bestMatch.cod_interno + ' — ' + bestMatch.descricao)
       : (bestMatch.codigo + ' — ' + bestMatch.descricao);
   }
   return nomeConta;
@@ -609,8 +600,9 @@ function _fecharAutocompleteFora(e) {
 
 function selecionarContaAuto(idx, campo, cod_interno, codigo, descricao) {
   var isValido = cod_interno && cod_interno !== '-' && cod_interno !== '0';
+  // Novo formato: COD_INTERNO — Descricao  (usa o código reduzido como chave principal)
   var label = isValido
-    ? (codigo + ' — ' + descricao + ' (Cód: ' + cod_interno + ')')
+    ? (cod_interno + ' — ' + descricao)
     : (codigo + ' — ' + descricao);
 
   if (idx === 'bulk') {
@@ -746,6 +738,52 @@ function renderConcGrid() {
         : '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⚠️ Manual</span>';
     const isChecked = concState.selectedRows[idx] ? 'checked' : '';
 
+    // ── Helper: extrai código e descrição do label armazenado ──
+    function parseLabelCell(label) {
+      if (!label) return { cod: '', desc: '', full: '' };
+      // Formato novo: "78 — Banco do Brasil" ou "78 — ..."
+      // Formato antigo: "01.1.2.001 — Banco (Cód: 78)"
+      const codInternoMatch = label.match(/Cód:\s*([^\)]+)/i);
+      if (codInternoMatch) {
+        // Formato antigo — migra para novo
+        const cod = codInternoMatch[1].trim();
+        const desc = label.split(/\s*[—-]\s*/)[1]?.replace(/\s*\(Cód:[^)]+\)/i,'').trim() || label;
+        return { cod, desc, full: label };
+      }
+      // Formato novo: primeiro token é o código
+      const parts = label.split(/\s*—\s*/);
+      const first = (parts[0] || '').trim();
+      const isNumericCode = /^[0-9]+$/.test(first);
+      if (isNumericCode && parts.length >= 2) {
+        return { cod: first, desc: parts.slice(1).join(' — ').trim(), full: label };
+      }
+      // sem código (classificação pontilhada ainda)
+      const isClass = /^[0-9]+\.[0-9]/.test(first);
+      return { cod: isClass ? first : '', desc: parts.slice(1).join(' — ').trim() || label, full: label };
+    }
+
+    const deb = parseLabelCell(am.debito);
+    const cred = parseLabelCell(am.credito);
+
+    // Célula de conta com badge do código + input editavel
+    function contaCell(parsed, idxRow, campo) {
+      const badge = parsed.cod
+        ? `<span style="display:inline-block;font-family:monospace;font-size:11px;font-weight:800;background:${campo==='debito'?'#dbeafe':'#fef9c3'};color:${campo==='debito'?'#1d4ed8':'#92400e'};padding:1px 7px;border-radius:4px;margin-bottom:3px;white-space:nowrap">${parsed.cod}</span>`
+        : '';
+      const displayVal = parsed.desc || parsed.full || '';
+      return `<div style="display:flex;flex-direction:column;gap:2px">
+        ${badge}
+        <input class="conc-ac-input" value="${escHtml(parsed.full||'')}"
+          onfocus="abrirAutocompleteConta(${idxRow},'${campo}',this)"
+          oninput="filtrarAutocompleteConta(${idxRow},'${campo}',this)"
+          onchange="concState.amarracoes[${idxRow}].${campo}=this.value"
+          style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:3px 6px;font-size:11px"
+          title="${escHtml(parsed.full||'')}"
+          placeholder="🔍 ${campo==='debito'?'Conta débito...':'Conta crédito...'}"
+        >
+      </div>`;
+    }
+
     return `<tr style="${rowBg}border-bottom:1px solid var(--border)">
       <td style="padding:8px;text-align:center"><input type="checkbox" ${isChecked} onchange="toggleConcRow(${idx}, this.checked)" style="transform:scale(1.2)"></td>
       <td style="padding:8px;font-size:12px;text-align:center;color:var(--text-muted)">${t.data}</td>
@@ -753,20 +791,8 @@ function renderConcGrid() {
       <td style="padding:8px;font-size:12px;text-align:right;font-weight:700;color:${t.tipo==='credito'?'var(--success)':'var(--danger)'}">
         ${t.tipo==='credito'?'+':'−'} R$ ${t.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}
       </td>
-      <td style="padding:8px;font-size:11px;position:relative">
-        <input class="conc-ac-input" value="${escHtml(am.debito||'')}"
-          onfocus="abrirAutocompleteConta(${idx},'debito',this)"
-          oninput="filtrarAutocompleteConta(${idx},'debito',this)"
-          onchange="concState.amarracoes[${idx}].debito=this.value"
-          style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:4px 6px;font-size:11px" title="Pesquisar conta débito" placeholder="🔍 Pesquisar...">
-      </td>
-      <td style="padding:8px;font-size:11px;position:relative">
-        <input class="conc-ac-input" value="${escHtml(am.credito||'')}"
-          onfocus="abrirAutocompleteConta(${idx},'credito',this)"
-          oninput="filtrarAutocompleteConta(${idx},'credito',this)"
-          onchange="concState.amarracoes[${idx}].credito=this.value"
-          style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:4px 6px;font-size:11px" title="Pesquisar conta crédito" placeholder="🔍 Pesquisar...">
-      </td>
+      <td style="padding:6px 8px;font-size:11px;position:relative;min-width:200px">${contaCell(deb, idx, 'debito')}</td>
+      <td style="padding:6px 8px;font-size:11px;position:relative;min-width:200px">${contaCell(cred, idx, 'credito')}</td>
       <td style="padding:8px;font-size:11px">
         <input value="${escHtml(am.historico||'')}" onchange="concState.amarracoes[${idx}].historico=this.value"
           style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:4px 6px;font-size:11px">
@@ -1122,17 +1148,17 @@ Retorne JSON válido no formato:
       const am = concState.amarracoes[idx];
       if (!am) return;
 
-      // Montar label no formato padrão: "codigo — descricao (Cód: cod_interno)"
+      // Novo formato: COD — Descricao (código reduzido em destaque)
       const debConta = contaMap[String(lc.debito_cod)];
       const credConta = contaMap[String(lc.credito_cod)];
 
       const debLabel = debConta
-        ? `${debConta.codigo} — ${debConta.descricao} (Cód: ${lc.debito_cod})`
-        : (lc.debito_desc ? `${lc.debito_cod} — ${lc.debito_desc} (Cód: ${lc.debito_cod})` : '');
+        ? `${lc.debito_cod} — ${debConta.descricao}`
+        : (lc.debito_desc ? `${lc.debito_cod} — ${lc.debito_desc}` : '');
 
       const credLabel = credConta
-        ? `${credConta.codigo} — ${credConta.descricao} (Cód: ${lc.credito_cod})`
-        : (lc.credito_desc ? `${lc.credito_cod} — ${lc.credito_desc} (Cód: ${lc.credito_cod})` : '');
+        ? `${lc.credito_cod} — ${credConta.descricao}`
+        : (lc.credito_desc ? `${lc.credito_cod} — ${lc.credito_desc}` : '');
 
       if (debLabel) {
         am.debito = debLabel;
@@ -1193,20 +1219,19 @@ function exportarLayoutUnico() {
   // Lista de contas analíticas disponíveis no plano de contas
   const contas = getContasAnaliticas();
 
-  // Busca o código da conta no plano a partir do label armazenado (ex.: "01.1.2 — Banco (Cód: 123)")
+  // Extrai o código reduzido do label - suporta formato novo (78 — Desc) e antigo (01.1.2 — Desc (Cód: 78))
   function extrairCodigoReduzido(label) {
     if (!label || label.includes('⚠️')) return '';
-    // Primeiro tenta extrair "Cód: 51"
+    // Prioridade 1: formato antigo com "Cód: X"
     const internoMatch = label.match(/Cód:\s*([^\)]+)/i);
     if (internoMatch && internoMatch[1]) return internoMatch[1].trim();
-
-    // Divide por hífen, travessão ou espaço-hífen
-    const parts = label.split(/\s*[-—]\s*/);
-    let possCodigo = parts.length >= 2 ? parts[0].trim() : label.trim();
-    
-    // Retornamos string vazia se o conteúdo final não se parecer com um número de conta/classificação pra forçar erro seguro
-    if (!/^[0-9.\-]+$/.test(possCodigo)) return '';
-    return possCodigo;
+    // Prioridade 2: formato novo onde primeiro token é numérico puro = cod_interno
+    const parts = label.split(/\s*[—\-]\s*/);
+    const first = (parts[0] || '').trim();
+    if (/^[0-9]+$/.test(first)) return first;
+    // Fallback: classificação pontilhada
+    if (/^[0-9.]+$/.test(first)) return first;
+    return '';
   }
 
   const rowsContent = txns.map((t, idx) => {
@@ -1378,3 +1403,4 @@ function copiarLancamentos() {
   navigator.clipboard.writeText(text);
   alert('✅ Lançamentos copiados para a área de transferência!');
 }
+
