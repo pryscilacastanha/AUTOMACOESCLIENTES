@@ -582,7 +582,8 @@ window.toggleConcRow = function(idx, checked) {
 window.toggleAllConcRows = function(checked) {
   concState.selectedRows = {};
   if (checked) {
-    concState.transacoes.forEach((t, i) => concState.selectedRows[i] = true);
+    const indices = concState.currentFilteredIndices || concState.transacoes.map((_, i) => i);
+    indices.forEach(i => concState.selectedRows[i] = true);
   }
   render();
 };
@@ -642,6 +643,8 @@ function renderConcGrid() {
     }
     return true;
   });
+
+  concState.currentFilteredIndices = filtered.map(t => txns.indexOf(t));
 
   const totalCred = txns.filter(t => t.tipo === 'credito').reduce((s, t) => s + t.valor, 0);
   const totalDeb = txns.filter(t => t.tipo === 'debito').reduce((s, t) => s + t.valor, 0);
