@@ -974,14 +974,14 @@ function exportarLayoutUnico() {
     return `${t.data};${debCode};${credCode};${valor};${hist}`;
   }).join('\r\n');
 
-  const blob = new Blob(['\ufeff' + header + rows], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob(['\ufeff' + header + rows], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Lancamentos_Unico_${(cli?.nome||'').replace(/\s/g,'_').slice(0,30)}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `Lancamentos_Unico_${(cli?.nome||'').replace(/\s/g,'_').slice(0,30)}_${new Date().toISOString().slice(0,10)}.txt`;
   a.click();
   URL.revokeObjectURL(url);
-  alert('✅ Arquivo CSV gerado no Layout Único!');
+  alert('✅ Arquivo TXT gerado no Layout Único!');
 }
 
 function renderConcExport() {
@@ -1019,7 +1019,7 @@ function renderConcExport() {
   return `
 <div class="card mb-4" style="background:linear-gradient(135deg,#065f46,#0d9488);color:#fff;padding:20px 28px;border-radius:12px">
   <h3 style="font-size:16px;margin-bottom:4px">⬇️ Exportar para Layout Único</h3>
-  <p style="opacity:.8;font-size:12px">Gera arquivo CSV no layout de importação do Domínio Único (SCI). Layout: DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO</p>
+  <p style="opacity:.8;font-size:12px">Gera arquivo TXT no layout de importação do Domínio Único (SCI). Layout: DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO</p>
 </div>
 
 ${naoClassificados > 0 ? `<div class="card mb-4" style="border-left:4px solid var(--warning);background:#fffbeb">
@@ -1034,7 +1034,7 @@ ${naoClassificados > 0 ? `<div class="card mb-4" style="border-left:4px solid va
 
 <div class="card mb-4" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
   <button class="btn btn-ghost" onclick="concState.view='grid';render()">← Voltar ao Grid</button>
-  <button class="btn btn-primary" onclick="exportarLayoutUnico()">📥 Gerar e Baixar CSV</button>
+  <button class="btn btn-primary" onclick="exportarLayoutUnico()">📥 Gerar e Baixar TXT</button>
   <button class="btn btn-ghost" onclick="copiarLancamentos()">📋 Copiar Lançamentos</button>
   <div style="flex:1"></div>
   <div style="font-size:12px;color:var(--text-muted)">
