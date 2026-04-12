@@ -78,7 +78,7 @@
     <div style="padding:16px 20px;margin-top:auto;border-top:1px solid rgba(255,255,255,.07)">
       <div style="font-size:11px;color:#475569;line-height:1.7">
         <div style="color:#64748b;font-weight:600;margin-bottom:2px" id="sidebar-count">87 clientes cadastrados</div>
-        Sistema contábil v2.1<br>
+        Sistema contábil v2.4<br>
         <span id="gemini-status-sidebar" style="color:#10b981"></span>
       </div>
     </div>
@@ -104,21 +104,24 @@
 
 </div>
 
-<!-- Supabase -->
+<!-- Performance: preconnect to external services -->
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://accounts.google.com">
+<!-- Supabase — crítico, carrega primeiro -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="js/data.js"></script>
-<script src="js/gemini.js"></script>
-<script src="js/supabase-client.js"></script>
-<script src="js/app.js?v=2.3"></script>
-<script src="js/modules.js?v=2.3"></script>
-<script src="js/seed.js"></script>
-<script src="js/planos-data.js"></script>
-<script src="js/conciliacao.js?v=2.2"></script>
-<script src="js/chat-agent.js"></script>
-<script src="js/drive-sync.js"></script>
+<script src="js/data.js?v=2.4"></script>
+<script src="js/gemini.js?v=2.4"></script>
+<script src="js/supabase-client.js?v=2.4"></script>
+<script src="js/app.js?v=2.4"></script>
+<script src="js/modules.js?v=2.4"></script>
+<script src="js/seed.js?v=2.4"></script>
+<script src="js/planos-data.js?v=2.4"></script>
+<script src="js/conciliacao.js?v=2.4"></script>
+<script src="js/chat-agent.js?v=2.4" defer></script>
+<script src="js/drive-sync.js?v=2.4" defer></script>
 <!-- Google Identity Services para OAuth2 do Drive -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<link rel="stylesheet" href="css/chat.css">
+<link rel="stylesheet" href="css/chat.css?v=2.4">
 <script>
   function resetarDados() {
     if (!confirm('Apagar todos os dados operacionais e recarregar base dos clientes?')) return;
