@@ -443,8 +443,8 @@ async function importarExtratoConciliacao() {
       };
     } else {
       let am = sugerirConta(t.descricao, t.valor, t.tipo);
-      am.debito = mapearContaParaPlano(am.debito);
-      am.credito = mapearContaParaPlano(am.credito);
+      am.debito = mapearContaParaPlano(am.debito, t.descricao);
+      am.credito = mapearContaParaPlano(am.credito, t.descricao);
       concState.amarracoes[idx] = am;
     }
   });
@@ -488,29 +488,36 @@ function getContasAnaliticas() {
   return contas;
 }
 
-function mapearContaParaPlano(nomeConta) {
+function mapearContaParaPlano(nomeConta, descOriginal) {
   if (!nomeConta || nomeConta.includes('⚠️')) return nomeConta;
   const contas = getContasAnaliticas();
   if (!contas.length) return nomeConta;
 
   const baseText = nomeConta.split(' (')[0].toLowerCase(); // ignore "(Ativo Circulante)", etc
   const query = baseText.replace(/[^a-zá-ü0-9 ]/g, '').split(/\s+/).filter(x => x.length > 2);
+  const descTxn = (descOriginal || '').toLowerCase();
+  
   let bestMatch = null;
   let bestScore = 0;
   
   for (const c of contas) {
+    if (c.tipo === 'T' || c.tipo === 'S') continue; // Foca mapping em contas analíticas!
     const descInfo = ((c.descricao||'') + ' ' + (c.grupo||'') + ' ' + (c.apelido||'')).toLowerCase();
     let score = query.reduce((acc, q) => acc + (descInfo.includes(q) ? 1 : 0), 0);
     
     // bonus if exact class phrase matches somewhere
     if (descInfo.includes(baseText)) score += 5;
     
-    // huge bonus if exact match with common terms (Caixa/Bancos, Clientes, Fornecedores)
-    if (baseText.includes('caixa/banco') && descInfo.includes('banco')) score += 10;
+    // exact match with common terms (Caixa/Bancos, Clientes, Fornecedores)
+    if (baseText.includes('caixa/banco') && descInfo.includes('banco') && !descInfo.includes('despesa')) score += 10;
     if (baseText.includes('clientes') && descInfo.includes('cliente')) score += 10;
-    if (baseText.includes('fornecedores') && (descInfo.includes('fornecedor') || descInfo.includes('fornecedores'))) score += 10;
-    if (baseText.includes('salário') && descInfo.includes('salário')) score += 10;
+    if (baseText.includes('fornecedores') && (descInfo.includes('forneced') || descInfo.includes('pagar'))) score += 10;
     
+    // Heurísticas complementares a partir do extrato real:
+    if (descTxn.includes('pix') && (descInfo.includes('banco') || descInfo.includes('caixa'))) score += 2;
+    if ((descTxn.includes('tarifa') || descTxn.includes('taxa')) && (descInfo.includes('tarifa') || descInfo.includes('taxa'))) score += 5;
+    if (baseText.includes('salário') && descInfo.includes('salário')) score += 10;
+
     if (score > bestScore) {
       bestScore = score;
       bestMatch = c;
@@ -952,21 +959,18 @@ function exportarLayoutUnico() {
 
   // Busca o código da conta no plano a partir do label armazenado (ex.: "01.1.2 — Banco (Cód: 123)")
   function extrairCodigoReduzido(label) {
-    if (!label) return '';
+    if (!label || label.includes('⚠️')) return '';
     // Primeiro tenta extrair "Cód: 51"
     const internoMatch = label.match(/Cód:\s*([^\)]+)/i);
-    if (internoMatch && internoMatch[1]) {
-      return internoMatch[1].trim();
-    }
+    if (internoMatch && internoMatch[1]) return internoMatch[1].trim();
+
     // Divide por hífen, travessão ou espaço-hífen
     const parts = label.split(/\s*[-—]\s*/);
-    if (parts.length >= 2) {
-      const possCodigo = parts[0].trim();
-      // O dropdown insere o Cód logo no text, então se falhou é porque não tinha cod_interno.
-      // Se não tem cod_interno, fallback para o numérico encontrado na esquerda (classificação)
-      return possCodigo;
-    }
-    return '';
+    let possCodigo = parts.length >= 2 ? parts[0].trim() : label.trim();
+    
+    // Retornamos string vazia se o conteúdo final não se parecer com um número de conta/classificação pra forçar erro seguro
+    if (!/^[0-9.\-]+$/.test(possCodigo)) return '';
+    return possCodigo;
   }
 
   // Layout: DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO
@@ -1071,7 +1075,7 @@ ${naoClassificados > 0 ? `<div class="card mb-4" style="border-left:4px solid va
 
 <div class="card mb-4" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
   <button class="btn btn-ghost" onclick="concState.view='grid';render()">← Voltar ao Grid</button>
-  <button class="btn btn-primary" onclick="exportarLayoutUnico()">📥 Gerar e Baixar TXT</button>
+  <button class="btn btn-primary" onclick="if(${naoClassificados}>0){alert('⚠️ Resolve as pendências antes de exportar!\\nO arquivo rejeitaria contas sem código. Volte ao Grid e preencha as contas faltantes ou com Alerta amarelo.');return;} exportarLayoutUnico()" ${naoClassificados > 0 ? 'style="opacity:0.6; cursor:not-allowed"' : 'title="Pronto para exportar!"'}>📥 Gerar e Baixar TXT</button>
   <button class="btn btn-ghost" onclick="copiarLancamentos()">📋 Copiar Lançamentos</button>
   <div style="flex:1"></div>
   <div style="font-size:12px;color:var(--text-muted)">
