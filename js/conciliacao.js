@@ -424,12 +424,29 @@ async function importarExtratoConciliacao() {
     }
   }
 
+  // Recuperar aprendizado prévio do cliente
+  const aprendizado = DB.get('aprendizado_conciliacao') || {};
+  const regrasCliente = aprendizado[concState.clienteId] || {};
+
   // Gerar sugestões automáticas mapeando já para o plano de contas atual
   concState.transacoes.forEach((t, idx) => {
-    let am = sugerirConta(t.descricao, t.valor, t.tipo);
-    am.debito = mapearContaParaPlano(am.debito);
-    am.credito = mapearContaParaPlano(am.credito);
-    concState.amarracoes[idx] = am;
+    const key = (t.tipo + '|' + t.descricao).toUpperCase().trim();
+    if (regrasCliente[key]) {
+      // Já sabe fazer pois aprendeu nesta exata descrição antes!
+      concState.amarracoes[idx] = {
+        debito: regrasCliente[key].debito,
+        credito: regrasCliente[key].credito,
+        historico: regrasCliente[key].historico || t.descricao,
+        confianca: 'Alta',
+        explicacao: 'Inteligência mapeou automaticamente com base na última vez que você selecionou esta regra para este histórico exato.',
+        cpc: 'Amarrado via Inteligência'
+      };
+    } else {
+      let am = sugerirConta(t.descricao, t.valor, t.tipo);
+      am.debito = mapearContaParaPlano(am.debito);
+      am.credito = mapearContaParaPlano(am.credito);
+      concState.amarracoes[idx] = am;
+    }
   });
 
   statusEl.textContent = `✅ ${concState.transacoes.length} transações importadas.`;
@@ -936,15 +953,17 @@ function exportarLayoutUnico() {
   // Busca o código da conta no plano a partir do label armazenado (ex.: "01.1.2 — Banco (Cód: 123)")
   function extrairCodigoReduzido(label) {
     if (!label) return '';
+    // Primeiro tenta extrair "Cód: 51"
     const internoMatch = label.match(/Cód:\s*([^\)]+)/i);
     if (internoMatch && internoMatch[1]) {
       return internoMatch[1].trim();
     }
-    const parts = label.split(' — ');
+    // Divide por hífen, travessão ou espaço-hífen
+    const parts = label.split(/\s*[-—]\s*/);
     if (parts.length >= 2) {
       const possCodigo = parts[0].trim();
-      const conta = contas.find(c => c.codigo && c.codigo.toString() === possCodigo);
-      if (conta && conta.cod_interno) return conta.cod_interno;
+      // O dropdown insere o Cód logo no text, então se falhou é porque não tinha cod_interno.
+      // Se não tem cod_interno, fallback para o numérico encontrado na esquerda (classificação)
       return possCodigo;
     }
     return '';
@@ -964,7 +983,6 @@ function exportarLayoutUnico() {
   }
 
   // Layout: DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO
-  const header = 'DATA;DEBITO;CREDITO;VALOR;COMPLEMENTO\r\n';
   const rows = txns.map((t, idx) => {
     const am = concState.amarracoes[idx] || {};
     const debCode = extrairCodigoReduzido(am.debito);
@@ -974,7 +992,26 @@ function exportarLayoutUnico() {
     return `${t.data};${debCode};${credCode};${valor};${hist}`;
   }).join('\r\n');
 
-  const blob = new Blob(['\ufeff' + header + rows], { type: 'text/plain;charset=utf-8' });
+  // Gravar regras na memória para automação (Machine Learning Simples)
+  try {
+    const aprendizado = DB.get('aprendizado_conciliacao') || {};
+    if (!aprendizado[concState.clienteId]) aprendizado[concState.clienteId] = {};
+    txns.forEach((t, idx) => {
+      const am = concState.amarracoes[idx];
+      // Se a confiança não for baixa e as contas estiverem preenchidas, ele aprende o padrão exato
+      if (am && am.debito && am.credito && !am.debito.includes('⚠️')) {
+         const key = (t.tipo + '|' + t.descricao).toUpperCase().trim();
+         aprendizado[concState.clienteId][key] = {
+           debito: am.debito,
+           credito: am.credito,
+           historico: am.historico !== t.descricao ? am.historico : ''
+         };
+      }
+    });
+    DB.set('aprendizado_conciliacao', aprendizado);
+  } catch(e) { console.warn('Erro ao salvar aprendizado', e); }
+
+  const blob = new Blob(['\ufeff' + rows], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -993,7 +1030,7 @@ function renderConcExport() {
     if (!label) return '';
     const internoMatch = label.match(/Cód:\s*([^\)]+)/i);
     if (internoMatch && internoMatch[1]) return internoMatch[1].trim();
-    const parts = label.split(' — ');
+    const parts = label.split(/\s*[-—]\s*/);
     if (parts.length >= 2) return parts[0].trim();
     return label.split(' (')[0].trim();
   }

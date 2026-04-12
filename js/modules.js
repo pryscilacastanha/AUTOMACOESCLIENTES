@@ -726,7 +726,7 @@ function parseContasCSV(text) {
         relatorio: obj['relatorio'] || '',
         plano_padrao: '',
         saldo: '',
-        cod_interno: '',
+        cod_interno: obj['cod_interno'] || obj['codigo reduzido'] || obj['reduzido'] || obj['cod interno'] || obj['cod'] || '',
       };
     }
     return {
@@ -734,7 +734,7 @@ function parseContasCSV(text) {
       descricao: cols[1] || '', tipo: (cols[2] || '').charAt(0).toUpperCase(),
       nivel: ((cols[0] || '').match(/\./g) || []).length + 1,
       natureza: cols[4] || '', grupo: '', apelido: '', relatorio: '',
-      plano_padrao: '', saldo: '', cod_interno: '',
+      plano_padrao: '', saldo: '', cod_interno: cols[2] || '', // se n houver, cod_interno é a terceira
     };
   }).filter(c => c.codigo || c.descricao);
 }
