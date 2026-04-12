@@ -492,6 +492,23 @@ async function bootstrapApp() {
       });
     }
     navigate('dashboard');
+    // 5. Auto-enriquecer cod_interno dos planos já existentes (sem c\u00f3digos)
+    try {
+      if (typeof PLANOS_SEED !== 'undefined') {
+        const planosExistentes = DB.get('planos_contas') || [];
+        let totalEnriquecidas = 0;
+        for (const p of planosExistentes) {
+          const semCod = p.contas.filter(c => !c.cod_interno || c.cod_interno === '').length;
+          if (semCod > 0) {
+            const n = enriquecerCodInternoPlano(p.id);
+            totalEnriquecidas += n;
+          }
+        }
+        if (totalEnriquecidas > 0) {
+          console.log(`[Bootstrap] Auto-enriquecimento: ${totalEnriquecidas} contas com cod_interno preenchido.`);
+        }
+      }
+    } catch(e) { console.warn('[Bootstrap] Erro no auto-enriquecimento:', e); }
     console.log('[Bootstrap] Completo!');
   } catch (err) {
     console.error('[Bootstrap] ERRO:', err);
@@ -563,6 +580,7 @@ ${renderPlanoContasTable(historico.contas)}`;
     <span class="text-muted text-sm">${plano.contas.length} contas · ${plano.data}</span>
     <div style="margin-left:auto;display:flex;gap:8px">
       <button class="btn btn-ghost btn-sm" onclick="exportarUnico('${pcPlanId}')">⬇️ Exportar Único</button>
+      <button class="btn btn-ghost btn-sm" style="background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc" onclick="window.enriquecerPlanoUI('${pcPlanId}')" title="Preenche automaticamente o Código Interno (CÓD) das contas usando o Plano SCI de referência">🔗 Enriquecer CODs</button>
       <button class="btn btn-danger btn-sm" onclick="excluirPlano(event,'${pcPlanId}')">🗑️ Excluir</button>
     </div>
   </div>
@@ -748,6 +766,84 @@ function parseContasCSV(text) {
   }).filter(c => c.codigo || c.descricao);
 }
 
+// ─── ENRIQUECIMENTO AUTOMÁTICO DE COD_INTERNO VIA PLANOS_SEED ───
+// Preenche cod_interno nas contas do plano importado usando o PLANOS_SEED como referência
+function enriquecerCodInternoPlano(planId) {
+  if (typeof PLANOS_SEED === 'undefined') {
+    console.warn('[Enriquecer] PLANOS_SEED não disponível.');
+    return 0;
+  }
+  const planos = DB.get('planos_contas') || [];
+  const plano = planos.find(p => String(p.id) === String(planId));
+  if (!plano) return 0;
+
+  // Verificar quantas contas já têm cod_interno
+  const semCod = plano.contas.filter(c => !c.cod_interno || c.cod_interno === '' || c.cod_interno === '-').length;
+  if (semCod === 0) {
+    console.log('[Enriquecer] Todas as contas já possuem cod_interno.');
+    return 0;
+  }
+
+  // Montar mapa de classificação → cod_interno de TODOS os planos SEED
+  // Priorizar o plano que bate com planoPadrao do plano importado
+  const seedMaps = {}; // classificacao -> cod_interno
+  const planoPadrao = plano.planoPadrao || '';
+  
+  // Primeiro: adicionar todos os seeds como fallback
+  for (const seedPlan of PLANOS_SEED) {
+    for (const c of seedPlan.contas) {
+      const key = (c.classificacao || c.codigo || '').trim();
+      if (key && c.cod_interno && !seedMaps[key]) {
+        seedMaps[key] = c.cod_interno;
+      }
+    }
+  }
+  // Depois: sobrescrever com o plano seed que corresponde ao planoPadrao (maior prioridade)
+  if (planoPadrao) {
+    const matchSeed = PLANOS_SEED.find(s => String(s.id) === String(planoPadrao));
+    if (matchSeed) {
+      for (const c of matchSeed.contas) {
+        const key = (c.classificacao || c.codigo || '').trim();
+        if (key && c.cod_interno) {
+          seedMaps[key] = c.cod_interno; // sobrescreve
+        }
+      }
+    }
+  }
+
+  let enriquecidas = 0;
+  plano.contas = plano.contas.map(c => {
+    if (c.cod_interno && c.cod_interno !== '' && c.cod_interno !== '-') return c; // já tem
+    const key = (c.classificacao || c.codigo || '').trim();
+    const cod = seedMaps[key];
+    if (cod) {
+      enriquecidas++;
+      return { ...c, cod_interno: String(cod) };
+    }
+    return c;
+  });
+
+  DB.set('planos_contas', planos);
+  console.log(`[Enriquecer] ${enriquecidas} contas enriquecidas com cod_interno no plano "${plano.nome}".`);
+  return enriquecidas;
+}
+
+window.enriquecerPlanoUI = function(planId) {
+  const n = enriquecerCodInternoPlano(planId);
+  if (n > 0) {
+    alert(`✅ ${n} contas tiveram o Código Interno preenchido automaticamente!`);
+  } else {
+    // Verifica se todas já tinham
+    const planos = DB.get('planos_contas') || [];
+    const plano = planos.find(p => String(p.id) === String(planId));
+    const comCod = plano ? plano.contas.filter(c => c.cod_interno && c.cod_interno !== '').length : 0;
+    alert(comCod > 0 
+      ? `ℹ️ As contas já possuem Código Interno (${comCod} preenchidas). Nenhuma alteração necessária.`
+      : `⚠️ Não foi possível enriquecer. Verifique se o plano SEED correspondente está disponível.`);
+  }
+  render();
+};
+
 function importarPlano(input) {
   const file = input.files[0];
   if (!file) return;
@@ -773,6 +869,11 @@ function importarPlano(input) {
     DB.set('planos_contas', planos);
     pcPlanId = id; pcView = 'detail';
     console.log(`[PlanoContas] Importado: ${nome} — ${contas.length} contas (A:${totalAnaliticas} T:${totalSinteticas} C:${totalConsolidadas}) Plano:${planoPadrao}`);
+    // ── Auto-enriquecer cod_interno via PLANOS_SEED ──
+    const enriquecidas = enriquecerCodInternoPlano(id);
+    if (enriquecidas > 0) {
+      console.log(`[PlanoContas] Auto-enriquecimento: ${enriquecidas} contas com cod_interno preenchido via Seed.`);
+    }
     render();
   };
   // Tentar ISO-8859-1 primeiro (padrão dos CSVs do Sistema Único SCI)
