@@ -424,9 +424,12 @@ async function importarExtratoConciliacao() {
     }
   }
 
-  // Gerar sugestões automáticas
+  // Gerar sugestões automáticas mapeando já para o plano de contas atual
   concState.transacoes.forEach((t, idx) => {
-    concState.amarracoes[idx] = sugerirConta(t.descricao, t.valor, t.tipo);
+    let am = sugerirConta(t.descricao, t.valor, t.tipo);
+    am.debito = mapearContaParaPlano(am.debito);
+    am.credito = mapearContaParaPlano(am.credito);
+    concState.amarracoes[idx] = am;
   });
 
   statusEl.textContent = `✅ ${concState.transacoes.length} transações importadas.`;
@@ -452,12 +455,13 @@ function getContasAnaliticas() {
   const contas = [];
   targetPlanos.forEach(p => {
     (p.contas || []).forEach(c => {
-      // Only analytical accounts (tipo vazio ou undefined = conta analítica; tipo 'A' also)
-      if (!c.tipo || c.tipo === 'A' || c.tipo === '' || c.tipo === 'C') {
+      // Somente contas analíticas (ignorar sintéticas T e S)
+      if (c.tipo !== 'T' && c.tipo !== 'S') {
         contas.push({
           codigo: c.codigo || c.classificacao || '',
           cod_interno: c.cod_interno || '',
           descricao: c.descricao || c.nome || '',
+          apelido: c.apelido || '',
           grupo: c.grupo || '',
           plano: p.nome || p.id || '',
           natureza: c.natureza || '',
@@ -466,6 +470,43 @@ function getContasAnaliticas() {
     });
   });
   return contas;
+}
+
+function mapearContaParaPlano(nomeConta) {
+  if (!nomeConta || nomeConta.includes('⚠️')) return nomeConta;
+  const contas = getContasAnaliticas();
+  if (!contas.length) return nomeConta;
+
+  const baseText = nomeConta.split(' (')[0].toLowerCase(); // ignore "(Ativo Circulante)", etc
+  const query = baseText.replace(/[^a-zá-ü0-9 ]/g, '').split(/\s+/).filter(x => x.length > 2);
+  let bestMatch = null;
+  let bestScore = 0;
+  
+  for (const c of contas) {
+    const descInfo = ((c.descricao||'') + ' ' + (c.grupo||'') + ' ' + (c.apelido||'')).toLowerCase();
+    let score = query.reduce((acc, q) => acc + (descInfo.includes(q) ? 1 : 0), 0);
+    
+    // bonus if exact class phrase matches somewhere
+    if (descInfo.includes(baseText)) score += 5;
+    
+    // huge bonus if exact match with common terms (Caixa/Bancos, Clientes, Fornecedores)
+    if (baseText.includes('caixa/banco') && descInfo.includes('banco')) score += 10;
+    if (baseText.includes('clientes') && descInfo.includes('cliente')) score += 10;
+    if (baseText.includes('fornecedores') && (descInfo.includes('fornecedor') || descInfo.includes('fornecedores'))) score += 10;
+    if (baseText.includes('salário') && descInfo.includes('salário')) score += 10;
+    
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = c;
+    }
+  }
+  
+  if (bestMatch && bestScore > 0) {
+    return bestMatch.cod_interno 
+      ? (bestMatch.codigo + ' — ' + bestMatch.descricao + ' (Cód: ' + bestMatch.cod_interno + ')')
+      : (bestMatch.codigo + ' — ' + bestMatch.descricao);
+  }
+  return nomeConta;
 }
 
 // ─── AUTOCOMPLETE DE CONTA CONTÁBIL ───
@@ -479,7 +520,7 @@ function abrirAutocompleteConta(idx, campo, inputEl) {
   var contas = getContasAnaliticas();
   var query = (inputEl.value || '').toLowerCase();
   var filtered = query.length < 1 ? contas.slice(0, 900) : contas.filter(function(c) {
-    var searchStr = ((c.cod_interno||'') + ' ' + (c.codigo||'') + ' ' + (c.descricao||'')).toLowerCase();
+    var searchStr = ((c.cod_interno||'') + ' ' + (c.codigo||'') + ' ' + (c.descricao||'') + ' ' + (c.apelido||'') + ' ' + (c.grupo||'')).toLowerCase();
     return query.split(/\s+/).every(function(w) { return searchStr.includes(w); });
   }).slice(0, 900);
 
@@ -560,7 +601,7 @@ function filtrarAutocompleteConta(idx, campo, inputEl) {
   var contas = getContasAnaliticas();
   var query = (inputEl.value || '').toLowerCase();
   var filtered = query.length < 1 ? contas.slice(0, 900) : contas.filter(function(c) {
-    var searchStr = ((c.cod_interno||'') + ' ' + (c.codigo||'') + ' ' + (c.descricao||'')).toLowerCase();
+    var searchStr = ((c.cod_interno||'') + ' ' + (c.codigo||'') + ' ' + (c.descricao||'') + ' ' + (c.apelido||'') + ' ' + (c.grupo||'')).toLowerCase();
     return query.split(/\s+/).every(function(w) { return searchStr.includes(w); });
   }).slice(0, 900);
 
