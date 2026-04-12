@@ -525,7 +525,8 @@ function mapearContaParaPlano(nomeConta, descOriginal) {
   }
   
   if (bestMatch && bestScore > 0) {
-    return bestMatch.cod_interno 
+    var isValido = bestMatch.cod_interno && bestMatch.cod_interno !== '-' && bestMatch.cod_interno !== '0';
+    return isValido 
       ? (bestMatch.codigo + ' — ' + bestMatch.descricao + ' (Cód: ' + bestMatch.cod_interno + ')')
       : (bestMatch.codigo + ' — ' + bestMatch.descricao);
   }
@@ -568,11 +569,15 @@ function _buildDropdownHtml(idx, campo, filtered) {
     return '<div style="padding:12px;color:#94a3b8;text-align:center">Nenhuma conta encontrada</div>';
   }
   return filtered.map(function(c) {
-    var ci = (c.cod_interno||'').replace(/'/g, "\\'");
+    var ciNum = (c.cod_interno||'').toString().trim();
+    var isValido = ciNum !== '' && ciNum !== '-' && ciNum !== '0';
+    var ci = isValido ? ciNum.replace(/'/g, "\\'") : '';
+    
     var cc = (c.codigo||'').replace(/'/g, "\\'");
     var cd = (c.descricao||'').replace(/'/g, "\\'");
-    var primaryCode = c.cod_interno ? c.cod_interno : (c.codigo||'');
-    var secondaryCode = c.cod_interno ? c.codigo : '';
+    
+    var primaryCode = c.codigo || '';
+    var secondaryCode = isValido ? ('Cód ' + ciNum) : '';
     
     var nat = c.natureza === 'D' ? '⬆D' : (c.natureza === 'C' ? '⬇C' : '');
     var isSintetica = (c.tipo === 'T' || c.tipo === 'S');
@@ -603,8 +608,9 @@ function _fecharAutocompleteFora(e) {
 }
 
 function selecionarContaAuto(idx, campo, cod_interno, codigo, descricao) {
-  var label = cod_interno
-    ? (cod_interno + ' — ' + descricao + ' [' + codigo + ']')
+  var isValido = cod_interno && cod_interno !== '-' && cod_interno !== '0';
+  var label = isValido
+    ? (codigo + ' — ' + descricao + ' (Cód: ' + cod_interno + ')')
     : (codigo + ' — ' + descricao);
 
   if (idx === 'bulk') {
