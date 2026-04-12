@@ -973,7 +973,7 @@ function exportarLayoutUnico() {
     return possCodigo;
   }
 
-  const rows = txns.map((t, idx) => {
+  const rowsContent = txns.map((t, idx) => {
     const am = concState.amarracoes[idx] || {};
     const debCode = extrairCodigoReduzido(am.debito);
     const credCode = extrairCodigoReduzido(am.credito);
@@ -989,11 +989,25 @@ function exportarLayoutUnico() {
     const hist = (am.historico || t.descricao || '').replace(/,/g, '').replace(/;/g, ' ').replace(/\r?\n/g, ' ').slice(0, 200).trim();
     
     // 001(Seq), 002(Data), 003(DebCode), 004(CredCode), 005(Valor), 006(CodHist), 007(Comp)
-    const seq = idx + 1;
-    const codHist = 1; // Padrão Genérico
+    const seq = String(idx + 1).padStart(6, '0');
+    const codHist = '1'; // Padrão Genérico
     
     return `${seq},${dateFormatted},${debCode},${credCode},${valor},${codHist},${hist}`;
-  }).join('\r\n');
+  });
+
+  // Validação Crucial de Negócio: Se o código ainda tem PONTO (.) não é o reduzido!
+  const rowsComPontos = rowsContent.filter(r => {
+     const cols = r.split(',');
+     return (cols[2] && cols[2].includes('.')) || (cols[3] && cols[3].includes('.'));
+  });
+
+  if (rowsComPontos.length > 0) {
+    if (!confirm('🚨 ATENÇÃO CRÍTICA!\n\nAlgumas contas no seu Plano de Contas atual não possuem o "Cód Interno" (ex: 51) registrado. Por isso, a esportação carregará a Classificação Completa (ex: 01.1.1...).\n\nPara o layout "Único" funcionar sem erros no SCI, é OBRIGATÓRIO o Código Curto (Reduzido).\n\nSUGESTÃO: Vá em "Plano de Contas", exclua o plano atual e importe novamente garantindo que a coluna de Código Reduzido seja lida corretamente.\n\nDeseja gerar o arquivo incompleto mesmo assim?')) {
+      return;
+    }
+  }
+
+  const rows = rowsContent.join('\r\n');
 
   // Gravar regras na memória para automação (Machine Learning Simples)
   try {
@@ -1097,7 +1111,8 @@ ${naoClassificados > 0 ? `<div class="card mb-4" style="border-left:4px solid va
     const dc = extrairCodigoReduzidoPrev(am.debito);
     const cc = extrairCodigoReduzidoPrev(am.credito);
     const hist = (am.historico||t.descricao||'').replace(/,/g,'').slice(0,60).trim();
-    return `${i+1},${dateFormatted},${dc},${cc},${t.valor.toFixed(2)},1,${hist}`;
+    const seq = String(i + 1).padStart(6, '0');
+    return `${seq},${dateFormatted},${dc},${cc},${t.valor.toFixed(2)},1,${hist}`;
   }).join('\n')}</div>
 </div>
 
