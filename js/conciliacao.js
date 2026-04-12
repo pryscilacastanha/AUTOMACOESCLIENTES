@@ -737,10 +737,13 @@ function renderConcGrid() {
     const idx = txns.indexOf(t);
     const am = concState.amarracoes[idx] || {};
     const isAlta = am.confianca === 'Alta';
+    const isIA   = am.fonte === 'ia';
     const rowBg = isAlta ? '' : 'background:#fffbeb;';
-    const confBadge = isAlta
-      ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">✅ Alta</span>'
-      : '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⚠️ Manual</span>';
+    const confBadge = isIA
+      ? '<span style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">🤖 IA</span>'
+      : isAlta
+        ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">✅ Alta</span>'
+        : '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⚠️ Manual</span>';
     const isChecked = concState.selectedRows[idx] ? 'checked' : '';
 
     return `<tr style="${rowBg}border-bottom:1px solid var(--border)">
@@ -809,7 +812,10 @@ function renderConcGrid() {
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.2)" onclick="concState.view='home';render()">← Voltar</button>
-      <button class="btn btn-primary btn-sm" onclick="exportarLayoutUnico()">⬇️ Exportar Único</button>
+      <button id="btn-ia-classif" class="btn btn-sm" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;display:flex;align-items:center;gap:6px;font-weight:700;box-shadow:0 2px 8px rgba(124,58,237,.4)" onclick="window.classificarComIA()">
+        🤖 Classificar com IA
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="exportarLayoutUnico()" style="background:#059669;border-color:#047857">⬇️ Exportar Único</button>
     </div>
   </div>
 </div>
@@ -956,7 +962,229 @@ function usarContaPlano(idx, codigo, descricao) {
   render();
 }
 
+// ─── CLASSIFICAÇÃO INTELIGENTE COM GEMINI AI ───
+window.classificarComIA = async function() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    alert('⚠️ Configure a API Key do Gemini em Configurações antes de usar a IA.\n\nMenu: Configurações → Google Gemini API → Inserir API Key');
+    return;
+  }
+
+  const txns = concState.transacoes;
+  if (!txns.length) { alert('Nenhuma transação para classificar.'); return; }
+
+  // Obter contas analíticas do plano (apenas contas que têm cod_interno preenchido)
+  const todasContas = getContasAnaliticas();
+  const contasValidas = todasContas.filter(c =>
+    c.cod_interno && c.cod_interno !== '' && c.cod_interno !== '-' && c.cod_interno !== '0'
+    && c.tipo !== 'T' && c.tipo !== 'C' // apenas analíticas
+  );
+
+  if (contasValidas.length === 0) {
+    alert('⚠️ Nenhuma conta analítica com Código Interno encontrada.\n\nVá em "Plano de Contas", selecione seu plano e clique em "🔗 Enriquecer CODs" para preencher os códigos.');
+    return;
+  }
+
+  // Identificar transações pendentes (sem classificação Alta)
+  const pendentes = txns.map((t, i) => ({ t, i })).filter(({ i }) => {
+    const am = concState.amarracoes[i] || {};
+    return am.confianca !== 'Alta' && am.fonte !== 'ia';
+  });
+
+  if (pendentes.length === 0) {
+    alert('✅ Todas as transações já estão classificadas!\n\nUse o botão "⬇️ Exportar Único" para gerar o arquivo.');
+    return;
+  }
+
+  // Mostrar modal de progresso
+  const modalId = 'ia-progress-modal';
+  let modalEl = document.getElementById(modalId);
+  if (!modalEl) {
+    modalEl = document.createElement('div');
+    modalEl.id = modalId;
+    document.body.appendChild(modalEl);
+  }
+  const showProgress = (msg, pct) => {
+    modalEl.innerHTML = `
+<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center">
+  <div style="background:#fff;padding:32px 40px;border-radius:16px;max-width:480px;width:90%;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,.3)">
+    <div style="font-size:48px;margin-bottom:16px">🤖</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px;color:#1e293b">IA Classificando...</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:20px">${msg}</div>
+    <div style="background:#f1f5f9;border-radius:8px;height:8px;overflow:hidden;margin-bottom:12px">
+      <div style="background:linear-gradient(90deg,#7c3aed,#4f46e5);height:100%;width:${pct}%;transition:width 0.5s;border-radius:8px"></div>
+    </div>
+    <div style="font-size:11px;color:#94a3b8">${Math.round(pct)}% concluído</div>
+  </div>
+</div>`;
+  };
+
+  showProgress(`Preparando ${pendentes.length} transações para análise...`, 5);
+
+  try {
+    // Montar lista compacta do plano de contas para o prompt (max 200 contas mais relevantes)
+    // Priorizar contas analíticas de nível 5 (mais específicas)
+    const contasParaPrompt = contasValidas
+      .sort((a, b) => (b.nivel || 0) - (a.nivel || 0))
+      .slice(0, 250)
+      .map(c => `${c.cod_interno}|${c.codigo}|${c.descricao}|${c.grupo}|${c.natureza || ''}`);
+
+    // Montar lista de transações
+    const txnsParaPrompt = pendentes.map(({ t, i }) =>
+      `${i}|${t.data}|${t.descricao}|${t.tipo === 'credito' ? '+' : '-'}${t.valor.toFixed(2)}`
+    );
+
+    const prompt = `Você é um contador brasileiro especializado em classificação contábil pelo regime de competência (CPC/ITG).
+
+PLANO DE CONTAS DISPONÍVEL (formato: cod_interno|classificacao|descricao|grupo|natureza):
+${contasParaPrompt.join('\n')}
+
+TRANSAÇÕES BANCÁRIAS A CLASSIFICAR (formato: idx|data|descricao|valor):
+${txnsParaPrompt.join('\n')}
+
+REGRAS OBRIGATÓRIAS:
+1. Use APENAS os cod_interno do plano de contas listado acima
+2. Para cada transação, defina conta DÉBITO e conta CRÉDITO usando os cod_interno
+3. A conta bancária (Bancos Conta Movimento ou similar) deve ser usada como contrapartida quando a transação é entrada/saída de caixa
+4. Use o código de banco/caixa mais adequado disponível no plano
+5. Histórico: texto curto e claro (max 50 chars), sem vírgulas
+6. Confiança: 'alta' para certeza, 'media' para incerteza
+
+Retorne JSON válido no formato:
+{
+  "lancamentos": [
+    {
+      "idx": número,
+      "debito_cod": "cod_interno da conta débito",
+      "debito_desc": "descrição curta da conta débito",
+      "credito_cod": "cod_interno da conta crédito",
+      "credito_desc": "descrição curta da conta crédito",
+      "historico": "texto do histórico",
+      "confianca": "alta|media"
+    }
+  ]
+}`;
+
+    showProgress('Enviando para o Gemini AI...', 20);
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const body = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: 'application/json',
+        maxOutputTokens: 8192,
+      }
+    };
+
+    showProgress('IA processando as transações...', 40);
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || `Erro ${res.status} na API Gemini`);
+    }
+
+    showProgress('Interpretando resultado da IA...', 70);
+
+    const data = await res.json();
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+
+    let resultado;
+    try {
+      resultado = JSON.parse(rawText);
+    } catch {
+      // Tentar extrair JSON do texto
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      resultado = jsonMatch ? JSON.parse(jsonMatch[0]) : { lancamentos: [] };
+    }
+
+    showProgress('Aplicando classificações...', 85);
+
+    // Montar mapa de cod_interno → conta completa
+    const contaMap = {};
+    contasValidas.forEach(c => {
+      contaMap[String(c.cod_interno)] = c;
+    });
+
+    let aplicados = 0;
+    const lancamentos = resultado.lancamentos || [];
+
+    lancamentos.forEach(lc => {
+      const idx = lc.idx;
+      if (idx === undefined || idx === null) return;
+
+      const am = concState.amarracoes[idx];
+      if (!am) return;
+
+      // Montar label no formato padrão: "codigo — descricao (Cód: cod_interno)"
+      const debConta = contaMap[String(lc.debito_cod)];
+      const credConta = contaMap[String(lc.credito_cod)];
+
+      const debLabel = debConta
+        ? `${debConta.codigo} — ${debConta.descricao} (Cód: ${lc.debito_cod})`
+        : (lc.debito_desc ? `${lc.debito_cod} — ${lc.debito_desc} (Cód: ${lc.debito_cod})` : '');
+
+      const credLabel = credConta
+        ? `${credConta.codigo} — ${credConta.descricao} (Cód: ${lc.credito_cod})`
+        : (lc.credito_desc ? `${lc.credito_cod} — ${lc.credito_desc} (Cód: ${lc.credito_cod})` : '');
+
+      if (debLabel) {
+        am.debito = debLabel;
+        am.credito = credLabel;
+        am.historico = lc.historico || am.historico;
+        am.confianca = 'Alta';
+        am.fonte = 'ia';
+        am.explicacao = `Classificado automaticamente pelo Gemini AI com base no Plano de Contas importado.`;
+        am.cpc = 'Gemini AI — Classificação Automática';
+        aplicados++;
+      }
+    });
+
+    showProgress('Salvando resultado...', 95);
+
+    // Salvar aprendizado
+    try {
+      const aprendizado = DB.get('aprendizado_conciliacao') || {};
+      if (concState.clienteId) {
+        if (!aprendizado[concState.clienteId]) aprendizado[concState.clienteId] = {};
+        txns.forEach((t, idx) => {
+          const am = concState.amarracoes[idx];
+          if (am && am.fonte === 'ia' && am.debito && am.credito) {
+            const key = (t.tipo + '|' + t.descricao).toUpperCase().trim();
+            aprendizado[concState.clienteId][key] = {
+              debito: am.debito, credito: am.credito, historico: am.historico
+            };
+          }
+        });
+        DB.set('aprendizado_conciliacao', aprendizado);
+      }
+    } catch(e) { console.warn('Erro ao salvar aprendizado IA', e); }
+
+    modalEl.innerHTML = '';
+    render();
+
+    const naoClassif = txns.filter((t, i) => {
+      const am = concState.amarracoes[i] || {};
+      return am.confianca !== 'Alta' && am.fonte !== 'ia';
+    }).length;
+
+    alert(`✅ IA classificou ${aplicados} transações!\n${naoClassif > 0 ? `⚠️ ${naoClassif} transação(ões) ainda pendentes — verifique manualmente.\n` : '✅ Todas classificadas!'}\n\nAgora clique em "⬇️ Exportar Único" para gerar o arquivo TXT.`);
+
+  } catch (err) {
+    modalEl.innerHTML = '';
+    console.error('[IA Conciliação] Erro:', err);
+    alert(`❌ Erro na classificação por IA:\n${err.message}\n\nVerifique a API Key em Configurações.`);
+  }
+};
+
 // ─── EXPORTAR LAYOUT SISTEMA ÚNICO ───
+
 function exportarLayoutUnico() {
   const txns = concState.transacoes;
   const clientes = DB.get('clientes') || [];
