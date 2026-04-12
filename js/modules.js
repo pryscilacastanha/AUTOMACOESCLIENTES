@@ -519,7 +519,7 @@ function renderPlanoContas() {
   const topBar = `
 <div class="card mb-4" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);color:#fff;padding:18px 24px">
   <h2 style="font-size:15px;margin-bottom:4px">📊 Plano de Contas</h2>
-  <p style="opacity:.8;font-size:12px">Importe, gerencie múltiplos planos e exporte no layout do Domínio Único.</p>
+  <p style="opacity:.8;font-size:12px">Importe, gerencie múltiplos planos e exporte no layout do Sistema Único (SCI).</p>
 </div>
 <div class="card mb-4" style="padding:14px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
   <button class="btn btn-primary btn-sm" onclick="pcView='list';pcPlanId=null;render()">📋 Meus Planos</button>
@@ -543,7 +543,7 @@ function renderPlanoContas() {
 <div class="card mb-4" style="border-left:4px solid #0f766e;padding:14px 20px;display:flex;align-items:center;gap:10px">
   <strong>📚 Modelo Histórico — ${historico.nome}</strong>
   <span class="text-muted text-sm">${historico.contas.length} contas · Importado em ${historico.data}</span>
-  <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportarDominioUnico('historico')">⬇️ Exportar Único</button>
+  <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportarUnico('historico')">⬇️ Exportar Único</button>
 </div>
 ${renderPlanoContasTable(historico.contas)}`;
   }
@@ -562,7 +562,7 @@ ${renderPlanoContasTable(historico.contas)}`;
     <strong style="font-size:15px">${plano.nome}</strong>
     <span class="text-muted text-sm">${plano.contas.length} contas · ${plano.data}</span>
     <div style="margin-left:auto;display:flex;gap:8px">
-      <button class="btn btn-ghost btn-sm" onclick="exportarDominioUnico('${pcPlanId}')">⬇️ Exportar Único</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportarUnico('${pcPlanId}')">⬇️ Exportar Único</button>
       <button class="btn btn-danger btn-sm" onclick="excluirPlano(event,'${pcPlanId}')">🗑️ Excluir</button>
     </div>
   </div>
@@ -586,7 +586,7 @@ ${renderPlanoContasTable(plano.contas)}`;
     <div style="font-weight:700">${p.nome}</div>
     <div class="text-muted text-sm">${p.contas.length} contas · Importado em ${p.data}</div>
   </div>
-  <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();exportarDominioUnico('${p.id}')">⬇️ Exportar</button>
+  <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();exportarUnico('${p.id}')">⬇️ Exportar</button>
   <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();excluirPlano(event,'${p.id}')">🗑️</button>
 </div>`).join('');
 
@@ -766,7 +766,7 @@ function importarPlano(input) {
     console.log(`[PlanoContas] Importado: ${nome} — ${contas.length} contas (A:${totalAnaliticas} T:${totalSinteticas} C:${totalConsolidadas}) Plano:${planoPadrao}`);
     render();
   };
-  // Tentar ISO-8859-1 primeiro (padrão dos CSVs do SCI/Domínio)
+  // Tentar ISO-8859-1 primeiro (padrão dos CSVs do Sistema Único SCI)
   reader.readAsText(file, 'ISO-8859-1');
   input.value = '';
 }
@@ -818,9 +818,9 @@ function excluirPlano(evt, id) {
   }, 3000);
 }
 
-// ─── EXPORTAR NO LAYOUT DOMÍNIO ÚNICO ───
+// ─── EXPORTAR NO LAYOUT ÚNICO (SCI) ───
 // Layout SCI completo: +/-;Código;Classificação;Tipo;Nome;Apelido;Grupo;Relatório;Filtro;Fórmula;Condição;Plano padrão;Saldo;...
-function exportarDominioUnico(planIdOrHistorico) {
+function exportarUnico(planIdOrHistorico) {
   let contas, nome;
   if (planIdOrHistorico === 'historico') {
     const h = DB.get('plano_historico');
@@ -1075,7 +1075,7 @@ function renderIntegracao() {
   const header = `
 <div class="card mb-4" style="background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:#fff;padding:18px 24px">
   <h2 style="font-size:15px;margin-bottom:4px">🔄 Integração — Import &amp; Export</h2>
-  <p style="opacity:.8;font-size:12px">Importe dados externos e exporte relatórios em formatos compatíveis com Domínio Único e planilhas</p>
+  <p style="opacity:.8;font-size:12px">Importe dados externos e exporte relatórios em formatos compatíveis com o Sistema Único e planilhas</p>
 </div>
 <div class="card mb-4" style="padding:12px 18px;display:flex;gap:8px;flex-wrap:wrap">
   ${tabBtn('import','Importação','⬆️')}

@@ -227,7 +227,7 @@ function seedClientes() {
     if (!existingIds.has(seed.id)) {
       existing.push({
         ...seed,
-        cnae: seed.cnae || '', erp: seed.erp || 'Domínio Único',
+        cnae: seed.cnae || '', erp: seed.erp || 'Sistema Único (SCI)',
         responsavel: seed.responsavel || '', whatsapp: seed.whatsapp || '', email: seed.email || '',
         im: seed.im || '', ie: seed.ie || '', fat_medio: seed.fat_medio || '',
         qtd_socios: seed.qtd_socios || '', obs_diag: seed.obs_diag || '',

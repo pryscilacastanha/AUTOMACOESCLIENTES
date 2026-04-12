@@ -468,7 +468,7 @@ function openModal(mode, id=null) {
               <label>ERP - Financeiro utilizado pela Empresa</label>
               <div style="display:flex;gap:12px;align-items:center">
                 <select id="f-erp" style="flex:1" onchange="document.getElementById('f-erp-nome').style.display=(this.value==='Outro'||this.value==='Manual')?'block':'none'">
-                  ${['Domínio','Alterdata','Questor','TecWeb','Conta Azul','Omie','Bling','SCI','Emissão de Nota no Portal da prefeitura','Emissão da Nota no portal Nacional','Manual','Outro'].map(e=>`<option ${c.erp===e||(c.erp==='Domínio Único'&&e==='Domínio')?'selected':''}>${e}</option>`).join('')}
+                  ${['Sistema Único (SCI)','Alterdata','Questor','TecWeb','Conta Azul','Omie','Bling','Emissão de Nota no Portal da prefeitura','Emissão da Nota no portal Nacional','Manual','Outro'].map(e=>`<option ${c.erp===e||(['Domínio','Domínio Único','SCI'].includes(c.erp)&&e==='Sistema Único (SCI)')?'selected':''}>${e}</option>`).join('')}
                 </select>
                 <input id="f-erp-nome" value="${c.erp_nome||''}" placeholder="Nome do sistema / Informação Adicional..." style="flex:1;display:${['Outro','Manual'].includes(c.erp)?'block':'none'};border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;">
               </div>
