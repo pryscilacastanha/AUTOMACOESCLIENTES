@@ -543,7 +543,7 @@ function renderPlanoContas() {
 <div class="card mb-4" style="border-left:4px solid #0f766e;padding:14px 20px;display:flex;align-items:center;gap:10px">
   <strong>📚 Modelo Histórico — ${historico.nome}</strong>
   <span class="text-muted text-sm">${historico.contas.length} contas · Importado em ${historico.data}</span>
-  <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportarDominioUnico('historico')">⬇️ Exportar Domínio Único</button>
+  <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportarDominioUnico('historico')">⬇️ Exportar Único</button>
 </div>
 ${renderPlanoContasTable(historico.contas)}`;
   }
@@ -562,7 +562,7 @@ ${renderPlanoContasTable(historico.contas)}`;
     <strong style="font-size:15px">${plano.nome}</strong>
     <span class="text-muted text-sm">${plano.contas.length} contas · ${plano.data}</span>
     <div style="margin-left:auto;display:flex;gap:8px">
-      <button class="btn btn-ghost btn-sm" onclick="exportarDominioUnico('${pcPlanId}')">⬇️ Exportar Domínio Único</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportarDominioUnico('${pcPlanId}')">⬇️ Exportar Único</button>
       <button class="btn btn-danger btn-sm" onclick="excluirPlano(event,'${pcPlanId}')">🗑️ Excluir</button>
     </div>
   </div>
