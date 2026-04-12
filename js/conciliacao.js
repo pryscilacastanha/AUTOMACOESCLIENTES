@@ -510,8 +510,8 @@ function _buildDropdownHtml(idx, campo, filtered) {
     var codBadge = c.cod_interno ? ('Cód: ' + c.cod_interno) : '-';
     var nat = c.natureza === 'D' ? '⬆D' : (c.natureza === 'C' ? '⬇C' : '');
     return '<div class="conc-ac-item" style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .1s"'
-      + ' onmouseenter="this.style.background='#eff6ff'" onmouseleave="this.style.background=''"'
-      + ' onmousedown="event.preventDefault();selecionarContaAuto('' + idx + '','' + campo + '','' + ci + '','' + cc + '','' + cd + '')">'
+      + ' onmouseenter="this.style.background=\'#eff6ff\'" onmouseleave="this.style.background=\'\'"'
+      + ' onmousedown="event.preventDefault();selecionarContaAuto(\'' + idx + '\',\'' + campo + '\',\'' + ci + '\',\'' + cc + '\',\'' + cd + '\')">'
       + '<span style="font-family:monospace;background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap">' + codBadge + '</span>'
       + '<span style="font-family:monospace;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;white-space:nowrap">' + (c.codigo||'') + '</span>'
       + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155">' + (c.descricao||'') + '</span>'
