@@ -225,12 +225,12 @@ function sugerirConta(descricao, valor, tipo) {
     };
   }
   return {
-    debito: '⚠️ Valores a Classificar (Ativo Circulante)',
+    debito: '⚠️ Despesas não identificadas / Pagamentos sem suporte (Resultado)',
     credito: 'Caixa/Bancos (Ativo Circulante)',
-    historico: descricao,
-    cpc: 'ITG 2000 — Escrituração Contábil',
-    explicacao: '⚠️ Transação não identificada automaticamente. Necessita classificação manual.',
-    confianca: 'Baixa — Classificação manual necessária',
+    historico: descricao + ' (Valor a regularizar)',
+    cpc: 'ITG 2000 / CPC 00 — Primazia da essência sobre a forma',
+    explicacao: '⚠️ Saída de recursos sem documento comprobatório. A essência econômica (saída de caixa) prevalece. Classifica-se como despesa/regularizar por prudência e fidedignidade, evitando mascarar a conta contábil de ativos.',
+    confianca: 'Baixa — Requer documento hábil',
   };
 }
 
