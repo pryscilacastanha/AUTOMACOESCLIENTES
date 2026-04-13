@@ -1742,6 +1742,12 @@ function exportarLayoutUnico() {
     return '';
   }
 
+  // Códigos de Fornecedores/Clientes Diversos e seus participantes
+  const codFornecedor = _getCodConfig('fornecedor');
+  const codCliente = _getCodConfig('cliente');
+  const partFornecedor = _getCodConfig('part_fornecedor') || '2419';
+  const partCliente = _getCodConfig('part_cliente') || '2';
+
   const rowsContent = txns.map((t, idx) => {
     const am = concState.amarracoes[idx] || {};
     const debCode = extrairCodigoReduzido(am.debito);
@@ -1757,11 +1763,19 @@ function exportarLayoutUnico() {
     // SCI Leiaute: Separador por vírgula, logo o histórico não pode conter vírgula!
     const hist = (am.historico || t.descricao || '').replace(/,/g, '').replace(/;/g, ' ').replace(/\r?\n/g, ' ').slice(0, 200).trim();
     
-    // 001(Seq), 002(Data), 003(DebCode), 004(CredCode), 005(Valor), 006(CodHist), 007(Comp)
+    // SEQ,DATA,DEBITO,CREDITO,VALOR,COD_HIST,HISTORICO,PARTICIPANTE
     const seq = String(idx + 1).padStart(6, '0');
     const codHist = '1'; // Padrão Genérico
     
-    return `${seq},${dateFormatted},${debCode},${credCode},${valor},${codHist},${hist}`;
+    // Determina o participante: se débito ou crédito usa conta de Fornecedores/Clientes Diversos
+    let participante = '';
+    if (codFornecedor && (debCode === codFornecedor || credCode === codFornecedor)) {
+      participante = partFornecedor;
+    } else if (codCliente && (debCode === codCliente || credCode === codCliente)) {
+      participante = partCliente;
+    }
+    
+    return `${seq},${dateFormatted},${debCode},${credCode},${valor},${codHist},${hist},${participante}`;
   });
 
   // Validação Crucial de Negócio: Se o código ainda tem PONTO (.) não é o reduzido!
