@@ -1,4 +1,4 @@
-﻿// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 //  conciliacao.js — Módulo de Conciliação Inteligente
 //  Importação OFX/PDF · Amarração Contábil · Export Único
 // ══════════════════════════════════════════════════════════
@@ -50,92 +50,219 @@ const REGRAS_CPC_ITG = {
   },
 };
 
-// ─── REGRAS DE SUGESTÃO DE CONTAS POR PADRÃO DE DESCRIÇÃO ───
+// ─── MOTOR DE REGRAS — BASE_REGRAS_CONTABEIS (42 regras) ───
+// Nível 1 🟢 Alta = automático confiável
+// Nível 2 🟡 Média = histórico / revisar
+// Nível 3 🔴 Revisão = exceção / manual
 const PADROES_SUGESTAO = [
-  // ── RECEITAS / ENTRADAS ──
-  { regex: /pix\s*(recebido|rec|entrada|cred)/i, tipo: 'credito',
-    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Clientes / Contas a Receber (Ativo Circulante)', historico: 'Recebimento de cliente via PIX' },
-    cpc: 'CPC 47 — Receita de Contrato com Cliente', explicacao: 'O recebimento via PIX representa a liquidação de um direito a receber. Debita-se Caixa (entrada de recurso) e credita-se Clientes (baixa do direito). A receita já foi reconhecida na emissão da NF pelo regime de competência (CPC 47).' },
-  { regex: /ted\s*(recebid|entrada|cred)|transferencia\s*(recebid|cred)/i, tipo: 'credito',
-    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Clientes / Contas a Receber (Ativo Circulante)', historico: 'Recebimento de cliente via TED' },
-    cpc: 'CPC 47 — Receita de Contrato com Cliente', explicacao: 'Idêntico ao PIX: liquidação de contas a receber. Debita Banco, credita Clientes.' },
-  { regex: /deposito|dep\s*dinheiro/i, tipo: 'credito',
-    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Caixa Físico (Ativo Circulante)', historico: 'Depósito em dinheiro — transferência caixa para banco' },
-    cpc: 'ITG 2000 — Escrituração Contábil', explicacao: 'Depósito é mera transferência entre contas de disponibilidade. Não gera receita. Se origem desconhecida, classificar como "Valores a Classificar" até identificação.' },
-  { regex: /rend(imento)?s?\s*(poup|aplic|cdb|invest)/i, tipo: 'credito',
-    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Receitas Financeiras (Resultado)', historico: 'Rendimento de aplicação financeira' },
-    cpc: 'CPC 48 — Instrumentos Financeiros', explicacao: 'Rendimentos de aplicações financeiras devem ser reconhecidos pelo regime de competência como receita financeira (CPC 48). Debita-se Banco e credita-se Receita Financeira.' },
-  { regex: /resgate|aplic.*resgate/i, tipo: 'credito',
-    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Aplicações Financeiras (Ativo Circulante)', historico: 'Resgate de aplicação financeira' },
-    cpc: 'CPC 48 — Instrumentos Financeiros', explicacao: 'Resgate representa conversão de ativo financeiro em disponibilidade. Não é receita — é reclassificação patrimonial.' },
-  { regex: /estorno|devoluc/i, tipo: 'credito',
-    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Despesas Diversas (Resultado)', historico: 'Estorno/devolução de valor' },
-    cpc: 'CPC 23 — Políticas Contábeis', explicacao: 'Estornos devem reverter o lançamento original. Verificar a natureza da operação estornada para classificação correta.' },
 
-  // ── DESPESAS / SAÍDAS ──
-  { regex: /pix\s*(enviado|env|saida|deb|pago|pagto)/i, tipo: 'debito',
-    sugestao: { debito: 'Fornecedores / Contas a Pagar (Passivo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento a fornecedor via PIX' },
-    cpc: 'CPC 25 — Provisões e Passivos', explicacao: 'Pagamento via PIX liquida uma obrigação. Debita-se Fornecedores (baixa do passivo) e credita-se Banco (saída de caixa). Se for despesa direta sem NF prévia, debitar a conta de despesa correspondente.' },
-  { regex: /ted\s*(enviado|saida|pago)|transferencia\s*(enviada|pago)/i, tipo: 'debito',
-    sugestao: { debito: 'Fornecedores / Contas a Pagar (Passivo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento a fornecedor via TED' },
-    cpc: 'CPC 25 — Provisões e Passivos', explicacao: 'Liquidação de passivo por TED. Mesma lógica do pagamento PIX.' },
-  { regex: /boleto|pgto\s*boleto|pag.*bol/i, tipo: 'debito',
+  // ══════════════════════════════
+  // 🟢 RECEITAS / ENTRADAS (Alta)
+  // ══════════════════════════════
+  { regex: /pix\s*(recebido|rec\b|entrada|cred)/i, tipo: 'credito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Clientes / Contas a Receber (Ativo Circulante)', historico: 'Recebimento de cliente via PIX' },
+    cpc: 'CPC 47', explicacao: 'Liquidação de contas a receber via PIX. Deb. Banco / Cred. Clientes.' },
+
+  { regex: /ted\s*(recebid|entrada|cred)|transferencia\s*(recebid|cred)/i, tipo: 'credito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Clientes / Contas a Receber (Ativo Circulante)', historico: 'Recebimento de cliente via TED' },
+    cpc: 'CPC 47', explicacao: 'Liquidação de AR por TED.' },
+
+  { regex: /doc\s*(recebid|entrada|cred)/i, tipo: 'credito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Clientes / Contas a Receber (Ativo Circulante)', historico: 'Recebimento de cliente via DOC' },
+    cpc: 'CPC 47', explicacao: 'Liquidação de AR por DOC.' },
+
+  { regex: /deposito|dep\s*dinheiro|dep\s*especie/i, tipo: 'credito', confiancaNivel: 'Média',
+    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Caixa Físico (Ativo Circulante)', historico: 'Depósito em dinheiro' },
+    cpc: 'ITG 2000', explicacao: 'Transferência entre disponibilidades. Verificar origem.' },
+
+  { regex: /rend(imento)?s?\s*(poup|aplic|cdb|invest|fi\b)/i, tipo: 'credito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Receitas Financeiras (Resultado)', historico: 'Rendimento de aplicação financeira' },
+    cpc: 'CPC 48', explicacao: 'Rendimento de aplicação — receita financeira pelo regime de competência.' },
+
+  { regex: /resgate\s*(cdb|aplic|invest|poup)/i, tipo: 'credito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Aplicações Financeiras (Ativo Circulante)', historico: 'Resgate de aplicação financeira' },
+    cpc: 'CPC 48', explicacao: 'Retorno de ativo financeiro para disponibilidade.' },
+
+  { regex: /estorno|devoluc/i, tipo: 'credito', confiancaNivel: 'Média',
+    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Despesas Diversas (Resultado)', historico: 'Estorno / devolução de valor' },
+    cpc: 'CPC 23', explicacao: 'Estorno reverte lançamento original — verificar natureza.' },
+
+  { regex: /cheque\s*(compen|deposi|receb)/i, tipo: 'credito', confiancaNivel: 'Média',
+    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Clientes / Contas a Receber (Ativo Circulante)', historico: 'Recebimento via cheque compensado' },
+    cpc: 'CPC 47', explicacao: 'Cheque compensado equivale a recebimento — liquidação de AR.' },
+
+  { regex: /distrib.*lucro|lucro.*distrib|dividendo.*receb/i, tipo: 'credito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Receitas de Participações Societárias (Resultado)', historico: 'Recebimento de distribuição de lucros' },
+    cpc: 'CPC 18', explicacao: 'Dividendos recebidos de coligadas/controladas — receita de participação.' },
+
+  // ═══════════════════════════════════════
+  // 🟢 PAGAMENTOS IDENTIFICADOS (Alta)
+  // ═══════════════════════════════════════
+  { regex: /pix\s*(enviado|env\b|saida|deb\b|pago|pagto)/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Fornecedores / Contas a Pagar (Passivo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento via PIX' },
+    cpc: 'CPC 25', explicacao: 'Liquidação de passivo por PIX.' },
+
+  { regex: /ted\s*(enviado|saida|pago)|transferencia\s*(enviada|pago)/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Fornecedores / Contas a Pagar (Passivo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento via TED' },
+    cpc: 'CPC 25', explicacao: 'Liquidação de passivo por TED.' },
+
+  { regex: /boleto|pgto\s*boleto|pag.*bol/i, tipo: 'debito', confiancaNivel: 'Alta',
     sugestao: { debito: 'Fornecedores / Contas a Pagar (Passivo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de boleto' },
-    cpc: 'CPC 25 — Provisões e Passivos', explicacao: 'Pagamento de boleto quita obrigação registrada no passivo. Se for despesa nova, reconhecer simultaneamente a despesa.' },
-  { regex: /aluguel|locacao|loc\s/i, tipo: 'debito',
-    sugestao: { debito: 'Despesas com Aluguéis (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de aluguel' },
-    cpc: 'CPC 06 (R2) — Arrendamento / IFRS 16', explicacao: 'CPC 06 exige reconhecimento de arrendamento como ativo de direito de uso + passivo de arrendamento para contratos > 12 meses. Para PMEs (ITG 1000), pode-se lançar como despesa diretamente.' },
-  { regex: /energia|luz|eletric/i, tipo: 'debito',
-    sugestao: { debito: 'Despesas com Energia Elétrica (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de conta de energia' },
-    cpc: 'CPC 00 — Estrutura Conceitual', explicacao: 'Despesa operacional reconhecida pelo regime de competência. Debitar despesa no mês de consumo, mesmo que paga no mês seguinte.' },
-  { regex: /agua|saneamento|sabesp|corsan/i, tipo: 'debito',
-    sugestao: { debito: 'Despesas com Água (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de conta de água' },
-    cpc: 'CPC 00 — Estrutura Conceitual', explicacao: 'Despesa operacional — regime de competência.' },
-  { regex: /telefone|telecom|internet|celular|vivo|claro|tim|oi\s/i, tipo: 'debito',
-    sugestao: { debito: 'Despesas com Telecomunicações (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de telecomunicações' },
-    cpc: 'CPC 00', explicacao: 'Despesa operacional reconhecida pelo regime de competência.' },
-  { regex: /salario|folha|pgto\s*func|holerite/i, tipo: 'debito',
+    cpc: 'CPC 25', explicacao: 'Quitação de boleto — baixa de passivo.' },
+
+  { regex: /cheque\s*(emit|pago|compensado.*debito)/i, tipo: 'debito', confiancaNivel: 'Média',
+    sugestao: { debito: 'Fornecedores / Contas a Pagar (Passivo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento via cheque' },
+    cpc: 'CPC 25', explicacao: 'Cheque emitido — liquidação de obrigação.' },
+
+  // ═══════════════════════════════════════
+  // 🟢 ENCARGOS TRABALHISTAS / FOLHA
+  // ═══════════════════════════════════════
+  { regex: /salario|folha|pgto\s*func|holerite|vencimento\s*func/i, tipo: 'debito', confiancaNivel: 'Alta',
     sugestao: { debito: 'Despesas com Salários (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de salários' },
-    cpc: 'CPC 33 — Benefícios a Empregados', explicacao: 'CPC 33 trata do reconhecimento de obrigações trabalhistas. Salários devem ser provisionados no mês de competência e baixados no pagamento.' },
-  { regex: /inss|gps|previdencia/i, tipo: 'debito',
+    cpc: 'CPC 33', explicacao: 'Salários — baixa de provisão do mês anterior.' },
+
+  { regex: /inss|gps|previdencia\s*soc/i, tipo: 'debito', confiancaNivel: 'Alta',
     sugestao: { debito: 'INSS a Recolher (Passivo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Recolhimento de INSS' },
-    cpc: 'CPC 33 — Benefícios a Empregados', explicacao: 'Baixa do passivo de encargos sociais provisionados no mês de competência.' },
-  { regex: /fgts/i, tipo: 'debito',
+    cpc: 'CPC 33', explicacao: 'Baixa de encargos sociais provisionados.' },
+
+  { regex: /fgts/i, tipo: 'debito', confiancaNivel: 'Alta',
     sugestao: { debito: 'FGTS a Recolher (Passivo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Recolhimento de FGTS' },
-    cpc: 'CPC 33', explicacao: 'Baixa do passivo de FGTS provisionado.' },
-  { regex: /das\s|simples\s*nac|pgdas/i, tipo: 'debito',
+    cpc: 'CPC 33', explicacao: 'Baixa de FGTS provisionado.' },
+
+  { regex: /pro.?labore|prolabore/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Pró-labore dos Sócios (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de pró-labore' },
+    cpc: 'CPC 33', explicacao: 'Remuneração do sócio administrador — despesa operacional.' },
+
+  { regex: /distrib.*lucro|lucro.*distrib|retirada.*socio|dividend.*pago/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Lucros a Distribuir (Patrimônio Líquido)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Distribuição de lucros aos sócios' },
+    cpc: 'CPC 26', explicacao: 'Redução de lucros acumulados por distribuição. Não é despesa — é movimentação patrimonial.' },
+
+  { regex: /13.*salario|decimo.*terceiro|ferias\s*pgto|rescisao|aviso.*previo/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Provisão 13º e Férias (Passivo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de 13º salário / férias / rescisão' },
+    cpc: 'CPC 33', explicacao: 'Baixa de provisões de encargos trabalhistas.' },
+
+  { regex: /vale\s*(transp|refei|alim|cest)/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Benefícios a Empregados (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de benefícios (VT/VR)' },
+    cpc: 'CPC 33', explicacao: 'Benefícios aos trabalhadores — despesa operacional.' },
+
+  // ═══════════════════════════════════════
+  // 🟢 TRIBUTOS / IMPOSTOS
+  // ═══════════════════════════════════════
+  { regex: /das\s|simples\s*nac|pgdas/i, tipo: 'debito', confiancaNivel: 'Alta',
     sugestao: { debito: 'Impostos sobre Receita — DAS (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento DAS — Simples Nacional' },
-    cpc: 'CPC 32 — Tributos sobre o Lucro', explicacao: 'DAS unifica tributos do Simples Nacional. Reconhecer como despesa tributária no resultado.' },
-  { regex: /darf|irpj|csll|pis|cofins|irrf/i, tipo: 'debito',
-    sugestao: { debito: 'Impostos Federais (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de imposto federal (DARF)' },
-    cpc: 'CPC 32 — Tributos sobre o Lucro', explicacao: 'Tributos federais recolhidos via DARF. Classificar conforme o tributo específico (IRPJ, CSLL, PIS, COFINS).' },
-  { regex: /icms|issqn|iss\b/i, tipo: 'debito',
-    sugestao: { debito: 'Impostos sobre Serviços/Mercadorias (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de imposto estadual/municipal' },
-    cpc: 'CPC 32', explicacao: 'Tributos sobre operações. ICMS pode gerar crédito fiscal dependendo do regime.' },
-  { regex: /tarifa|tar\s*banc|manut.*conta|taxa.*banc/i, tipo: 'debito',
-    sugestao: { debito: 'Despesas Bancárias (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Tarifa bancária' },
-    cpc: 'CPC 00', explicacao: 'Despesas bancárias são custos operacionais reconhecidos no resultado do período.' },
-  { regex: /iof/i, tipo: 'debito',
-    sugestao: { debito: 'IOF (Despesas Financeiras — Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'IOF sobre operação financeira' },
-    cpc: 'CPC 48', explicacao: 'IOF incide sobre operações financeiras e deve ser classificado como despesa financeira.' },
-  { regex: /juros|encargos|mora|multa/i, tipo: 'debito',
-    sugestao: { debito: 'Juros e Multas (Despesas Financeiras — Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Juros/multa por atraso' },
-    cpc: 'CPC 12 — Ajuste a Valor Presente', explicacao: 'Encargos financeiros devem ser reconhecidos no resultado financeiro do período de competência (CPC 12).' },
-  { regex: /saque|retirada/i, tipo: 'debito',
-    sugestao: { debito: 'Caixa Físico (Ativo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Saque/retirada em espécie' },
-    cpc: 'ITG 2000', explicacao: 'Transferência entre disponibilidades. Se for retirada do sócio, classificar como "Adiantamento a Sócios" ou "Distribuição de Lucros".' },
-  { regex: /pro.?labore|prolabore|retirada.*socio/i, tipo: 'debito',
-    sugestao: { debito: 'Pró-labore (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de pró-labore ao sócio' },
-    cpc: 'CPC 33 — Benefícios a Empregados', explicacao: 'Pró-labore é remuneração do sócio administrador. Reconhecer como despesa no resultado e provisionar INSS.' },
-  { regex: /emprestimo|financ/i, tipo: 'debito',
-    sugestao: { debito: 'Empréstimos e Financiamentos (Passivo)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de parcela de empréstimo' },
-    cpc: 'CPC 48 — Instrumentos Financeiros', explicacao: 'Parcela de empréstimo: parte principal reduz o passivo, parte juros vai para despesas financeiras. Segregar principal e encargos.' },
-  { regex: /aplic|invest|cdb|rdb|lci|lca/i, tipo: 'debito',
+    cpc: 'CPC 32', explicacao: 'DAS Simples Nacional — despesa tributária consolidada.' },
+
+  { regex: /darf|irpj|csll/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Impostos Federais — IRPJ/CSLL (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento DARF — IRPJ/CSLL' },
+    cpc: 'CPC 32', explicacao: 'Tributos sobre lucro recolhidos via DARF.' },
+
+  { regex: /pis\b|cofins\b|irrf\b/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Impostos sobre Receita — PIS/COFINS/IRRF (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento DARF — PIS/COFINS/IRRF' },
+    cpc: 'CPC 32', explicacao: 'Tributos sobre faturamento e retenções na fonte.' },
+
+  { regex: /icms|issqn|iss\b/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Impostos sobre Operações — ICMS/ISS (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de ICMS/ISS' },
+    cpc: 'CPC 32', explicacao: 'Tributos sobre mercadorias/serviços.' },
+
+  // ═══════════════════════════════════════
+  // 🟢 DESPESAS OPERACIONAIS IDENTIFICADAS
+  // ═══════════════════════════════════════
+  { regex: /aluguel|locacao|loc\s/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas com Aluguéis (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de aluguel' },
+    cpc: 'CPC 06(R2)', explicacao: 'Aluguel — despesa operacional (ITG 1000/PME) ou ativo de direito de uso (IFRS 16/CPC 06).' },
+
+  { regex: /energia|luz\b|eletric|cemig|cpfl|enel|celesc/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas com Energia Elétrica (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de energia elétrica' },
+    cpc: 'CPC 00', explicacao: 'Custo pelo consumo do mês — regime de competência.' },
+
+  { regex: /agua|saneamento|sabesp|corsan|casan|embasa/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas com Água e Esgoto (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de conta de água' },
+    cpc: 'CPC 00', explicacao: 'Despesa operacional — regime de competência.' },
+
+  { regex: /telefone|telecom|internet|celular|vivo|claro|tim|oi\s|net\s|sky\s/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas com Telecomunicações (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de telecomunicações / internet' },
+    cpc: 'CPC 00', explicacao: 'Despesa operacional fixo — regime de competência.' },
+
+  { regex: /seguro|premio\s*(seguro|apolic)/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Seguros a Apropriar (Ativo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de prêmio de seguro' },
+    cpc: 'CPC 10', explicacao: 'Seguro pago antecipadamente — ativo (despesa antecipada) a apropriar mensalmente pelo prazo coberto.' },
+
+  { regex: /manutenc|conserto|reparo\s|tecnico\s|assist.*tecn/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas com Manutenção e Reparos (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de manutenção / reparo' },
+    cpc: 'CPC 27', explicacao: 'Manutenção de rotina — despesa do período. Melhorias que aumentam vida útil podem ser capitalizadas (CPC 27).' },
+
+  { regex: /combustivel|gasolina|etanol|diesel|posto\s/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas com Combustível (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Abastecimento de combustível' },
+    cpc: 'CPC 00', explicacao: 'Despesa operacional de transporte.' },
+
+  { regex: /publicidade|propaganda|marketing|mkt\s|anuncio|google\s*ads|face.*ads|instagram/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas com Publicidade e Marketing (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de publicidade / marketing' },
+    cpc: 'CPC 04', explicacao: 'Gastos com publicidade são despesas do período — não capitalizáveis (CPC 04).' },
+
+  { regex: /curso|treinamento|capacit|formacao|pos.?grad|palestra/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas com Treinamento e Capacitação (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de curso / treinamento' },
+    cpc: 'CPC 04', explicacao: 'Custo de treinamento é despesa do período — não ativo intangível.' },
+
+  { regex: /material\s*(escrit|limpez|higien|consum)/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas com Materiais de Consumo (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Compra de material de escritório / limpeza' },
+    cpc: 'CPC 00', explicacao: 'Materiais consumidos imediatamente — despesa do período.' },
+
+  { regex: /contabilidade|contador|escritorio\s*cont|honorario.*cont/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas com Serviços Contábeis (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Honorários de contabilidade' },
+    cpc: 'CPC 00', explicacao: 'Serviços profissionais — despesa operacional.' },
+
+  { regex: /advogado|juridico|honorario.*advo/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas Jurídicas (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Honorários advocatícios' },
+    cpc: 'CPC 25', explicacao: 'Serviços jurídicos — despesa do período ou provisão de passivo contingente.' },
+
+  // ═══════════════════════════════════════
+  // 🟢 OPERAÇÕES FINANCEIRAS
+  // ═══════════════════════════════════════
+  { regex: /tarifa|tar\s*banc|manut.*conta|taxa.*banc|cpmf|pacote\s*serv/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Despesas Bancárias (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Tarifa/taxa bancária' },
+    cpc: 'CPC 00', explicacao: 'Custo de serviços bancários — despesa operacional.' },
+
+  { regex: /iof/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'IOF — Despesas Financeiras (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'IOF sobre operação financeira' },
+    cpc: 'CPC 48', explicacao: 'IOF — despesa financeira do período.' },
+
+  { regex: /juros\s*(pago|debit|cobr)|encargos|mora\b|multa\s*(pgto|atraso)/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Juros e Multas — Despesas Financeiras (Resultado)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Juros / multa por atraso' },
+    cpc: 'CPC 12', explicacao: 'Encargos financeiros do período — despesa financeira.' },
+
+  { regex: /saque|retirada\s*caixa|levant/i, tipo: 'debito', confiancaNivel: 'Média',
+    sugestao: { debito: 'Caixa Físico (Ativo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Saque / retirada em espécie' },
+    cpc: 'ITG 2000', explicacao: 'Transferência entre disponibilidades. Verificar destino.' },
+
+  { regex: /emprestimo\s*(receb|credit)|financ.*receb|capital.*giro/i, tipo: 'credito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Caixa/Bancos (Ativo Circulante)', credito: 'Empréstimos e Financiamentos (Passivo)', historico: 'Recebimento de empréstimo / capital de giro' },
+    cpc: 'CPC 48', explicacao: 'Empréstimo recebido — entrada de caixa com obrigação de devolução (passivo).' },
+
+  { regex: /emprestimo\s*(parcela|pag|amort)|financ.*parcela/i, tipo: 'debito', confiancaNivel: 'Alta',
+    sugestao: { debito: 'Empréstimos e Financiamentos (Passivo)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Amortização de empréstimo / financiamento' },
+    cpc: 'CPC 48', explicacao: 'Segregar: principal reduz passivo, juros vão para despesa financeira.' },
+
+  { regex: /aplic|invest|cdb\b|rdb\b|lci\b|lca\b|fundo\s*(invest|aplic)/i, tipo: 'debito', confiancaNivel: 'Alta',
     sugestao: { debito: 'Aplicações Financeiras (Ativo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Aplicação financeira' },
-    cpc: 'CPC 48', explicacao: 'Reclassificação de disponibilidade para aplicação financeira. Não é despesa.' },
+    cpc: 'CPC 48', explicacao: 'Reclassificação de disponibilidade — não é despesa.' },
+
+  // ═════════════════════════════════════════════════
+  // 🟡 TRANSFERÊNCIAS INTERNAS (Média — verificar)
+  // ═════════════════════════════════════════════════
+  { regex: /transf.*mesma\s*titular|transf.*interna|entre\s*contas/i, tipo: 'debito', confiancaNivel: 'Média',
+    sugestao: { debito: 'Caixa/Bancos — Conta Destino (Ativo Circulante)', credito: 'Caixa/Bancos — Conta Origem (Ativo Circulante)', historico: 'Transferência entre contas da empresa' },
+    cpc: 'ITG 2000', explicacao: 'Não há receita nem despesa — mera movimentação entre contas do mesmo titular. Confirmar que ambas as contas pertencem à empresa.' },
+
+  { regex: /cartao\s*(cred|visa|master|elo|amex|hipercard)/i, tipo: 'debito', confiancaNivel: 'Média',
+    sugestao: { debito: 'Fornecedores / Contas a Pagar (Passivo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Pagamento de fatura de cartão de crédito' },
+    cpc: 'CPC 25', explicacao: 'Pagamento da fatura liquida o passivo com a operadora. Despesas já foram reconhecidas no momento do uso.' },
+
+  { regex: /adiant.*fornec|fornec.*adiant/i, tipo: 'debito', confiancaNivel: 'Média',
+    sugestao: { debito: 'Adiantamentos a Fornecedores (Ativo Circulante)', credito: 'Caixa/Bancos (Ativo Circulante)', historico: 'Adiantamento a fornecedor' },
+    cpc: 'CPC 25', explicacao: 'Adiantamento é ativo até entrega do bem/serviço — reclassificar ao receber.' },
+
 ];
 
-// ─── PARSER OFX NATIVO ───
 function parseOFX(text) {
   const txns = [];
   const bankMatch = text.match(/<BANKID>(\d+)/);
@@ -205,14 +332,18 @@ function identificarITG(clienteId) {
   return REGRAS_CPC_ITG.itg2000;
 }
 
-// ─── SUGERIR CONTA CONTÁBIL ───
+// ─── SUGERIR CONTA CONTÁBIL (3 níveis: Alta / Média / Revisão) ───
 function sugerirConta(descricao, valor, tipo) {
   const desc = (descricao || '').toLowerCase();
   for (const p of PADROES_SUGESTAO) {
     if (p.regex.test(desc)) {
-      return { ...p.sugestao, cpc: p.cpc, explicacao: p.explicacao, confianca: 'Alta' };
+      const nivel = p.confiancaNivel || 'Alta';
+      return { ...p.sugestao, cpc: p.cpc, explicacao: p.explicacao,
+        confianca: nivel === 'Alta' ? 'Alta' : 'Média',
+        confiancaNivel: nivel };
     }
   }
+
   // Fallback
   if (tipo === 'credito') {
     return {
@@ -729,14 +860,19 @@ function renderConcGrid() {
     const idx = txns.indexOf(t);
     const am = concState.amarracoes[idx] || {};
     const isAlta = am.confianca === 'Alta';
+    const isMedia = am.confianca === 'Média';
     const isIA   = am.fonte === 'ia';
-    const rowBg = isAlta ? '' : 'background:#fffbeb;';
+    // 🟢 Alta = Automático Confiável | 🟡 Média = Revisar | 🔴 sem classificação = Não Classificado
+    const rowBg = isAlta || isMedia ? '' : 'background:#fff1f2;';
     const confBadge = isIA
       ? '<span style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">🤖 IA</span>'
       : isAlta
-        ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">✅ Alta</span>'
-        : '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⚠️ Manual</span>';
+        ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">🟢 Automático</span>'
+        : isMedia
+          ? '<span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">🟡 Revisar</span>'
+          : '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">🔴 Pendente</span>';
     const isChecked = concState.selectedRows[idx] ? 'checked' : '';
+
 
     // ── Helper: extrai código e descrição do label armazenado ──
     function parseLabelCell(label) {
