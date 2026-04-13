@@ -887,13 +887,34 @@ function renderTelaPrincipal() {
 
   const escHtml = s => (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 
+  // Helper: extrai código puro (só numérico, sem classificação pontilhada)
+  function codLimpo(label) {
+    if (!label || label.includes('⚠️')) return '';
+    const m = label.match(/Cód:\s*([^)]+)/i);
+    if (m) return m[1].trim();
+    const parts = label.split(/\s*[—\-]\s*/);
+    const first = (parts[0] || '').trim();
+    // Só aceita código numérico puro (ex: 122026), rejeita classificação pontilhada (01.1.2.04)
+    if (/^[0-9]+$/.test(first)) return first;
+    return '';
+  }
+
+  // Helper: extrai só o nome da conta (sem código, sem classificação)
+  function nomeLimpo(label) {
+    if (!label) return '';
+    const parts = label.split(/\s*—\s*/);
+    if (parts.length >= 2) return parts.slice(1).join(' — ').trim();
+    // Fallback: tira a classificação
+    return label.replace(/^[0-9.\s]+[\-—]\s*/, '').trim();
+  }
+
   const rows = filtered.map((t, fi) => {
     const idx = txns.indexOf(t);
     const am = concState.amarracoes[idx] || {};
-    const debCod = extrairCod(am.debito);
-    const credCod = extrairCod(am.credito);
-    const debDesc = (am.debito||'').split(/\s*[—\-]\s*/).slice(1).join(' — ').trim().slice(0,30);
-    const credDesc = (am.credito||'').split(/\s*[—\-]\s*/).slice(1).join(' — ').trim().slice(0,30);
+    const debCod = codLimpo(am.debito);
+    const credCod = codLimpo(am.credito);
+    const debNome = nomeLimpo(am.debito);
+    const credNome = nomeLimpo(am.credito);
     const hist = am.historico || t.descricao || '';
     const valor = t.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2});
     const isAlta = am.confianca === 'Alta' || am.fonte === 'ia';
@@ -907,34 +928,36 @@ function renderTelaPrincipal() {
           ? '<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700">🟡 Revisar</span>'
           : '<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700">🔴 Pendente</span>';
 
+    // Célula limpa: só código + nome
+    const debDisplay = debCod ? `<b style="font-family:monospace;font-size:12px">${debCod}</b> <span style="font-size:11px;color:#475569">${debNome}</span>` : '<span style="color:#ef4444;font-size:10px">— não classificado —</span>';
+    const credDisplay = credCod ? `<b style="font-family:monospace;font-size:12px">${credCod}</b> <span style="font-size:11px;color:#475569">${credNome}</span>` : '<span style="color:#ef4444;font-size:10px">— não classificado —</span>';
+
     return `<tr style="${rowBg}border-bottom:1px solid #e2e8f0">
-      <td style="padding:5px 8px;text-align:center;font-size:10px;color:#94a3b8;font-weight:700;width:36px">${idx+1}</td>
-      <td style="padding:5px 8px;font-size:11px;white-space:nowrap;color:#64748b;width:88px">${t.data}</td>
-      <td style="padding:4px 6px;background:#eff6ff;min-width:170px">
-        <div style="font-family:monospace;font-size:14px;font-weight:900;color:#1d4ed8;line-height:1.2">${debCod || '<span style="color:#ef4444;font-size:9px">—</span>'}</div>
-        <input value="${escHtml(am.debito||'')}" placeholder="Débito (cod — nome)..."
+      <td style="padding:6px 8px;text-align:center;font-size:10px;color:#94a3b8;font-weight:700;width:36px">${idx+1}</td>
+      <td style="padding:6px 8px;font-size:11px;white-space:nowrap;color:#64748b;width:88px">${t.data}</td>
+      <td style="padding:5px 8px;min-width:200px;position:relative">
+        <div style="margin-bottom:2px">${debDisplay}</div>
+        <input value="${escHtml(am.debito||'')}" placeholder="🔍 Buscar conta débito..."
           onfocus="abrirAutocompleteConta(${idx},'debito',this)"
           oninput="filtrarAutocompleteConta(${idx},'debito',this)"
           onchange="if(!concState.amarracoes[${idx}])concState.amarracoes[${idx}]={};concState.amarracoes[${idx}].debito=this.value;concState.amarracoes[${idx}].confianca='Alta';render()"
-          style="width:100%;border:none;border-top:1px solid #bfdbfe;font-size:10px;padding:2px 4px;margin-top:2px;outline:none;background:transparent;color:#1d4ed8">
-        <div style="font-size:9px;color:#93c5fd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${debDesc}</div>
+          style="width:100%;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;padding:3px 6px;outline:none;background:#f8fafc;color:#334155">
       </td>
-      <td style="padding:4px 6px;background:#fffde7;min-width:170px">
-        <div style="font-family:monospace;font-size:14px;font-weight:900;color:#92400e;line-height:1.2">${credCod || '<span style="color:#ef4444;font-size:9px">—</span>'}</div>
-        <input value="${escHtml(am.credito||'')}" placeholder="Crédito (cod — nome)..."
+      <td style="padding:5px 8px;min-width:200px;position:relative">
+        <div style="margin-bottom:2px">${credDisplay}</div>
+        <input value="${escHtml(am.credito||'')}" placeholder="🔍 Buscar conta crédito..."
           onfocus="abrirAutocompleteConta(${idx},'credito',this)"
           oninput="filtrarAutocompleteConta(${idx},'credito',this)"
           onchange="if(!concState.amarracoes[${idx}])concState.amarracoes[${idx}]={};concState.amarracoes[${idx}].credito=this.value;concState.amarracoes[${idx}].confianca='Alta';render()"
-          style="width:100%;border:none;border-top:1px solid #fcd34d;font-size:10px;padding:2px 4px;margin-top:2px;outline:none;background:transparent;color:#92400e">
-        <div style="font-size:9px;color:#fbbf24;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${credDesc}</div>
+          style="width:100%;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;padding:3px 6px;outline:none;background:#f8fafc;color:#334155">
       </td>
-      <td style="padding:5px 8px;font-size:12px;font-weight:700;text-align:right;color:${t.tipo==='credito'?'#059669':'#dc2626'};white-space:nowrap;width:100px">${valor}</td>
-      <td style="padding:4px 6px;min-width:180px">
+      <td style="padding:6px 8px;font-size:12px;font-weight:700;text-align:right;color:${t.tipo==='credito'?'#059669':'#dc2626'};white-space:nowrap;width:100px">${valor}</td>
+      <td style="padding:5px 8px;min-width:180px">
         <input value="${escHtml(hist)}" placeholder="Histórico..."
           onchange="if(!concState.amarracoes[${idx}])concState.amarracoes[${idx}]={};concState.amarracoes[${idx}].historico=this.value"
-          style="width:100%;border:none;border-bottom:1px solid #e2e8f0;font-size:10px;padding:2px 4px;outline:none;background:transparent;color:#475569">
+          style="width:100%;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;padding:3px 6px;outline:none;background:#f8fafc;color:#475569">
       </td>
-      <td style="padding:5px 8px;text-align:center;width:80px">${status}</td>
+      <td style="padding:6px 8px;text-align:center;width:80px">${status}</td>
     </tr>`;
   }).join('');
 
