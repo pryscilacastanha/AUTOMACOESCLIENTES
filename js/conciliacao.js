@@ -6,12 +6,15 @@
 // ─── STATE ───
 let concState = {
   view: 'home',        // home | import | grid | export
+  modoVisualizacao: 'extrato', // extrato | unico
   clienteId: null,
   transacoes: [],
   amarracoes: {},      // { idx: { contaDebito, contaCredito, historico, norma } }
   bancoInfo: {},
   filtroGrid: '',
   selectedPlan: null,
+  colFilters: {data:'',descricao:'',valor:'',debito:'',credito:'',historico:'',conf:''},
+  selectedRows: {},
 };
 
 // ─── REGRAS ITG/CPC PARA SUGESTÃO INTELIGENTE ───
@@ -1075,7 +1078,125 @@ ${bulkBar}
 
 ${filtered.length < txns.length ? `<div style="margin-top:8px;font-size:11px;color:var(--text-muted);text-align:center">Mostrando ${filtered.length} de ${txns.length} transações (filtro ativo)</div>` : ''}
 
+<!-- ── PRÉVIA LAYOUT ÚNICO SCI ── -->
+${renderPreviaLayoutUnico(txns)}
+
 <div id="conc-explicacao-modal"></div>`;
+}
+
+// ─── PRÉVIA LAYOUT ÚNICO SCI — Partida Dobrada ───
+function renderPreviaLayoutUnico(txns) {
+  if (!txns || !txns.length) return '';
+
+  function extrairCod(label) {
+    if (!label || label.includes('⚠️')) return '';
+    const m = label.match(/Cód:\s*([^)]+)/i);
+    if (m) return m[1].trim();
+    const parts = label.split(/\s*[—\-]\s*/);
+    const first = (parts[0] || '').trim();
+    if (/^[0-9]+$/.test(first)) return first;
+    if (/^[0-9.]+$/.test(first)) return first;
+    return '';
+  }
+
+  // Métricas de qualidade
+  const total = txns.length;
+  const amarrs = Object.values(concState.amarracoes);
+  const nAlta = amarrs.filter(a => a.confianca === 'Alta' || a.fonte === 'ia').length;
+  const nMedia = amarrs.filter(a => a.confianca === 'Média' && a.fonte !== 'ia').length;
+  const nPend = total - nAlta - nMedia;
+  const pctAuto = total > 0 ? ((nAlta / total) * 100).toFixed(0) : 0;
+  const pctRev = total > 0 ? ((nMedia / total) * 100).toFixed(0) : 0;
+  const pctPend = total > 0 ? ((nPend / total) * 100).toFixed(0) : 0;
+
+  const metricsBar = `
+<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+  <div style="flex:1;min-width:140px;background:#dcfce7;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px">
+    <span style="font-size:20px">🟢</span>
+    <div><div style="font-size:10px;color:#166534;font-weight:700">AUTOMÁTICO</div>
+    <div style="font-size:20px;font-weight:900;color:#15803d">${nAlta} <span style="font-size:11px">(${pctAuto}%)</span></div></div>
+  </div>
+  <div style="flex:1;min-width:140px;background:#fef9c3;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px">
+    <span style="font-size:20px">🟡</span>
+    <div><div style="font-size:10px;color:#854d0e;font-weight:700">REVISAR</div>
+    <div style="font-size:20px;font-weight:900;color:#b45309">${nMedia} <span style="font-size:11px">(${pctRev}%)</span></div></div>
+  </div>
+  <div style="flex:1;min-width:140px;background:#fee2e2;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px">
+    <span style="font-size:20px">🔴</span>
+    <div><div style="font-size:10px;color:#991b1b;font-weight:700">NÃO CLASSIFICADO</div>
+    <div style="font-size:20px;font-weight:900;color:#dc2626">${nPend} <span style="font-size:11px">(${pctPend}%)</span></div></div>
+  </div>
+  <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#e0f2fe,#dbeafe);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px">
+    <span style="font-size:20px">📊</span>
+    <div><div style="font-size:10px;color:#0369a1;font-weight:700">TAXA DE AUTOMAÇÃO</div>
+    <div style="font-size:20px;font-weight:900;color:#0284c7">${pctAuto}%</div></div>
+  </div>
+</div>`;
+
+  // Linhas do preview no formato Único
+  const rows = txns.slice(0, 50).map((t, idx) => {
+    const am = concState.amarracoes[idx] || {};
+    const debCod = extrairCod(am.debito);
+    const credCod = extrairCod(am.credito);
+    const debDesc = (am.debito || '').split(/\s*[—\-]\s*/).slice(1).join(' — ').trim();
+    const credDesc = (am.credito || '').split(/\s*[—\-]\s*/).slice(1).join(' — ').trim();
+    const hist = (am.historico || t.descricao || '').slice(0, 60);
+    const valor = t.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    const isAlta = am.confianca === 'Alta' || am.fonte === 'ia';
+    const isMedia = am.confianca === 'Média';
+    const status = am.fonte === 'ia'
+      ? '<span style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:1px 6px;border-radius:3px;font-size:9px">🤖 IA</span>'
+      : isAlta
+        ? '<span style="background:#dcfce7;color:#166534;padding:1px 6px;border-radius:3px;font-size:9px">🟢 Auto</span>'
+        : isMedia
+          ? '<span style="background:#fef9c3;color:#854d0e;padding:1px 6px;border-radius:3px;font-size:9px">🟡 Revisar</span>'
+          : '<span style="background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:3px;font-size:9px">🔴 Pendente</span>';
+    const rowBg = !debCod || !credCod ? 'background:#fff1f2;' : (isMedia ? 'background:#fefce8;' : '');
+
+    return `<tr style="${rowBg}border-bottom:1px solid #e2e8f0">
+      <td style="padding:5px 8px;text-align:center;font-size:10px;color:#94a3b8;font-weight:600">${idx+1}</td>
+      <td style="padding:5px 8px;font-size:11px;white-space:nowrap;color:#64748b">${t.data}</td>
+      <td style="padding:5px 8px">
+        <div style="font-family:monospace;font-size:14px;font-weight:900;color:#1d4ed8;line-height:1">${debCod || '<span style="color:#ef4444;font-size:10px">— sem código —</span>'}</div>
+        <div style="font-size:9px;color:#64748b;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${debDesc}</div>
+      </td>
+      <td style="padding:5px 8px">
+        <div style="font-family:monospace;font-size:14px;font-weight:900;color:#92400e;line-height:1">${credCod || '<span style="color:#ef4444;font-size:10px">— sem código —</span>'}</div>
+        <div style="font-size:9px;color:#64748b;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${credDesc}</div>
+      </td>
+      <td style="padding:5px 8px;font-size:12px;font-weight:700;text-align:right;color:${t.tipo==='credito'?'#059669':'#dc2626'};white-space:nowrap">${valor}</td>
+      <td style="padding:5px 8px;font-size:10px;color:#475569;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hist}">${hist}</td>
+      <td style="padding:5px 8px;text-align:center">${status}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+<div class="card" style="margin-top:16px;padding:0;border-radius:12px;overflow:hidden">
+  <div style="background:linear-gradient(135deg,#1e293b,#0f172a);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <h3 style="font-size:14px;margin:0;font-weight:700">📋 Prévia — Lançamentos Contábeis (Partida Dobrada)</h3>
+      <p style="font-size:11px;opacity:.7;margin:2px 0 0">Formato Layout Único SCI · cod_interno Débito / Crédito · ${total} lançamentos</p>
+    </div>
+    <div style="font-size:10px;opacity:.6">Mostrando primeiros 50</div>
+  </div>
+  <div style="padding:14px 16px">${metricsBar}</div>
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead>
+        <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+          <th style="padding:8px;text-align:center;font-size:10px;color:#64748b;font-weight:700;width:40px">Nº</th>
+          <th style="padding:8px;text-align:left;font-size:10px;color:#64748b;font-weight:700;width:90px">DATA</th>
+          <th style="padding:8px;text-align:left;font-size:10px;color:#1d4ed8;font-weight:700;background:#dbeafe;min-width:160px">DÉBITO</th>
+          <th style="padding:8px;text-align:left;font-size:10px;color:#92400e;font-weight:700;background:#fef9c3;min-width:160px">CRÉDITO</th>
+          <th style="padding:8px;text-align:right;font-size:10px;color:#64748b;font-weight:700;width:100px">VALOR</th>
+          <th style="padding:8px;text-align:left;font-size:10px;color:#64748b;font-weight:700">HISTÓRICO</th>
+          <th style="padding:8px;text-align:center;font-size:10px;color:#64748b;font-weight:700;width:80px">STATUS</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+</div>`;
 }
 
 // ─── MOSTRAR EXPLICAÇÃO TÉCNICA ───
