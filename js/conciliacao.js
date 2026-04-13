@@ -17,6 +17,20 @@ let concState = {
   selectedRows: {},
 };
 
+// ─── CONFIG CÓDIGOS POR CLIENTE (Fornecedores/Clientes Diversos) ───
+function _getCodConfig(tipo) {
+  if (!concState.clienteId) return '';
+  const cfg = DB.get('conc_codigos') || {};
+  return (cfg[concState.clienteId] || {})[tipo] || '';
+}
+window.salvarCodConfig = function(tipo, valor) {
+  if (!concState.clienteId) return;
+  const cfg = DB.get('conc_codigos') || {};
+  if (!cfg[concState.clienteId]) cfg[concState.clienteId] = {};
+  cfg[concState.clienteId][tipo] = valor.trim();
+  DB.set('conc_codigos', cfg);
+};
+
 // ─── REGRAS ITG/CPC PARA SUGESTÃO INTELIGENTE ───
 const REGRAS_CPC_ITG = {
   // ITG 2000 — Escrituração Contábil (PME)
@@ -476,6 +490,22 @@ ${apiWarning}
       <select id="conc-plano" style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px" onchange="concState.selectedPlan=parseInt(this.value)||null">
         <option value="">— Usar sugestão automática —</option>${planosOpts}
       </select>
+    </div>
+  </div>
+  <div class="form-grid" style="margin-top:10px">
+    <div class="form-group">
+      <label>📦 Cód. Fornecedores Diversos</label>
+      <input id="conc-cod-fornecedor" placeholder="Ex: 100005" value="${_getCodConfig('fornecedor')}"
+        onchange="salvarCodConfig('fornecedor', this.value)"
+        style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:monospace;font-weight:700">
+      <span style="font-size:10px;color:var(--text-muted)">Código da conta para pagamentos a fornecedores genéricos</span>
+    </div>
+    <div class="form-group">
+      <label>👥 Cód. Clientes Diversos</label>
+      <input id="conc-cod-cliente" placeholder="Ex: 200001" value="${_getCodConfig('cliente')}"
+        onchange="salvarCodConfig('cliente', this.value)"
+        style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:monospace;font-weight:700">
+      <span style="font-size:10px;color:var(--text-muted)">Código da conta para recebimentos de clientes genéricos</span>
     </div>
   </div>
 </div>
