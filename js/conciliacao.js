@@ -492,20 +492,34 @@ ${apiWarning}
       </select>
     </div>
   </div>
-  <div class="form-grid" style="margin-top:10px">
+  <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
     <div class="form-group">
       <label>📦 Cód. Fornecedores Diversos</label>
       <input id="conc-cod-fornecedor" placeholder="Ex: 100005" value="${_getCodConfig('fornecedor')}"
         onchange="salvarCodConfig('fornecedor', this.value)"
         style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:monospace;font-weight:700">
-      <span style="font-size:10px;color:var(--text-muted)">Código da conta para pagamentos a fornecedores genéricos</span>
+      <span style="font-size:10px;color:var(--text-muted)">Conta fornecedores genéricos</span>
+    </div>
+    <div class="form-group">
+      <label>🏷️ Participante Fornecedor</label>
+      <input id="conc-part-fornecedor" placeholder="Ex: 2419" value="${_getCodConfig('part_fornecedor') || '2419'}"
+        onchange="salvarCodConfig('part_fornecedor', this.value)"
+        style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:monospace;font-weight:700">
+      <span style="font-size:10px;color:var(--text-muted)">Cód. participante do fornecedor</span>
     </div>
     <div class="form-group">
       <label>👥 Cód. Clientes Diversos</label>
       <input id="conc-cod-cliente" placeholder="Ex: 200001" value="${_getCodConfig('cliente')}"
         onchange="salvarCodConfig('cliente', this.value)"
         style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:monospace;font-weight:700">
-      <span style="font-size:10px;color:var(--text-muted)">Código da conta para recebimentos de clientes genéricos</span>
+      <span style="font-size:10px;color:var(--text-muted)">Conta clientes genéricos</span>
+    </div>
+    <div class="form-group">
+      <label>🏷️ Participante Cliente</label>
+      <input id="conc-part-cliente" placeholder="Ex: 2" value="${_getCodConfig('part_cliente') || '2'}"
+        onchange="salvarCodConfig('part_cliente', this.value)"
+        style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:monospace;font-weight:700">
+      <span style="font-size:10px;color:var(--text-muted)">Cód. participante do cliente</span>
     </div>
   </div>
 </div>
