@@ -406,7 +406,7 @@ function renderConciliacao() {
   const ativos = clientes.filter(c => c.status === 'Ativo');
   const planos = DB.get('planos_contas') || [];
 
-  if (concState.view === 'grid') return renderTelaPrincipal();
+  if (concState.view === 'grid') return renderConcGrid();
   if (concState.view === 'export') return renderConcExport();
 
   // ── HOME / IMPORT VIEW ──
