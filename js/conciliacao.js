@@ -406,7 +406,7 @@ function renderConciliacao() {
   const ativos = clientes.filter(c => c.status === 'Ativo');
   const planos = DB.get('planos_contas') || [];
 
-  if (concState.view === 'grid') return renderConcGrid();
+  if (concState.view === 'grid') return renderTelaPrincipal();
   if (concState.view === 'export') return renderConcExport();
 
   // ── HOME / IMPORT VIEW ──
@@ -414,7 +414,10 @@ function renderConciliacao() {
   const cliente = concState.clienteId ? clientes.find(c => c.id === concState.clienteId) : null;
   const planoCliente = concState.clienteId ? getPlanoCliente(concState.clienteId) : null;
 
-  const selectorOpts = ativos.map(c =>
+  // Ordenar por código crescente (numérico)
+  const ativosOrdenados = [...ativos].sort((a, b) => parseInt(a.id) - parseInt(b.id));
+
+  const selectorOpts = ativosOrdenados.map(c =>
     `<option value="${c.id}" ${concState.clienteId === c.id ? 'selected' : ''}>#${c.id} — ${c.nome}</option>`
   ).join('');
 
@@ -846,7 +849,154 @@ window.aplicarEmLote = function() {
   alert(`✅ Lote aplicado a ${selectedIndices.length} registro(s)!`);
 };
 
-// ─── GRID DE AMARRAÇÃO ───
+// ─── TELA PRINCIPAL UNIFICADA — Layout Único SCI c/ edição inline ───
+function renderTelaPrincipal() {
+  const txns = concState.transacoes;
+  const clientes = DB.get('clientes') || [];
+  const cli = clientes.find(c => c.id === concState.clienteId);
+  const filtro = (concState.filtroGrid || '').toLowerCase();
+
+  function extrairCod(label) {
+    if (!label || label.includes('⚠️')) return '';
+    const m = label.match(/Cód:\s*([^)]+)/i);
+    if (m) return m[1].trim();
+    const parts = label.split(/\s*[—\-]\s*/);
+    const first = (parts[0] || '').trim();
+    if (/^[0-9]+$/.test(first)) return first;
+    if (/^[0-9.]+$/.test(first)) return first;
+    return '';
+  }
+
+  // Métricas
+  const total = txns.length;
+  const amarrs = Object.values(concState.amarracoes);
+  const nAlta = amarrs.filter(a => a.confianca === 'Alta' || a.fonte === 'ia').length;
+  const nMedia = amarrs.filter(a => a.confianca === 'Média' && a.fonte !== 'ia').length;
+  const nPend = total - nAlta - nMedia;
+  const pctAuto = total > 0 ? ((nAlta / total) * 100).toFixed(0) : 0;
+
+  // Filtro rápido por descrição/conta/histórico
+  const filtered = txns.filter((t, i) => {
+    if (!filtro) return true;
+    const am = concState.amarracoes[i] || {};
+    return t.descricao.toLowerCase().includes(filtro) ||
+      (am.debito||'').toLowerCase().includes(filtro) ||
+      (am.credito||'').toLowerCase().includes(filtro) ||
+      (am.historico||'').toLowerCase().includes(filtro);
+  });
+
+  const escHtml = s => (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+  const rows = filtered.map((t, fi) => {
+    const idx = txns.indexOf(t);
+    const am = concState.amarracoes[idx] || {};
+    const debCod = extrairCod(am.debito);
+    const credCod = extrairCod(am.credito);
+    const debDesc = (am.debito||'').split(/\s*[—\-]\s*/).slice(1).join(' — ').trim().slice(0,30);
+    const credDesc = (am.credito||'').split(/\s*[—\-]\s*/).slice(1).join(' — ').trim().slice(0,30);
+    const hist = am.historico || t.descricao || '';
+    const valor = t.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    const isAlta = am.confianca === 'Alta' || am.fonte === 'ia';
+    const isMedia = am.confianca === 'Média';
+    const rowBg = !debCod || !credCod ? 'background:#fff1f2;' : (isMedia ? 'background:#fefce8;' : '');
+    const status = am.fonte === 'ia'
+      ? '<span style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700">🤖 IA</span>'
+      : isAlta
+        ? '<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700">🟢 Auto</span>'
+        : isMedia
+          ? '<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700">🟡 Revisar</span>'
+          : '<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700">🔴 Pendente</span>';
+
+    return `<tr style="${rowBg}border-bottom:1px solid #e2e8f0">
+      <td style="padding:5px 8px;text-align:center;font-size:10px;color:#94a3b8;font-weight:700;width:36px">${idx+1}</td>
+      <td style="padding:5px 8px;font-size:11px;white-space:nowrap;color:#64748b;width:88px">${t.data}</td>
+      <td style="padding:4px 6px;background:#eff6ff;min-width:170px">
+        <div style="font-family:monospace;font-size:14px;font-weight:900;color:#1d4ed8;line-height:1.2">${debCod || '<span style="color:#ef4444;font-size:9px">—</span>'}</div>
+        <input value="${escHtml(am.debito||'')}" placeholder="Débito (cod — nome)..."
+          onfocus="abrirAutocompleteConta(${idx},'debito',this)"
+          oninput="filtrarAutocompleteConta(${idx},'debito',this)"
+          onchange="if(!concState.amarracoes[${idx}])concState.amarracoes[${idx}]={};concState.amarracoes[${idx}].debito=this.value;concState.amarracoes[${idx}].confianca='Alta';render()"
+          style="width:100%;border:none;border-top:1px solid #bfdbfe;font-size:10px;padding:2px 4px;margin-top:2px;outline:none;background:transparent;color:#1d4ed8">
+        <div style="font-size:9px;color:#93c5fd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${debDesc}</div>
+      </td>
+      <td style="padding:4px 6px;background:#fffde7;min-width:170px">
+        <div style="font-family:monospace;font-size:14px;font-weight:900;color:#92400e;line-height:1.2">${credCod || '<span style="color:#ef4444;font-size:9px">—</span>'}</div>
+        <input value="${escHtml(am.credito||'')}" placeholder="Crédito (cod — nome)..."
+          onfocus="abrirAutocompleteConta(${idx},'credito',this)"
+          oninput="filtrarAutocompleteConta(${idx},'credito',this)"
+          onchange="if(!concState.amarracoes[${idx}])concState.amarracoes[${idx}]={};concState.amarracoes[${idx}].credito=this.value;concState.amarracoes[${idx}].confianca='Alta';render()"
+          style="width:100%;border:none;border-top:1px solid #fcd34d;font-size:10px;padding:2px 4px;margin-top:2px;outline:none;background:transparent;color:#92400e">
+        <div style="font-size:9px;color:#fbbf24;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${credDesc}</div>
+      </td>
+      <td style="padding:5px 8px;font-size:12px;font-weight:700;text-align:right;color:${t.tipo==='credito'?'#059669':'#dc2626'};white-space:nowrap;width:100px">${valor}</td>
+      <td style="padding:4px 6px;min-width:180px">
+        <input value="${escHtml(hist)}" placeholder="Histórico..."
+          onchange="if(!concState.amarracoes[${idx}])concState.amarracoes[${idx}]={};concState.amarracoes[${idx}].historico=this.value"
+          style="width:100%;border:none;border-bottom:1px solid #e2e8f0;font-size:10px;padding:2px 4px;outline:none;background:transparent;color:#475569">
+      </td>
+      <td style="padding:5px 8px;text-align:center;width:80px">${status}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+  <div style="display:flex;gap:10px;align-items:center">
+    <button class="btn btn-ghost btn-sm" onclick="concState.view='home';render()">← Voltar</button>
+    <div>
+      <span style="font-weight:700;font-size:14px;color:var(--primary-dark)">📋 Lançamentos Contábeis — ${cli?.nome || ''}</span>
+      <span style="font-size:11px;color:#64748b;margin-left:8px">${total} lançamentos · Banco ${concState.bancoInfo.banco||'—'} · ${concState.bancoInfo.conta||'—'}</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button id="btn-ia-classif" class="btn btn-sm" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;font-weight:700" onclick="window.classificarComIA()">🤖 Classificar com IA</button>
+    <button class="btn btn-primary btn-sm" style="background:#059669;border-color:#047857" onclick="exportarLayoutUnico()">⬇️ Exportar Único</button>
+  </div>
+</div>
+
+<!-- Métricas rápidas -->
+<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+  <div style="background:#dcfce7;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:6px">
+    <span style="font-size:16px">🟢</span><div><div style="font-size:9px;color:#166534;font-weight:700">AUTOMÁTICO</div><div style="font-size:16px;font-weight:900;color:#15803d">${nAlta} <span style="font-size:10px">(${pctAuto}%)</span></div></div>
+  </div>
+  <div style="background:#fef9c3;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:6px">
+    <span style="font-size:16px">🟡</span><div><div style="font-size:9px;color:#854d0e;font-weight:700">REVISAR</div><div style="font-size:16px;font-weight:900;color:#b45309">${nMedia}</div></div>
+  </div>
+  <div style="background:#fee2e2;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:6px">
+    <span style="font-size:16px">🔴</span><div><div style="font-size:9px;color:#991b1b;font-weight:700">PENDENTE</div><div style="font-size:16px;font-weight:900;color:#dc2626">${nPend}</div></div>
+  </div>
+  <div style="flex:1;display:flex;align-items:center">
+    <input type="text" placeholder="🔍 Filtrar lançamentos..." value="${escHtml(concState.filtroGrid||'')}"
+      oninput="concState.filtroGrid=this.value;render()"
+      style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:12px">
+  </div>
+</div>
+
+<!-- Tabela principal -->
+<div style="border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+  <div style="overflow-x:auto;max-height:65vh">
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead style="position:sticky;top:0;z-index:2">
+        <tr style="background:#0f172a;color:#fff">
+          <th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:700;width:36px">Nº</th>
+          <th style="padding:10px 8px;text-align:left;font-size:10px;font-weight:700;width:88px">DATA</th>
+          <th style="padding:10px 8px;text-align:left;font-size:10px;font-weight:700;background:#1e3a8a;min-width:170px">DÉBITO</th>
+          <th style="padding:10px 8px;text-align:left;font-size:10px;font-weight:700;background:#78350f;min-width:170px">CRÉDITO</th>
+          <th style="padding:10px 8px;text-align:right;font-size:10px;font-weight:700;width:100px">VALOR</th>
+          <th style="padding:10px 8px;text-align:left;font-size:10px;font-weight:700;min-width:180px">HISTÓRICO</th>
+          <th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:700;width:80px">STATUS</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+</div>
+
+${filtered.length < txns.length ? `<div style="margin-top:8px;font-size:11px;color:var(--text-muted);text-align:center">Mostrando ${filtered.length} de ${txns.length} (filtro ativo)</div>` : ''}
+<div id="conc-explicacao-modal"></div>`;
+}
+
+// ─── GRID DE AMARRAÇÃO (mantido para fallback) ───
+
 function renderConcGrid() {
   const txns = concState.transacoes;
   const cf = concState.colFilters;

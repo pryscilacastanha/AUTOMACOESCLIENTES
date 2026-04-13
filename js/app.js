@@ -680,105 +680,105 @@ function openModal(mode, id=null) {
                 <div>
                   <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--primary-dark)">📊 Operações Bancárias</strong>
                   <div class="form-group"><label>Movimentações simples (Receb. / Pag.)?</label><select id="mf_ob_simples" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ob_simples && x==='Sim' || !c.mov_fin?.ob_simples && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ob_simples === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Alto volume de transações?</label><select id="mf_ob_alto_vol" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ob_alto_vol && x==='Sim' || !c.mov_fin?.ob_alto_vol && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ob_alto_vol === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Transferências entre contas frequentes?</label><select id="mf_ob_transf" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ob_transf && x==='Sim' || !c.mov_fin?.ob_transf && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ob_transf === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                 </div>
 
                 <div>
                   <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--primary-dark)">💳 Cartões de Crédito</strong>
                   <div class="form-group"><label>Maquininha (recebimento)?</label><select id="mf_cc_maq" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_maq && x==='Sim' || !c.mov_fin?.cc_maq && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_maq === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Cartão corporativo (despesas)?</label><select id="mf_cc_corp" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_corp && x==='Sim' || !c.mov_fin?.cc_corp && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_corp === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Antecipação de recebíveis?</label><select id="mf_cc_antec" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_antec && x==='Sim' || !c.mov_fin?.cc_antec && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_antec === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Múltiplas operadoras (Cielo, Stone, etc.)?</label><select id="mf_cc_multi" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_multi && x==='Sim' || !c.mov_fin?.cc_multi && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.cc_multi === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                 </div>
 
                 <div>
                   <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--primary-dark)">💰 Empréstimos e Financiamentos</strong>
                   <div class="form-group"><label>Empréstimos bancários?</label><select id="mf_ef_banc" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_banc && x==='Sim' || !c.mov_fin?.ef_banc && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_banc === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Financiamentos (veículos/máquinas)?</label><select id="mf_ef_finan" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_finan && x==='Sim' || !c.mov_fin?.ef_finan && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_finan === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Capital de giro?</label><select id="mf_ef_capgiro" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_capgiro && x==='Sim' || !c.mov_fin?.ef_capgiro && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_capgiro === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Renegociações ou parcelamentos?</label><select id="mf_ef_reneg" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_reneg && x==='Sim' || !c.mov_fin?.ef_reneg && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ef_reneg === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                 </div>
 
                 <div>
                   <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--primary-dark)">📈 Investimentos e Aplicações</strong>
                   <div class="form-group"><label>Aplicações automáticas (CDB, RDB)?</label><select id="mf_ia_auto" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_auto && x==='Sim' || !c.mov_fin?.ia_auto && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_auto === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Fundos de investimento?</label><select id="mf_ia_fundo" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_fundo && x==='Sim' || !c.mov_fin?.ia_fundo && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_fundo === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Tesouro direto?</label><select id="mf_ia_td" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_td && x==='Sim' || !c.mov_fin?.ia_td && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_td === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Conta remunerada?</label><select id="mf_ia_conta" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_conta && x==='Sim' || !c.mov_fin?.ia_conta && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_conta === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Título de capitalização?</label><select id="mf_ia_cap" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_cap && x==='Sim' || !c.mov_fin?.ia_cap && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_cap === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Investimentos em outras empresas?</label><select id="mf_ia_outras" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_outras && x==='Sim' || !c.mov_fin?.ia_outras && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.ia_outras === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                 </div>
 
                 <div>
                   <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--primary-dark)">🧾 Operações Específicas</strong>
                   <div class="form-group"><label>Consórcios?</label><select id="mf_oe_cons" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_cons && x==='Sim' || !c.mov_fin?.oe_cons && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_cons === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Operações em moeda estrangeira?</label><select id="mf_oe_moeda" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_moeda && x==='Sim' || !c.mov_fin?.oe_moeda && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_moeda === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Recebimentos via PIX estruturado?</label><select id="mf_oe_pix" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_pix && x==='Sim' || !c.mov_fin?.oe_pix && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_pix === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Subvenções / incentivos financeiros?</label><select id="mf_oe_subv" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_subv && x==='Sim' || !c.mov_fin?.oe_subv && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_subv === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Criptomoedas?</label><select id="mf_oe_cripto" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_cripto && x==='Sim' || !c.mov_fin?.oe_cripto && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.oe_cripto === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                 </div>
 
                 <div>
                   <strong style="display:block;font-size:12px;margin-bottom:12px;color:var(--warning)">⚠️ Situações de Atenção Contábil</strong>
                   <div class="form-group"><label>Conta pessoal misturada com PJ?</label><select id="mf_sa_mistura" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_mistura && x==='Sim' || !c.mov_fin?.sa_mistura && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_mistura === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Falta de extratos completos?</label><select id="mf_sa_faltacomp" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_faltacomp && x==='Sim' || !c.mov_fin?.sa_faltacomp && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_faltacomp === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Movimentação não identificada?</label><select id="mf_sa_naoident" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_naoident && x==='Sim' || !c.mov_fin?.sa_naoident && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_naoident === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Alto volume de saques?</label><select id="mf_sa_saque" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_saque && x==='Sim' || !c.mov_fin?.sa_saque && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_saque === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                   <div class="form-group"><label>Uso de múltiplas contas sem controle?</label><select id="mf_sa_multi" onchange="updateMovFinanceiraAlerts()">
-                      ${['Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_multi && x==='Sim' || !c.mov_fin?.sa_multi && x==='Não' ? 'selected' : ''}>${x}</option>`).join('')}
+                      ${['Não Informado', 'Não', 'Sim'].map(x => `<option value="${x}" ${c.mov_fin?.sa_multi === x ? 'selected' : ''}>${x}</option>`).join('')}
                   </select></div>
                 </div>
 
