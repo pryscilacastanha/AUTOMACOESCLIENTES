@@ -625,35 +625,66 @@ function mapearContaParaPlano(nomeConta, descOriginal) {
   if (!contas.length) return nomeConta;
 
   const baseText = nomeConta.split(' (')[0].toLowerCase();
-  const query = baseText.replace(/[^a-zá-ü0-9 ]/g, '').split(/\s+/).filter(x => x.length > 2);
+  const query = baseText.replace(/[^a-záéíóúâêîôûãõüç0-9 ]/g, '').split(/\s+/).filter(x => x.length > 2);
   const descTxn = (descOriginal || '').toLowerCase();
-  
+
+  // Categorias semânticas do baseText — define o "tipo" do que estou procurando
+  const buscaBanco = /caixa|banco|disponib/.test(baseText);
+  const buscaCliente = /cliente|receber|ar\b/.test(baseText);
+  const buscaFornecedor = /fornecedor|pagar|ap\b/.test(baseText);
+  const buscaDespesa = /despesa|custo|gasto/.test(baseText);
+  const buscaFolha = /salário|salario|folha|inss|fgts|prolabore|férias/.test(baseText);
+  const buscaTributo = /imposto|tributo|das|darf|iss|icms|irpj|csll/.test(baseText);
+  const buscaReceita = /receita|faturamento/.test(baseText);
+  const buscaAplic = /aplicaç|aplicac|investim|cdb|rdb|lci|lca/.test(baseText);
+
   let bestMatch = null;
   let bestScore = 0;
-  
+
   for (const c of contas) {
     if (c.tipo === 'T' || c.tipo === 'S') continue;
-    const descInfo = ((c.descricao||'') + ' ' + (c.grupo||'') + ' ' + (c.apelido||'')).toLowerCase();
-    let score = query.reduce((acc, q) => acc + (descInfo.includes(q) ? 1 : 0), 0);
+    const descInfo = ((c.descricao || '') + ' ' + (c.grupo || '') + ' ' + (c.apelido || '')).toLowerCase();
+    let score = 0;
+
+    // ── Matches positivos de palavras ──
+    score += query.reduce((acc, q) => acc + (descInfo.includes(q) ? 1 : 0), 0);
     if (descInfo.includes(baseText)) score += 5;
-    if (baseText.includes('caixa/banco') && descInfo.includes('banco') && !descInfo.includes('despesa')) score += 10;
-    if (baseText.includes('clientes') && descInfo.includes('cliente')) score += 10;
-    if (baseText.includes('fornecedores') && (descInfo.includes('forneced') || descInfo.includes('pagar'))) score += 10;
-    if (descTxn.includes('pix') && (descInfo.includes('banco') || descInfo.includes('caixa'))) score += 2;
-    if ((descTxn.includes('tarifa') || descTxn.includes('taxa')) && (descInfo.includes('tarifa') || descInfo.includes('taxa'))) score += 5;
-    if (baseText.includes('salário') && descInfo.includes('salário')) score += 10;
+
+    // ── Bônus por categoria certa ──
+    if (buscaBanco && (descInfo.includes('banco') || descInfo.includes('banrisul') || descInfo.includes('bradesco') || descInfo.includes('caixa') || descInfo.includes('conta corrente'))) score += 12;
+    if (buscaCliente && (descInfo.includes('cliente') || descInfo.includes('a receber') || descInfo.includes('contas a rec'))) score += 12;
+    if (buscaFornecedor && (descInfo.includes('fornecedor') || descInfo.includes('a pagar') || descInfo.includes('contas a pag'))) score += 12;
+    if (buscaDespesa && (descInfo.includes('despesa') && !descInfo.includes('não ident'))) score += 8;
+    if (buscaFolha && (descInfo.includes('salário') || descInfo.includes('salario') || descInfo.includes('folha') || descInfo.includes('inss') || descInfo.includes('fgts'))) score += 12;
+    if (buscaTributo && (descInfo.includes('imposto') || descInfo.includes('tributo') || descInfo.includes('das') || descInfo.includes('iss') || descInfo.includes('icms'))) score += 12;
+    if (buscaReceita && (descInfo.includes('receita') || descInfo.includes('faturamento'))) score += 12;
+    if (buscaAplic && (descInfo.includes('aplicaç') || descInfo.includes('investim') || descInfo.includes('cdb') || descInfo.includes('fundo'))) score += 12;
+
+    // ── Penalizações — evitar falsos positivos ──
+    if (buscaBanco && (descInfo.includes('despesa') || descInfo.includes('receita') || descInfo.includes('imposto') || descInfo.includes('aplicaç'))) score -= 8;
+    if (buscaCliente && (descInfo.includes('aplicaç') || descInfo.includes('banco') || descInfo.includes('despesa') || descInfo.includes('imposto') || descInfo.includes('fundo'))) score -= 10;
+    if (buscaFornecedor && (descInfo.includes('não ident') || descInfo.includes('diversas') || descInfo.includes('receita') || descInfo.includes('banco'))) score -= 10;
+    if (buscaDespesa && descInfo.includes('não ident')) score -= 6; // evita "Despesas não identificadas" como padrão
+    if (buscaBanco && descInfo.includes('empréstimo')) score -= 6;
+    if (buscaReceita && descInfo.includes('despesa')) score -= 8;
+
+    // ── Bônus pelo tipo de transação ──
+    if (descTxn && (descTxn.includes('pix') || descTxn.includes('ted')) && buscaBanco) score += 3;
+
     if (score > bestScore) { bestScore = score; bestMatch = c; }
   }
-  
-  if (bestMatch && bestScore > 0) {
-    // Formato novo: COD — Descricao (prioritiza cod_interno)
-    const isValido = bestMatch.cod_interno && bestMatch.cod_interno !== '-' && bestMatch.cod_interno !== '0';
+
+  // Threshold mínimo de 4 pontos para evitar falsos positivos
+  if (bestMatch && bestScore >= 4) {
+    const isValido = bestMatch.cod_interno && bestMatch.cod_interno !== '-' && bestMatch.cod_interno !== '0' && bestMatch.cod_interno !== '';
     return isValido
       ? (bestMatch.cod_interno + ' — ' + bestMatch.descricao)
       : (bestMatch.codigo + ' — ' + bestMatch.descricao);
   }
+  // Sem match confiável → retorna o label original sem tentar mapear
   return nomeConta;
 }
+
 
 // ─── AUTOCOMPLETE DE CONTA CONTÁBIL ───
 let _concAutoOpen = null;
