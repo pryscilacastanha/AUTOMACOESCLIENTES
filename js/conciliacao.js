@@ -832,21 +832,24 @@ window.aplicarEmLote = function() {
   const credVal = document.getElementById('bulk-credito')?.value || '';
   if (!debVal && !credVal) { alert('Informe ao menos a conta a débito ou crédito.'); return; }
   
-  const selectedIndices = Object.keys(concState.selectedRows || {});
-  if (!selectedIndices.length) return;
+  // Só aplica nos itens que estão selecionados E filtrados (visíveis)
+  const filtrados = concState.currentFilteredIndices || concState.transacoes.map((_, i) => i);
+  const selectedIndices = Object.keys(concState.selectedRows || {}).filter(idx => filtrados.includes(Number(idx)));
+  if (!selectedIndices.length) { alert('Nenhum item filtrado selecionado.'); return; }
 
   selectedIndices.forEach(idx => {
-    const am = concState.amarracoes[idx];
-    if (am) {
-      if (debVal) am.debito = debVal;
-      if (credVal) am.credito = credVal;
-      if (debVal || credVal) am.confianca = 'Alta';
+    if (!concState.amarracoes[idx]) {
+      concState.amarracoes[idx] = { debito: '', credito: '', historico: concState.transacoes[idx]?.descricao || '', confianca: 'Manual' };
     }
+    const am = concState.amarracoes[idx];
+    if (debVal) am.debito = debVal;
+    if (credVal) am.credito = credVal;
+    am.confianca = 'Alta';
   });
 
-  concState.selectedRows = {}; // limpar seleção após aplicar
+  concState.selectedRows = {};
   render();
-  alert(`✅ Lote aplicado a ${selectedIndices.length} registro(s)!`);
+  alert(`✅ Lote aplicado a ${selectedIndices.length} registro(s) filtrados!`);
 };
 
 // ─── TELA PRINCIPAL UNIFICADA — Layout Único SCI c/ edição inline ───
