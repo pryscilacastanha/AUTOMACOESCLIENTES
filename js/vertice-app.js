@@ -39,7 +39,38 @@ const V = (() => {
           email: '', telefone: '',
           servico: 'Assessoria Contábil',
           origem: 'CrisContab',
+          endereco: 'Av. Do Forte, 597 — Cristo Redentor, Porto Alegre/RS — CEP 91360-000',
+          ie: '096/4043467',
+          data_abertura: '2024-12-16',
           acessos: { decweb: '58468980000131', simples: '421467848028' },
+          faturamento_2025: {
+            jan: 0, fev: 0, mar: 0, abr: 62969.45, mai: 107954.23,
+            jun: 115811.43, jul: 152207.67, ago: 141995.85, set: 108123.59,
+            out: 84457.57, nov: 78910.21, dez: 91067.92,
+            total: 943497.92, media: 78624.83
+          },
+          impostos_2025: {
+            gps: [
+              { ref:'07/2025', valor:860.93, tipo:'Folha normal' },
+              { ref:'08/2025', valor:1011.46, tipo:'Folha normal' },
+              { ref:'09/2025', valor:1011.46, tipo:'Folha normal' },
+              { ref:'10/2025', valor:787.10, tipo:'Folha normal' },
+              { ref:'11/2025', valor:958.66, tipo:'Folha normal' },
+              { ref:'12/2025', valor:930.53, tipo:'Folha normal' },
+              { ref:'12/2025', valor:451.49, tipo:'13º Salário' }
+            ],
+            fgts: [
+              { ref:'07/2025', valor:1026.57 }, { ref:'08/2025', valor:1303.16 },
+              { ref:'09/2025', valor:1057.62 }, { ref:'10/2025', valor:890.26 },
+              { ref:'11/2025', valor:1065.46 }, { ref:'12/2025', valor:1263.13 },
+              { ref:'12/2025', valor:1219.06, tipo:'Complementar' }
+            ],
+            simples: [
+              { ref:'07/2025', valor:7937.00 }, { ref:'08/2025', valor:8879.86 },
+              { ref:'09/2025', valor:6586.55 }, { ref:'10/2025', valor:5231.97 },
+              { ref:'11/2025', valor:4926.46 }, { ref:'12/2025', valor:5695.63 }
+            ]
+          },
           capital_social: {
             valor_atual: 100000,
             historico: [
@@ -49,12 +80,12 @@ const V = (() => {
           },
           obrigacoes_por_ano: {
             '2025': {
-              'DAS': { jan:true,fev:true,mar:true,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
-              'PGDAS': { jan:true,fev:true,mar:true,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
+              'DAS': { jan:true,fev:true,mar:true,abr:false,mai:false,jun:false,jul:true,ago:true,set:true,out:true,nov:true,dez:true },
+              'PGDAS': { jan:true,fev:true,mar:true,abr:false,mai:false,jun:false,jul:true,ago:true,set:true,out:true,nov:true,dez:true },
               'DEFIS': { anual: false },
               'DIRF': { anual: false },
               'RAIS': { anual: false },
-              'DCTF': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false }
+              'DCTF': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:true,ago:true,set:true,out:true,nov:true,dez:true }
             },
             '2024': {
               'DAS': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
@@ -83,9 +114,29 @@ const V = (() => {
               { nome:'Alvará/Dispensa',tipo:'pdf',status:'ok' },
               { nome:'QSA',tipo:'pdf',status:'ok' },
               { nome:'PPCI',tipo:'pdf',status:'ok' },
-              { nome:'Contrato de Locação',tipo:'pdf',status:'ok' }
+              { nome:'Contrato de Locação',tipo:'pdf',status:'ok' },
+              { nome:'Contrato Contábil',tipo:'pdf',status:'ok' },
+              { nome:'Certidão Negativa',tipo:'pdf',status:'ok' },
+              { nome:'Certidão Dispensa Alvará Saúde',tipo:'pdf',status:'ok' },
+              { nome:'Licenciamento PPCI',tipo:'pdf',status:'ok' }
             ],
-            fiscal: [], contabil: [], trabalhista: []
+            fiscal: [
+              { nome:'PGDAS-D Jul-Dez/2025', tipo:'declaracao', status:'ok' },
+              { nome:'Simples Nacional Jul-Dez/2025', tipo:'guia', status:'ok' }
+            ],
+            contabil: [
+              { nome:'Extratos Banrisul 2025 (Fev-Dez)', tipo:'ofx', status:'ok' },
+              { nome:'Extratos Banrisul 2026 (Jan-Mar)', tipo:'pdf', status:'ok' },
+              { nome:'Livro Caixa - Reserva', tipo:'xlsx', status:'ok' }
+            ],
+            trabalhista: [
+              { nome:'Folha Jul-Dez/2025 + 13º', tipo:'espelho', status:'ok' },
+              { nome:'Folha Jan-Mar/2026', tipo:'espelho', status:'ok' },
+              { nome:'GPS Jul-Dez/2025', tipo:'guia', status:'ok' },
+              { nome:'FGTS Jul-Dez/2025', tipo:'guia', status:'ok' },
+              { nome:'DCTF Web Jul-Dez/2025', tipo:'declaracao', status:'ok' },
+              { nome:'Rescisão Bruna Siqueira', tipo:'docs', status:'ok' }
+            ]
           }
         }
       ],
@@ -108,6 +159,7 @@ const V = (() => {
     obrigacoes:       { title:'Obrigações Acessórias',    sub:'Contabilidade — Controle de entregas',        render: renderObrigacoes },
     conciliacao:      { title:'Conciliação Inteligente',  sub:'Contabilidade — Importação e classificação',  render: renderConciliacao },
     educacao:         { title:'Educação Cliente',         sub:'Contabilidade — Base de conhecimento',        render: renderEducacao },
+    onboarding:       { title:'Onboarding',               sub:'Contabilidade — Jornada do cliente',          render: renderOnboarding },
     'fin-dashboard':  { title:'Dashboard Financeiro',     sub:'Financeiro — Panorama consolidado',           render: renderFinDash },
     'fin-receber':    { title:'Contas a Receber',         sub:'Financeiro — Receitas e entradas',            render: renderFinReceber },
     'fin-pagar':      { title:'Contas a Pagar',           sub:'Financeiro — Fornecedor · Despesa · Total',   render: renderFinPagar },
@@ -358,7 +410,7 @@ const V = (() => {
         <td><span class="badge badge-primary">${c.regime}</span></td>
         <td>${c.responsavel||'—'}</td>
         <td><span class="badge badge-success">${c.status}</span></td>
-        <td><button class="btn btn-secondary btn-xs" onclick="V.verCliente(${c.id})">Ver</button> <button class="btn btn-secondary btn-xs" onclick="V.nav('obrigacoes')">Obrigações</button></td>
+        <td><button class="btn btn-secondary btn-xs" onclick="V.verCliente(${c.id})">Ver</button> <button class="btn btn-secondary btn-xs" onclick="V.nav('obrigacoes')">Obrigações</button> <button class="btn btn-primary btn-xs" onclick="V.abrirOnboarding(${c.id})">🚀 Onboarding</button></td>
       </tr>`).join('')}
       </tbody></table></div></div></div>
     `;
@@ -529,6 +581,16 @@ const V = (() => {
   function renderContratos(el) { renderPlaceholder(el,'📄','Contratos','Gestão de contratos de consultoria — integração com ERP.'); }
   function renderConciliacao(el) { renderPlaceholder(el,'🏦','Conciliação Inteligente','Motor de conciliação bancária com IA — importação de OFX/CSV com classificação automática. Módulo do Criscontab original será integrado.'); }
   function renderEducacao(el) { renderPlaceholder(el,'📖','Educação Cliente','Base de conhecimento para educação contábil e fiscal dos clientes.'); }
+  // Onboarding — engine completo
+  let _onbClienteId = 1; // default
+  function renderOnboarding(el) {
+    if (typeof ONBOARDING !== 'undefined') ONBOARDING.render(el, _onbClienteId);
+    else renderPlaceholder(el,'🚀','Onboarding','Motor de diagnóstico com 7 etapas para jornada do cliente na escrituração contábil.');
+  }
+  function abrirOnboarding(clienteId) {
+    _onbClienteId = clienteId;
+    nav('onboarding');
+  }
   // Societário — real engine from soc-engine.js
   function renderSocDiagnostico(el) {
     if (typeof SOC !== 'undefined' && SOC.renderDiagnostico) { SOC.renderDiagnostico(el); SOC.renderDiagStep(el); }
@@ -744,6 +806,7 @@ const V = (() => {
   return {
     nav, toggleGroup, toast, openModal, closeModal,
     verCliente, modalNovoCliente, salvarNovoCliente,
+    abrirOnboarding,
     toggleOb, renderObGrid, changeObAno,
     exportDB, resetDB, syncCloud
   };
