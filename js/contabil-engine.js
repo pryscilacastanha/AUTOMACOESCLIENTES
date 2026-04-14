@@ -84,6 +84,28 @@ const CONTABIL = (() => {
           <div class="onb-progress-mini-bar" style="width:${pctClass}%;background:${pctClass>=80?'#10b981':pctClass>=40?'#f59e0b':'#ef4444'};border-radius:99px"></div>
         </div>
 
+        <!-- Importação -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">📂 Importar Extrato Bancário</div></div>
+          <div class="card-body" style="padding:16px 20px">
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <div id="ctb-drop-zone" style="flex:1;min-width:300px;min-height:80px;border:2px dashed #cbd5e1;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .2s;padding:16px" onclick="document.getElementById('ctb-file-input').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(99,102,241,.05)'" ondragleave="this.style.borderColor='#cbd5e1';this.style.background=''" ondrop="event.preventDefault();this.style.borderColor='#cbd5e1';this.style.background='';CONTABIL.importarArquivo(event.dataTransfer.files)">
+                <div style="font-size:28px">📄</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-1)">Arraste um arquivo OFX ou TXT aqui</div>
+                <div style="font-size:11px;color:var(--text-3)">ou clique para selecionar · Formatos: .ofx .txt</div>
+              </div>
+              <input type="file" id="ctb-file-input" accept=".ofx,.txt" style="display:none" onchange="CONTABIL.importarArquivo(this.files)">
+              <div style="display:flex;flex-direction:column;gap:8px;min-width:180px">
+                <select id="ctb-import-mode" style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px">
+                  <option value="substituir">↻ Substituir lançamentos</option>
+                  <option value="adicionar">+ Adicionar ao existente</option>
+                </select>
+                <div id="ctb-import-status" style="font-size:11px;color:var(--text-3)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Lote -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-body" style="padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -305,6 +327,183 @@ const CONTABIL = (() => {
     filtrar();
   }
 
+  // ══════════════════════════════════════════
+  // IMPORTAÇÃO DE EXTRATOS (OFX + TXT)
+  // ══════════════════════════════════════════
+  function importarArquivo(files) {
+    if (!files || !files.length) return;
+    const file = files[0];
+    const ext = file.name.split('.').pop().toLowerCase();
+    const status = document.getElementById('ctb-import-status');
+
+    if (ext !== 'ofx' && ext !== 'txt') {
+      if (status) status.innerHTML = '<span style="color:#ef4444">❌ Formato não suportado. Use .ofx ou .txt</span>';
+      return;
+    }
+
+    if (status) status.innerHTML = '<span style="color:var(--accent)">⏳ Processando...</span>';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target.result;
+        let parsed = [];
+
+        if (ext === 'ofx') parsed = parseOFX(content);
+        else parsed = parseTXT(content);
+
+        if (!parsed.length) {
+          if (status) status.innerHTML = '<span style="color:#f59e0b">⚠️ Nenhum lançamento encontrado no arquivo</span>';
+          return;
+        }
+
+        const mode = document.getElementById('ctb-import-mode')?.value || 'substituir';
+        if (mode === 'substituir') {
+          lancamentos = parsed;
+        } else {
+          // Adicionar — evitar duplicatas por FITID/documento
+          const existDocs = new Set(lancamentos.map(l => l.documento));
+          const novos = parsed.filter(p => !existDocs.has(p.documento));
+          lancamentos = [...lancamentos, ...novos];
+        }
+
+        saveLanc();
+
+        // Re-render completo
+        const mainEl = document.getElementById('app-page') || document.querySelector('.content');
+        if (mainEl) render(mainEl);
+
+        if (status) status.innerHTML = `<span style="color:#10b981">✅ ${parsed.length} lançamentos importados de <strong>${file.name}</strong></span>`;
+        if (window.V) V.toast(`${parsed.length} lançamentos importados!`, '📂');
+      } catch (err) {
+        console.error('Erro importação:', err);
+        if (status) status.innerHTML = `<span style="color:#ef4444">❌ Erro: ${err.message}</span>`;
+      }
+    };
+    reader.readAsText(file, 'ISO-8859-1');
+  }
+
+  // ── PARSER OFX ──
+  function parseOFX(content) {
+    const result = [];
+    // Extract all STMTTRN blocks
+    const trnRegex = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;
+    let match;
+    let id = 1;
+
+    while ((match = trnRegex.exec(content)) !== null) {
+      const block = match[1];
+      const get = (tag) => {
+        const m = block.match(new RegExp('<' + tag + '>([^<\n\r]+)', 'i'));
+        return m ? m[1].trim() : '';
+      };
+
+      const trnType = get('TRNTYPE');
+      const dtPosted = get('DTPOSTED');
+      const amount = parseFloat(get('TRNAMT')) || 0;
+      const fitid = get('FITID') || get('CHECKNUM') || String(id);
+      const name = get('NAME');
+      const memo = get('MEMO');
+
+      // Parse date: YYYYMMDD...
+      let dia = '';
+      if (dtPosted.length >= 8) {
+        dia = dtPosted.substring(6, 8);
+      }
+
+      const historico = name || memo || 'SEM HISTÓRICO';
+      const tipo = amount < 0 ? 'D' : 'C';
+      const valor = Math.abs(amount);
+
+      result.push({
+        id: id++,
+        dia,
+        historico: historico.toUpperCase(),
+        documento: fitid,
+        valor,
+        tipo,
+        conta: ''
+      });
+    }
+
+    return result;
+  }
+
+  // ── PARSER TXT (Banrisul) ──
+  function parseTXT(content) {
+    const result = [];
+    const lines = content.split('\n');
+    let id = 1;
+    let currentDay = '';
+
+    for (const rawLine of lines) {
+      const line = rawLine.replace(/\r/, '');
+
+      // Skip empty, header, separator lines
+      if (!line.trim()) continue;
+      if (line.includes('B A N R I S U L') || line.includes('AGENCIA:') || line.includes('CONTA..') ||
+          line.includes('NOME...') || line.includes('PERIODO:') || line.includes('IDENTIFICACAO:') ||
+          line.includes('PARA SIMPLES') || line.includes('-----') || line.includes('MOVIMENTOS DA CONTA') ||
+          line.includes('TOTAL CREDITOS') || line.includes('TOTAL DEBITOS') ||
+          line.includes('==') || line.includes('+-')) continue;
+
+      // Skip SALDO and ++ lines
+      if (line.trim().startsWith('SALDO') || line.trim().startsWith('++') ||
+          line.trim().startsWith('TOTAL') || line.trim().startsWith('S A L D O')) continue;
+
+      // Try to parse: DIA  HISTORICO  DOCUMENTO  VALOR
+      // Format: 2 chars dia (or spaces), then historico, then documento (6 digits), then valor
+      // Lines with dia: "02  VERO BANRICOMPRAS A PRAZO   732504   326,07"
+      // Lines continuation: "    PIX RECEBIDO              053589   158,56"
+
+      const m = line.match(/^\s{0,2}(\d{2})\s{2}(.+?)\s{2,}(\d{3,10})\s+(\S+)\s*$/);
+      const m2 = line.match(/^\s{4}(.+?)\s{2,}(\d{3,10})\s+(\S+)\s*$/);
+
+      if (m) {
+        currentDay = m[1];
+        const historico = m[2].trim();
+        const doc = m[3].trim();
+        const valorStr = m[4].trim();
+
+        if (historico.includes('SALDO')) continue;
+
+        const isDebito = valorStr.endsWith('-');
+        const valorNum = parseFloat(valorStr.replace('-', '').replace(/\./g, '').replace(',', '.')) || 0;
+
+        result.push({
+          id: id++,
+          dia: currentDay,
+          historico: historico.toUpperCase(),
+          documento: doc,
+          valor: valorNum,
+          tipo: isDebito ? 'D' : 'C',
+          conta: ''
+        });
+      } else if (m2 && currentDay) {
+        const historico = m2[1].trim();
+        const doc = m2[2].trim();
+        const valorStr = m2[3].trim();
+
+        if (historico.includes('SALDO')) continue;
+
+        const isDebito = valorStr.endsWith('-');
+        const valorNum = parseFloat(valorStr.replace('-', '').replace(/\./g, '').replace(',', '.')) || 0;
+
+        result.push({
+          id: id++,
+          dia: currentDay,
+          historico: historico.toUpperCase(),
+          documento: doc,
+          valor: valorNum,
+          tipo: isDebito ? 'D' : 'C',
+          conta: ''
+        });
+      }
+    }
+
+    return result;
+  }
+
   // ── PUBLIC API ──
-  return { render, filtrar, setConta, aplicarLote, limparFiltros };
+  return { render, filtrar, setConta, aplicarLote, limparFiltros, importarArquivo };
 })();
