@@ -47,13 +47,31 @@ const V = (() => {
               { data: '2025-09-29', tipo: 'Redução', valor: 100000, descricao: 'Saída sócio André — Redução para R$ 100.000' }
             ]
           },
-          obrigacoes: {
-            'DAS': { jan:true,fev:true,mar:true,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
-            'PGDAS': { jan:true,fev:true,mar:true,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
-            'DEFIS': { anual: false },
-            'DIRF': { anual: false },
-            'RAIS': { anual: false },
-            'DCTF': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false }
+          obrigacoes_por_ano: {
+            '2025': {
+              'DAS': { jan:true,fev:true,mar:true,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
+              'PGDAS': { jan:true,fev:true,mar:true,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
+              'DEFIS': { anual: false },
+              'DIRF': { anual: false },
+              'RAIS': { anual: false },
+              'DCTF': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false }
+            },
+            '2024': {
+              'DAS': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
+              'PGDAS': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
+              'DEFIS': { anual: false },
+              'DIRF': { anual: false },
+              'RAIS': { anual: false },
+              'DCTF': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false }
+            },
+            '2026': {
+              'DAS': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
+              'PGDAS': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false },
+              'DEFIS': { anual: false },
+              'DIRF': { anual: false },
+              'RAIS': { anual: false },
+              'DCTF': { jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false }
+            }
           },
           documentos: {
             societario: [
@@ -101,6 +119,7 @@ const V = (() => {
     'fin-legal':      { title:'Base Legal',               sub:'Financeiro — Fundamentação jurídica',         render: renderFinLegal },
     'fin-planejamento':{ title:'Planejamento Financeiro', sub:'Financeiro — Curto, médio e longo prazo',     render: renderFinPlanej },
     'soc-diagnostico':{ title:'Diagnóstico Societário',   sub:'Societário — Motor inteligente 3 camadas',    render: renderSocDiagnostico },
+    'soc-simulador':  { title:'Simulador Tributário',      sub:'Societário — Compare MEI, Simples, Presumido e Real', render: renderSocSimulador },
     'soc-holdings':   { title:'Holdings',                 sub:'Societário — Gestão de holdings',             render: renderSocHoldings },
     'soc-abertura':   { title:'Abertura de Empresas',     sub:'Societário — Fluxo operacional',              render: renderSocAbertura },
     'rev-carteira':   { title:'Carteira Clientes SCI',    sub:'Revenda SCI — Base de clientes',              render: renderRevCarteira },
@@ -282,9 +301,12 @@ const V = (() => {
 
   function getObrigacoesPendentes() {
     let count = 0;
+    const anoAtual = new Date().getFullYear().toString();
     db.clientes_contab.forEach(c => {
-      if (!c.obrigacoes) return;
-      Object.values(c.obrigacoes).forEach(ob => {
+      // Support both old format (c.obrigacoes) and new format (c.obrigacoes_por_ano)
+      const obAno = c.obrigacoes_por_ano ? c.obrigacoes_por_ano[anoAtual] : c.obrigacoes;
+      if (!obAno) return;
+      Object.values(obAno).forEach(ob => {
         if (ob.anual !== undefined) { if (!ob.anual) count++; }
         else { MESES_KEYS.forEach(m => { if (ob[m] === false) count++; }); }
       });
@@ -343,16 +365,74 @@ const V = (() => {
   }
 
   // ══════════════════════════════════════════════════
-  // CONTABILIDADE — Obrigações Acessórias
+  // CONTABILIDADE — Obrigações Acessórias (multi-year)
   // ══════════════════════════════════════════════════
+  let obAnoSel = new Date().getFullYear().toString();
+  const OB_ANOS = ['2024','2025','2026'];
+
+  function migrateObrigacoes(cliente) {
+    // Migrate old format (obrigacoes) to new (obrigacoes_por_ano)
+    if (cliente.obrigacoes && !cliente.obrigacoes_por_ano) {
+      cliente.obrigacoes_por_ano = { '2025': JSON.parse(JSON.stringify(cliente.obrigacoes)) };
+      delete cliente.obrigacoes;
+      // Create empty entries for other years
+      OB_ANOS.forEach(y => {
+        if (!cliente.obrigacoes_por_ano[y]) {
+          const empty = {};
+          Object.keys(cliente.obrigacoes_por_ano['2025']).forEach(k => {
+            const ob = cliente.obrigacoes_por_ano['2025'][k];
+            if (ob.anual !== undefined) empty[k] = { anual: false };
+            else { empty[k] = {}; MESES_KEYS.forEach(m => empty[k][m] = false); }
+          });
+          cliente.obrigacoes_por_ano[y] = empty;
+        }
+      });
+      saveDB(db);
+    }
+  }
+
+  function getClienteOb(cliente, ano) {
+    migrateObrigacoes(cliente);
+    if (!cliente.obrigacoes_por_ano) return {};
+    if (!cliente.obrigacoes_por_ano[ano]) {
+      // Create empty year from existing template
+      const template = Object.values(cliente.obrigacoes_por_ano)[0] || {};
+      const empty = {};
+      Object.keys(template).forEach(k => {
+        const ob = template[k];
+        if (ob.anual !== undefined) empty[k] = { anual: false };
+        else { empty[k] = {}; MESES_KEYS.forEach(m => empty[k][m] = false); }
+      });
+      cliente.obrigacoes_por_ano[ano] = empty;
+      saveDB(db);
+    }
+    return cliente.obrigacoes_por_ano[ano];
+  }
+
   function renderObrigacoes(el) {
     const clientes = db.clientes_contab;
     if (!clientes.length) { el.innerHTML = '<div class="card card-body"><div class="empty-state"><div class="empty-icon">📋</div><h3>Nenhum cliente</h3></div></div>'; return; }
     el.innerHTML = `
-      <div class="filters"><select id="ob-cliente-sel" onchange="V.renderObGrid()">${clientes.map(c=>`<option value="${c.id}">${c.fantasia||c.razao}</option>`).join('')}</select><span style="color:var(--text-3);font-size:12px">Exercício 2025</span></div>
-      <div class="card"><div class="card-header"><div class="card-title">Controle de Obrigações Acessórias</div></div>
+      <div class="filters" style="gap:14px">
+        <select id="ob-cliente-sel" onchange="V.renderObGrid()" style="min-width:200px">${clientes.map(c=>`<option value="${c.id}">${c.fantasia||c.razao}</option>`).join('')}</select>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="font-size:12px;font-weight:600;color:var(--text-2)">Exercício:</label>
+          <select id="ob-ano-sel" onchange="V.changeObAno(this.value)" style="min-width:100px;font-weight:700;font-size:14px;padding:6px 12px">
+            ${OB_ANOS.map(y=>`<option value="${y}" ${y===obAnoSel?'selected':''}>${y}</option>`).join('')}
+          </select>
+        </div>
+        <div id="ob-stats" style="margin-left:auto;font-size:12px;color:var(--text-3)"></div>
+      </div>
+      <div class="card"><div class="card-header"><div class="card-title">Controle de Obrigações Acessórias — <span id="ob-ano-label" style="color:var(--accent)">${obAnoSel}</span></div></div>
       <div class="card-body" style="padding:0;overflow-x:auto"><table id="ob-table"><thead><tr><th style="min-width:130px">Obrigação</th>${MESES.map(m=>`<th style="text-align:center;min-width:50px">${m}</th>`).join('')}<th style="text-align:center">Anual</th></tr></thead><tbody id="ob-tbody"></tbody></table></div></div>
     `;
+    renderObGrid();
+  }
+
+  function changeObAno(ano) {
+    obAnoSel = ano;
+    const label = document.getElementById('ob-ano-label');
+    if (label) label.textContent = ano;
     renderObGrid();
   }
 
@@ -362,23 +442,34 @@ const V = (() => {
     if (!cliente) return;
     const tbody = document.getElementById('ob-tbody');
     if (!tbody) return;
-    const obKeys = Object.keys(cliente.obrigacoes || {});
+    const obData = getClienteOb(cliente, obAnoSel);
+    const obKeys = Object.keys(obData);
+    let totalCells = 0, doneCells = 0;
     tbody.innerHTML = obKeys.map(key => {
-      const ob = cliente.obrigacoes[key];
+      const ob = obData[key];
       const isAnual = ob.anual !== undefined;
       if (isAnual) {
+        totalCells++; if (ob.anual) doneCells++;
         return `<tr><td style="font-weight:600">${key}</td>${MESES_KEYS.map(()=>`<td style="text-align:center;color:var(--text-3)">—</td>`).join('')}<td style="text-align:center"><input type="checkbox" ${ob.anual?'checked':''} style="accent-color:var(--accent);width:18px;height:18px;cursor:pointer" onchange="V.toggleOb(${selId},'${key}','anual',this.checked)"></td></tr>`;
       }
-      return `<tr><td style="font-weight:600">${key}</td>${MESES_KEYS.map(m=>`<td style="text-align:center"><input type="checkbox" ${ob[m]?'checked':''} style="accent-color:var(--success);width:18px;height:18px;cursor:pointer" onchange="V.toggleOb(${selId},'${key}','${m}',this.checked)"></td>`).join('')}<td style="text-align:center;color:var(--text-3)">—</td></tr>`;
+      return `<tr><td style="font-weight:600">${key}</td>${MESES_KEYS.map(m=>{
+        totalCells++; if(ob[m]) doneCells++;
+        return `<td style="text-align:center"><input type="checkbox" ${ob[m]?'checked':''} style="accent-color:var(--success);width:18px;height:18px;cursor:pointer" onchange="V.toggleOb(${selId},'${key}','${m}',this.checked)"></td>`;
+      }).join('')}<td style="text-align:center;color:var(--text-3)">—</td></tr>`;
     }).join('');
+    // Stats
+    const stats = document.getElementById('ob-stats');
+    if (stats) stats.innerHTML = `<span class="badge badge-success">${doneCells}/${totalCells} entregues</span> · <span style="font-weight:700">${totalCells>0?Math.round(doneCells/totalCells*100):0}%</span>`;
   }
 
   function toggleOb(clienteId, obKey, mesKey, checked) {
     const cliente = db.clientes_contab.find(c => c.id === clienteId);
-    if (!cliente || !cliente.obrigacoes[obKey]) return;
-    cliente.obrigacoes[obKey][mesKey] = checked;
+    if (!cliente) return;
+    const obData = getClienteOb(cliente, obAnoSel);
+    if (!obData[obKey]) return;
+    obData[obKey][mesKey] = checked;
     saveDB(db);
-    toast(checked ? `${obKey} ${mesKey.toUpperCase()} marcada como entregue` : `${obKey} ${mesKey.toUpperCase()} desmarcada`, checked ? '✅' : '⬜');
+    toast(checked ? `${obKey} ${mesKey.toUpperCase()} ${obAnoSel} — entregue ✅` : `${obKey} ${mesKey.toUpperCase()} ${obAnoSel} — desmarcada`, checked ? '✅' : '⬜');
   }
 
   // ══════════════════════════════════════════════════
@@ -438,9 +529,23 @@ const V = (() => {
   function renderContratos(el) { renderPlaceholder(el,'📄','Contratos','Gestão de contratos de consultoria — integração com ERP.'); }
   function renderConciliacao(el) { renderPlaceholder(el,'🏦','Conciliação Inteligente','Motor de conciliação bancária com IA — importação de OFX/CSV com classificação automática. Módulo do Criscontab original será integrado.'); }
   function renderEducacao(el) { renderPlaceholder(el,'📖','Educação Cliente','Base de conhecimento para educação contábil e fiscal dos clientes.'); }
-  function renderSocDiagnostico(el) { renderPlaceholder(el,'🔍','Diagnóstico Societário','Motor inteligente de 3 camadas — dados do sistema Antigravity Societário.'); }
-  function renderSocHoldings(el) { renderPlaceholder(el,'🏢','Holdings','Gestão de holdings — inclusive Vorcon Holding LTDA.'); }
-  function renderSocAbertura(el) { renderPlaceholder(el,'📝','Abertura de Empresas','Fluxo operacional — JUCIS, Receita Federal, Prefeitura.'); }
+  // Societário — real engine from soc-engine.js
+  function renderSocDiagnostico(el) {
+    if (typeof SOC !== 'undefined' && SOC.renderDiagnostico) { SOC.renderDiagnostico(el); SOC.renderDiagStep(el); }
+    else renderPlaceholder(el,'🔍','Diagnóstico Societário','Motor inteligente de 3 camadas — dados do sistema Antigravity Societário.');
+  }
+  function renderSocSimulador(el) {
+    if (typeof SOC !== 'undefined' && SOC.renderSimulador) SOC.renderSimulador(el);
+    else renderPlaceholder(el,'💰','Simulador Tributário','Compare MEI, Simples Nacional, Lucro Presumido e Lucro Real lado a lado.');
+  }
+  function renderSocHoldings(el) {
+    if (typeof SOC !== 'undefined' && SOC.renderHoldings) SOC.renderHoldings(el);
+    else renderPlaceholder(el,'🏢','Holdings','Gestão de holdings — inclusive Vorcon Holding LTDA.');
+  }
+  function renderSocAbertura(el) {
+    if (typeof SOC !== 'undefined' && SOC.renderAbertura) SOC.renderAbertura(el);
+    else renderPlaceholder(el,'📝','Abertura de Empresas','Fluxo operacional — JUCIS, Receita Federal, Prefeitura.');
+  }
   function renderRevCarteira(el) { renderPlaceholder(el,'👥','Carteira Clientes SCI','Base de clientes da revenda SCI — gestão comercial.'); }
   function renderRevComercial(el) { renderPlaceholder(el,'📊','Gestão Comercial SCI','Estratégia comercial — prospecção, retenção e upsell.'); }
   function renderRevBase(el) { renderPlaceholder(el,'📚','Base de Conhecimento SCI','182 documentos técnicos da SCI — manuais e treinamentos.'); }
@@ -483,6 +588,7 @@ const V = (() => {
   function verCliente(id) {
     const c = db.clientes_contab.find(x => x.id === id);
     if (!c) return;
+    const diag = c.diagnostico || {};
     openModal(`
       <h3>🏢 ${c.fantasia||c.razao}</h3>
       <div class="form-grid" style="margin-bottom:16px">
@@ -492,23 +598,64 @@ const V = (() => {
         <div class="form-group"><label>Responsável</label><input type="text" value="${c.responsavel||''}" readonly></div>
         <div class="form-group"><label>Capital Social</label><input type="text" value="${currency(c.capital_social?.valor_atual)}" readonly></div>
         <div class="form-group"><label>Origem</label><input type="text" value="${c.origem||'CrisContab'}" readonly></div>
+        <div class="form-group"><label>E-mail</label><input type="text" value="${c.email||'—'}" readonly></div>
+        <div class="form-group"><label>Telefone</label><input type="text" value="${c.telefone||'—'}" readonly></div>
       </div>
       ${c.acessos ? `<div style="background:#f0f2ff;padding:14px;border-radius:8px;margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">🔑 Acessos</div><div style="font-size:12px;color:var(--text-2);line-height:2"><strong>DecWeb:</strong> ${c.acessos.decweb||'—'}<br><strong>Simples:</strong> ${c.acessos.simples||'—'}</div></div>` : ''}
+      ${diag.atividade_principal ? `
+      <div style="background:#ecfdf5;padding:14px;border-radius:8px;margin-bottom:16px;border:1px solid #a7f3d0"><div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:10px">📋 Parecer — Diagnóstico de Onboarding</div>
+        <div style="font-size:12px;color:var(--text-2);line-height:2">
+          <strong>Atividade principal:</strong> ${diag.atividade_principal||'—'}<br>
+          <strong>Nº de funcionários:</strong> ${diag.num_funcionarios||'—'}<br>
+          <strong>Faturamento médio:</strong> ${diag.faturamento_medio||'—'}<br>
+          <strong>Operações por mês:</strong> ${diag.operacoes_mes||'—'}<br>
+          <strong>Sistema ERP/Gestão:</strong> ${diag.sistema_erp||'—'}<br>
+          <strong>Contabilidade anterior:</strong> ${diag.contab_anterior||'—'}<br>
+          <strong>Pendências fiscais:</strong> ${diag.pendencias_fiscais||'Não informado'}<br>
+          <strong>Controle financeiro:</strong> ${diag.controle_financeiro||'—'}<br>
+          <strong>Emite NF:</strong> ${diag.emite_nf||'—'}<br>
+          <strong>Certificado digital:</strong> ${diag.cert_digital||'—'}<br>
+          <strong>Observações:</strong> ${diag.observacoes||'—'}
+        </div>
+      </div>` : '<div style="background:#fffbeb;padding:12px;border-radius:8px;margin-bottom:16px;border:1px solid #fde68a;font-size:12px;color:#92400e"><strong>⚠️ Diagnóstico pendente</strong> — Edite o cliente para preencher as informações de onboarding.</div>'}
       <div class="modal-footer"><button class="btn btn-secondary" onclick="V.closeModal()">Fechar</button><button class="btn btn-primary" onclick="V.nav('escrituracao');V.closeModal()">Ver Escrituração</button></div>
     `);
   }
 
   function modalNovoCliente() {
     openModal(`
-      <h3>+ Novo Cliente — Contabilidade</h3>
+      <h3>+ Novo Cliente — Onboarding Completo</h3>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--accent);margin-bottom:10px;letter-spacing:.06em">📋 Dados Gerais</div>
       <div class="form-grid">
         <div class="form-group form-full"><label>Razão Social *</label><input type="text" id="nc-razao" placeholder="EMPRESA LTDA"></div>
         <div class="form-group"><label>Nome Fantasia</label><input type="text" id="nc-fantasia"></div>
         <div class="form-group"><label>CNPJ *</label><input type="text" id="nc-cnpj" placeholder="00.000.000/0000-00"></div>
         <div class="form-group"><label>Regime Tributário</label><select id="nc-regime"><option>Simples Nacional</option><option>Lucro Presumido</option><option>Lucro Real</option><option>MEI</option></select></div>
         <div class="form-group"><label>Responsável</label><input type="text" id="nc-resp"></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="nc-email" placeholder="contato@empresa.com"></div>
+        <div class="form-group"><label>Telefone</label><input type="text" id="nc-telefone" placeholder="(51) 99999-0000"></div>
       </div>
-      <div class="modal-footer"><button class="btn btn-secondary" onclick="V.closeModal()">Cancelar</button><button class="btn btn-primary" onclick="V.salvarNovoCliente()">Salvar</button></div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--success);margin:20px 0 10px;letter-spacing:.06em">🔍 Diagnóstico do Cliente</div>
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Atividade principal</label><input type="text" id="nc-atividade" placeholder="ex: Restaurante, Comércio varejista..."></div>
+        <div class="form-group"><label>Nº de funcionários</label><input type="number" id="nc-func" placeholder="0" min="0"></div>
+        <div class="form-group"><label>Faturamento médio/mês</label><input type="text" id="nc-faturamento" placeholder="R$ 50.000"></div>
+        <div class="form-group"><label>Operações bancárias/mês</label><input type="number" id="nc-operacoes" placeholder="30" min="0"></div>
+        <div class="form-group"><label>Sistema ERP/Gestão</label><select id="nc-erp"><option value="">Não possui</option><option>SCI</option><option>Domínio</option><option>Outro</option></select></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--warning);margin:20px 0 10px;letter-spacing:.06em">📁 Controle Interno</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Contabilidade anterior</label><input type="text" id="nc-contab-ant" placeholder="Nome do escritório"></div>
+        <div class="form-group"><label>Pendências fiscais?</label><select id="nc-pendencias"><option value="Não">Não</option><option value="Sim">Sim</option><option value="Não verificado">Não verificado</option></select></div>
+        <div class="form-group"><label>Controle financeiro</label><select id="nc-ctrl-fin"><option value="Planilha">Planilha</option><option value="Sistema">Sistema</option><option value="Nenhum">Nenhum</option></select></div>
+        <div class="form-group"><label>Emite NF?</label><select id="nc-nf"><option value="Sim">Sim</option><option value="Não">Não</option></select></div>
+        <div class="form-group"><label>Certificado digital?</label><select id="nc-cert"><option value="Sim">Sim — A1</option><option value="Sim A3">Sim — A3</option><option value="Não">Não possui</option></select></div>
+        <div class="form-group form-full"><label>Observações do diagnóstico</label><textarea id="nc-obs" rows="3" placeholder="Informações relevantes sobre o cliente..."></textarea></div>
+      </div>
+
+      <div class="modal-footer"><button class="btn btn-secondary" onclick="V.closeModal()">Cancelar</button><button class="btn btn-primary" onclick="V.salvarNovoCliente()">✅ Salvar Cliente</button></div>
     `);
   }
 
@@ -519,14 +666,30 @@ const V = (() => {
     const novo = {
       id: Date.now(), razao, fantasia: document.getElementById('nc-fantasia')?.value?.trim()||'', cnpj,
       regime: document.getElementById('nc-regime')?.value||'Simples Nacional', status:'Ativo',
-      responsavel: document.getElementById('nc-resp')?.value?.trim()||'', email:'', telefone:'',
+      responsavel: document.getElementById('nc-resp')?.value?.trim()||'',
+      email: document.getElementById('nc-email')?.value?.trim()||'',
+      telefone: document.getElementById('nc-telefone')?.value?.trim()||'',
       servico:'Assessoria Contábil', origem:'CrisContab', acessos:{},
       capital_social: { valor_atual:0, historico:[] },
-      obrigacoes: { 'DAS':{jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false}, 'PGDAS':{jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false}, 'DEFIS':{anual:false} },
+      diagnostico: {
+        atividade_principal: document.getElementById('nc-atividade')?.value?.trim()||'',
+        num_funcionarios: document.getElementById('nc-func')?.value||'',
+        faturamento_medio: document.getElementById('nc-faturamento')?.value?.trim()||'',
+        operacoes_mes: document.getElementById('nc-operacoes')?.value||'',
+        sistema_erp: document.getElementById('nc-erp')?.value||'',
+        contab_anterior: document.getElementById('nc-contab-ant')?.value?.trim()||'',
+        pendencias_fiscais: document.getElementById('nc-pendencias')?.value||'',
+        controle_financeiro: document.getElementById('nc-ctrl-fin')?.value||'',
+        emite_nf: document.getElementById('nc-nf')?.value||'',
+        cert_digital: document.getElementById('nc-cert')?.value||'',
+        observacoes: document.getElementById('nc-obs')?.value?.trim()||'',
+        data_diagnostico: new Date().toISOString()
+      },
+      obrigacoes_por_ano: { [new Date().getFullYear()]: { 'DAS':{jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false}, 'PGDAS':{jan:false,fev:false,mar:false,abr:false,mai:false,jun:false,jul:false,ago:false,set:false,out:false,nov:false,dez:false}, 'DEFIS':{anual:false} } },
       documentos: { societario:[], fiscal:[], contabil:[], trabalhista:[] }
     };
     db.clientes_contab.push(novo);
-    saveDB(db); closeModal(); toast(`${razao} cadastrado!`); nav('carteira');
+    saveDB(db); closeModal(); toast(`${razao} cadastrado com diagnóstico!`); nav('carteira');
   }
 
   // ══════════════════════════════════════════════════
@@ -581,7 +744,7 @@ const V = (() => {
   return {
     nav, toggleGroup, toast, openModal, closeModal,
     verCliente, modalNovoCliente, salvarNovoCliente,
-    toggleOb, renderObGrid,
+    toggleOb, renderObGrid, changeObAno,
     exportDB, resetDB, syncCloud
   };
 })();
