@@ -420,7 +420,7 @@ const V = (() => {
   // CONTABILIDADE — Obrigações Acessórias (multi-year)
   // ══════════════════════════════════════════════════
   let obAnoSel = new Date().getFullYear().toString();
-  const OB_ANOS = ['2024','2025','2026'];
+  const OB_ANOS = (() => { const anos = []; for (let y = new Date().getFullYear() + 1; y >= 2010; y--) anos.push(String(y)); return anos; })();
 
   function migrateObrigacoes(cliente) {
     // Migrate old format (obrigacoes) to new (obrigacoes_por_ano)

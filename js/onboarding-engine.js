@@ -295,9 +295,9 @@ const ONBOARDING = (() => {
             <li>Elevar nível da conta Gov.br para Prata ou Ouro</li>
           </ol>
           <div class="onb-info-dest">
-            <strong>Dados do escritório:</strong><br>
-            Av. Afonso Delambert Neto, 430 — Lagoa da Conceição, Florianópolis/SC<br>
-            Tel: (48) 3364-7400 · CNPJ: 54.738.799/0001-47
+            <strong>Dados do escritório responsável:</strong><br>
+            Y. P. M. Castanha · CNPJ: 54.738.799/0001-47<br>
+            WhatsApp: (51) 98527-7713 · E-mail: ypcastanha@gmail.com
           </div>
         </div>
       </div>
