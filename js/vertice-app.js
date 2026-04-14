@@ -160,6 +160,7 @@ const V = (() => {
     conciliacao:      { title:'Conciliação Inteligente',  sub:'Contabilidade — Importação e classificação',  render: renderConciliacao },
     educacao:         { title:'Educação Cliente',         sub:'Contabilidade — Base de conhecimento',        render: renderEducacao },
     onboarding:       { title:'Onboarding',               sub:'Contabilidade — Jornada do cliente',          render: renderOnboarding },
+    'sistema-contabil':{ title:'Sistema Contábil',         sub:'Contabilidade — Classificação e lançamentos', render: renderSistemaContabil },
     'fin-dashboard':  { title:'Dashboard Financeiro',     sub:'Financeiro — Panorama consolidado',           render: renderFinDash },
     'fin-receber':    { title:'Contas a Receber',         sub:'Financeiro — Receitas e entradas',            render: renderFinReceber },
     'fin-pagar':      { title:'Contas a Pagar',           sub:'Financeiro — Fornecedor · Despesa · Total',   render: renderFinPagar },
@@ -590,6 +591,11 @@ const V = (() => {
   function abrirOnboarding(clienteId) {
     _onbClienteId = clienteId;
     nav('onboarding');
+  }
+  // Sistema Contábil — engine from contabil-engine.js
+  function renderSistemaContabil(el) {
+    if (typeof CONTABIL !== 'undefined') CONTABIL.render(el);
+    else renderPlaceholder(el,'📊','Sistema Contábil','Motor de classificação contábil com Plano 90011 — 420 contas.');
   }
   // Societário — real engine from soc-engine.js
   function renderSocDiagnostico(el) {

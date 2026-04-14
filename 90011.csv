@@ -1,0 +1,422 @@
++/-;Código;Classificação;Tipo;Nome;Apelido;Grupo;Relatório;Filtro;Fórmula;Condição;Plano padrão;Saldo;Código subconta;Grupo subconta;Natureza subconta;Empreendimentos Imobiliários;Unidades imobiliárias;Caixa produtor rural;Banco produtor rural;Conta transitória de produtor rural;Conta participante do Carnê Leão
+;19;01;T;ATIVO;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;27;01.1;T; ATIVO CIRCULANTE;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;35;01.1.1;T;  DISPONIBILIDADES;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;43;01.1.1.01;T;   CAIXA;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;51;01.1.1.01.001;;    Caixa;CX;Ativo;Balanço Patrimonial;;;;90011;Comum
+;60;01.1.1.02;T;   BANCOS CONTA MOVIMENTO;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;78;01.1.1.02.001;;    Banco do Brasil S/A;BB;Ativo;Balanço Patrimonial;;;;90011;Comum
+;86;01.1.1.02.002;;    Caixa Econômica Federal S/A;CEF;Ativo;Balanço Patrimonial;;;;90011;Comum
+;94;01.1.1.02.003;;    Bradesco S/A;BBD;Ativo;Balanço Patrimonial;;;;90011;Comum
+;122026;01.1.1.02.004;;    Banrisul (Forte);Banri;Ativo;Balanço Patrimonial;;;;90011;Comum
+;108;01.1.1.03;T;   APLICAÇÕES DE LIQUIDEZ IMEDIATA - FAF;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;116;01.1.1.03.001;;    Banco do Brasil;FAFBB;Ativo;Balanço Patrimonial;;;;90011;Comum
+;124;01.1.1.03.002;;    Caixa Econômica Federal;FAFCEF;Ativo;Balanço Patrimonial;;;;90011;Comum
+;132;01.1.2;T;  DIREITOS REALIZÁVEIS A CURTO PRAZO;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;140;01.1.2.01;T;   CLIENTES NACIONAIS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;159;01.1.2.01.001;;    Clientes nacionais;CD;Ativo;Balanço Patrimonial;;;;90011;Comum
+;100002;01.1.2.02;T;   CLIENTES INTERNACIONAIS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;100003;01.1.2.02.001;;    Clientes internacionais;CI;Ativo;Balanço Patrimonial;;;;90011;Comum
+;100016;01.1.2.03;T;   CARTÕES DE CRÉDITO;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;100017;01.1.2.03.001;;    Cartão Mastercard;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;100019;01.1.2.03.002;;    Cartão Redeshop;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;167;01.1.2.04;T;   APLICAÇÕES FINANCEIRAS DE RENDA FIXA;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;175;01.1.2.04.001;;    Aplicações no fundo de commodities;COMO;Ativo;Balanço Patrimonial;;;;90011;Comum
+;183;01.1.2.04.002;;    Aplicações no fundo DI;FDI;Ativo;Balanço Patrimonial;;;;90011;Comum
+;191;01.1.2.05;T;   APLICAÇÕES FINANCEIRAS DE RENDA VARIÁVEL;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;205;01.1.2.05.001;;    Aplicações em ações;AÇOES;Ativo;Balanço Patrimonial;;;;90011;Comum
+;213;01.1.2.06;T;   APLICAÇÕES FINANCEIRAS DIVERSAS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;221;01.1.2.06.001;;    Aplicações em caderneta de poupança ;POUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;230;01.1.2.06.002;;    Aplicações depósito especial remunerado;DEPESP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;248;01.1.2.07;T;   ADIANTAMENTOS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;256;01.1.2.07.001;;    Adiantamentos de salários e empregados;ADDEMPR;Ativo;Balanço Patrimonial;;;;90011;Comum
+;264;01.1.2.07.002;;    Adiantamentos de pró-labore a diretores;ADDPROL;Ativo;Balanço Patrimonial;;;;90011;Comum
+;272;01.1.2.07.003;;    Adiantamentos para viagens;ADDVGM;Ativo;Balanço Patrimonial;;;;90011;Comum
+;280;01.1.2.07.004;;    Adiantamentos para fururo aumento de capital;ADDFAC;Ativo;Balanço Patrimonial;;;;90011;Comum
+;299;01.1.2.07.005;;    Adiantamento a fornecedores;ADDFORNEC;Ativo;Balanço Patrimonial;;;;90011;Comum
+;302;01.1.2.07.006;;    Adiantamento 13º Salário;ADD13SAL;Ativo;Balanço Patrimonial;;;;90011;Comum
+;310;01.1.2.07.007;;    Adiantamento de férias;ADDFERIS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;329;01.1.2.08;T;   TRIBUTOS E CONTRIBUIÇÕES A COMPENSAR;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;337;01.1.2.08.001;;    ICMS a Recuperar;ICMSRECUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;345;01.1.2.08.002;;    IPI a Recuperar;IPIRECUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;353;01.1.2.08.003;;    IRRF a Recuperar;IRFRECUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;361;01.1.2.08.004;;    IRPJ Estimado a Recuperar;IRPJRECUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;370;01.1.2.08.005;;    Contribuição Social Estimada a Recuperar;CSRECUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;388;01.1.2.08.006;;    PIS a Recuperar;PISRECUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;396;01.1.2.08.007;;    COFINS a Recuperar;COFINSRECUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;400;01.1.2.08.008;;    CSLL a Recuperar;CSLLRECUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;100006;01.1.2.08.009;;    ISS a Recuperar;ISSRECUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;100030;01.1.2.08.010;;    INSS a Recuperar;INSSRECUP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;418;01.1.2.09;T;   EMPRÉSTIMOS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;100013;01.1.2.09.001;;    Instituição financeira;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;426;01.1.2.10;T;   ESTOQUES;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;434;01.1.2.10.001;;    Estoque de Mercadoria Para Revenda;ESTMERC;Ativo;Balanço Patrimonial;;;;90011;Comum
+;442;01.1.2.10.002;;    Estoque de Matéria-Prima;ESTMP;Ativo;Balanço Patrimonial;;;;90011;Comum
+;450;01.1.2.10.003;;    Estoque de Material de Consumo de Almoxarifado;ESTMCO;Ativo;Balanço Patrimonial;;;;90011;Comum
+;469;01.1.2.10.004;;    Estoque de Produtos Em Elaboração;ESTELAB;Ativo;Balanço Patrimonial;;;;90011;Comum
+;477;01.1.2.10.005;;    Estoque de Produtos Acabados;ESTACAB;Ativo;Balanço Patrimonial;;;;90011;Comum
+;485;01.1.2.11;T;   DEDUÇÕES DOS DIREITOS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;493;01.1.2.11.001;;    Duplicatas descontadas;DPLDESC;Ativo;Balanço Patrimonial;;;;90011;Comum
+;507;01.1.2.11.002;;    Provisão P/ Créditos de Liquidação Duvidosa;PROVCRED;Ativo;Balanço Patrimonial;;;;90011;Comum
+;515;01.1.2.11.003;;    Provisão P/Ajuste Aplicação Em Ouro;PROVOURO;Ativo;Balanço Patrimonial;;;;90011;Comum
+;523;01.1.2.12;T;   REMESSA DE PRODUTOS/MERCADORIAS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;531;01.1.2.12.001;;    Remessa de Produtos/Mercadorias;REMMERPRO;Ativo;Balanço Patrimonial;;;;90011;Comum
+;540;01.1.2.13;T;   RETORNO DE PRODUTOS/MERCADORIAS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;558;01.1.2.13.001;;    Retorno de Produtos/Mercadorias;RETMERPRO;Ativo;Balanço Patrimonial;;;;90011;Comum
+;566;01.1.3;T;  DESPESAS DO EXERCÍCIO SEGUINTE;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;574;01.1.3.01;T;   SEGUROS A APROPRIAR;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;582;01.1.3.01.001;;    Seguros Contra Incêndios a Apropriar;INCENDIO;Ativo;Balanço Patrimonial;;;;90011;Comum
+;590;01.1.3.01.002;;    Seguros Contra Roubo a Apropriar;ROUBO;Ativo;Balanço Patrimonial;;;;90011;Comum
+;604;01.1.3.01.003;;    Seguros Contra Lucros Cessantes;LUCROSCESS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;612;01.1.3.02;T;   ASSINATURAS DE PERIÓDICOS A APROPRIAR;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;620;01.1.3.02.001;;    Assinatura de Boletins Jornais Revistas;ASSJORNAIS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;639;01.1.3.03;T;   ALUGUEL ANTECIPADO A APROPRIAR;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;647;01.1.3.03.001;;    Aluguel de Bens Imóveis;ALIMOV;Ativo;Balanço Patrimonial;;;;90011;Comum
+;655;01.1.3.03.002;;    Aluguel de Bens Móveis;ALMOV;Ativo;Balanço Patrimonial;;;;90011;Comum
+;663;01.2;T; ATIVO NÃO CIRCULANTE;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;671;01.2.1;T;  ATIVO REALIZÁVEL A LONGO PRAZO;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;680;01.2.1.01;T;   TÍTULOS A RECEBER DE TERCEIROS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;698;01.2.1.01.001;;    Nota Promissória a Receber;NPROMREC;Ativo;Balanço Patrimonial;;;;90011;Comum
+;701;01.2.1.02;T;   DEPÓSITOS JUDICIAIS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;710;01.2.1.02.001;;    Causas Trabalhistas;TRABALH;Ativo;Balanço Patrimonial;;;;90011;Comum
+;728;01.2.1.02.002;;    PIS sobre receitas operacionais;PISJUDIC;Ativo;Balanço Patrimonial;;;;90011;Comum
+;736;01.2.1.03;T;   EMPRÉSTIMOS COMPULSÓRIOS ELETROBRÁS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;744;01.2.1.03.001;;    Adicionais conversíveis créditos Eletrobrás;EMPCOMPELETROBRAS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;752;01.2.1.03.002;;    Créditos Eletrobrás;CREDELETROBRAS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;760;01.2.1.03.003;;    Juros sobre créditos Eletrobrás a receber;JRSELETROBRAS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;787;01.2.1.04;T;   EMPRÉSTIMOS A PESSOAS LIGADAS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;3883;01.2.1.04.001;;    Empresa A S/A;EMPA;Ativo;Balanço Patrimonial;;;;90011;Comum
+;809;01.2.2;T;  INVESTIMENTOS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;3905;01.2.2.01;T;   INVESTIMENTOS EM COLIGADAS E CONTROLADAS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;3913;01.2.2.01.001;;    Empresa 1 S/A;EMP1;Ativo;Balanço Patrimonial;;;;90011;Comum
+;817;01.2.3;T;  IMOBILIZADO;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;825;01.2.3.01;T;   BENS E DIREITOS EM USO;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;833;01.2.3.01.001;;    Máquinas e Equipamentos;MAQEQUIPS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;841;01.2.3.01.002;;    Móveis e Utensílios;MOVUTENS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;850;01.2.3.01.003;;    Ferramentas;FERRAM;Ativo;Balanço Patrimonial;;;;90011;Comum
+;868;01.2.3.01.004;;    Imóveis;IMOVEIS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;876;01.2.3.01.005;;    Veículos;VEICULOS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;884;01.2.3.01.006;;    Computadores e periféricos;COMPUTADORES;Ativo;Balanço Patrimonial;;;;90011;Comum
+;892;01.2.3.01.007;;    Direito de uso de linha telefônica;DUFONE;Ativo;Balanço Patrimonial;;;;90011;Comum
+;906;01.2.3.01.008;;    Softwares;SOFT;Ativo;Balanço Patrimonial;;;;90011;Comum
+;914;01.2.3.01.009;;    Marcas e patentes de invenção;MARCAS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;922;01.2.3.01.010;;    Benfeitorias em imóveis de terceiros;BENFEIT;Ativo;Balanço Patrimonial;;;;90011;Comum
+;1066;01.2.3.02;T;   BENS EM CONSTRUÇÃO;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;100014;01.2.3.02.001;;    Bens em construção;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;930;01.2.3.04;T;   PARTICIPAÇÃO EM CONSÓRCIOS;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;949;01.2.3.04.001;;    Consórcio;CONSORCIO;Ativo;Balanço Patrimonial;;;;90011;Comum
+;957;01.2.3.05;T;   (-) DEPRECIAÇÃO ACUMULADA;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;965;01.2.3.05.001;;    (-) Máquinas e equipamentos;DEPRECMAQS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;973;01.2.3.05.002;;    (-) Móveis e Utensílios;DEPRECMOVEIS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;981;01.2.3.05.003;;    (-) Ferramentas;DEPRECFERRAM;Ativo;Balanço Patrimonial;;;;90011;Comum
+;990;01.2.3.05.004;;    (-) Imóveis;DEPRECIMOV;Ativo;Balanço Patrimonial;;;;90011;Comum
+;1007;01.2.3.05.005;;    (-) Veículos;DEPRECVEIC;Ativo;Balanço Patrimonial;;;;90011;Comum
+;1015;01.2.3.05.006;;    (-) Computadores Periféricos;DEPRECCOMPUT;Ativo;Balanço Patrimonial;;;;90011;Comum
+;3930;01.2.4;T;  ATIVO INTANGÍVEL;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;3948;01.2.4.01;T;   BENS DE NATUREZA INTANGÍVEL;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;3956;01.2.4.01.001;;    Capital Intelectual;CAPINTEL;Ativo;Balanço Patrimonial;;;;90011;Comum
+;3964;01.2.4.01.002;;    Marcas e Patentes de Invenção;MARCPAT;Ativo;Balanço Patrimonial;;;;90011;Comum
+;3980;01.2.4.01.003;;    Fundo de Comércio;FUNCOM;Ativo;Balanço Patrimonial;;;;90011;Comum
+;4022;01.2.4.01.004;;    Concessões;CONCEC;Ativo;Balanço Patrimonial;;;;90011;Comum
+;4030;01.2.4.01.005;;    Direitos Autorais;DIRAUT;Ativo;Balanço Patrimonial;;;;90011;Comum
+;4049;01.2.4.01.006;;    Softwares ou Programas de Computador;SOFTPROGR;Ativo;Balanço Patrimonial;;;;90011;Comum
+;4057;01.2.4.01.007;;    Franquias;FRANQ;Ativo;Balanço Patrimonial;;;;90011;Comum
+;1023;01.2.4.02;T;   (-) AMORTIZAÇÃO ACUMULADA;;Ativo;Balanço Patrimonial;;;;90011;Comum
+;1031;01.2.4.02.001;;    (-) Capital Intelectual;AMORTMARCAS;Ativo;Balanço Patrimonial;;;;90011;Comum
+;1040;01.2.4.02.002;;    (-) Marcas Pat. de Invenção;AMORTIMOV3S;Ativo;Balanço Patrimonial;;;;90011;Comum
+;4065;01.2.4.02.003;;    (-) Fundo de Comércio;AMORTFUNDO;Ativo;Balanço Patrimonial;;;;90011;Comum
+;4073;01.2.4.02.004;;    (-) Concessões;AMORTCONCEC;Ativo;Balanço Patrimonial;;;;90011;Comum
+;4081;01.2.4.02.005;;    (-) Direitos Autorais;AMORTDIRAUT;Ativo;Balanço Patrimonial;;;;90011;Comum
+;4090;01.2.4.02.006;;    (-) Softwares;AMORTSOFTWARE;Ativo;Balanço Patrimonial;;;;90011;Comum
+;4103;01.2.4.02.007;;    (-) Franquias;AMORTFRANQ;Ativo;Balanço Patrimonial;;;;90011;Comum
+;1163;02;T;PASSIVO;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1171;02.1;T; PASSIVO CIRCULANTE;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1180;02.1.1;T;  FORNECEDORES;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;100004;02.1.1.01;T;   FORNECEDORES;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;100005;02.1.1.01.001;;    Fornecedores;FD;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1210;02.1.2;T;  EMPRÉSTIMOS E FINANCIAMENTOS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1228;02.1.2.01;T;   EMPRÉSTIMOS E FINANCIAMENTOS BANCÁRIOS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1236;02.1.2.01.001;;    Banco do Brasil S/A;EMPRBB;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1244;02.1.2.01.002;;    Caixa Econômica Federal;EMPRCEF;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1252;02.1.2.02;T;   EMPRÉSTIMOS DE PESSOAS LIGADAS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;100015;02.1.2.02.001;;    Emprestimo de coligadas;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1260;02.1.3;T;  OBRIGAÇÕES TRABALHISTAS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1279;02.1.3.01;T;   FOLHA DE PAGAMENTO DE EMPREGADOS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1287;02.1.3.01.001;;    Salários a pagar;SALPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1295;02.1.3.01.002;;    Férias a pagar;FERIASPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1309;02.1.3.01.003;;    Rescisões a pagar;RESCPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1317;02.1.3.01.004;;    13º salário a pagar;13SALPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1325;02.1.3.01.006;;    Participação lucros e resultados a pagar;PLRPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;100028;02.1.3.01.007;;    Pensão alimentícia;Pensão Alim;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1333;02.1.3.02;T;   FOLHA DE PAGAMENTO DE AUTÔNOMOS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1341;02.1.3.02.001;;    Rendimentos Autônomos a Pagar;RENDPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1350;02.1.3.03;T;   FOLHA DE PAGAMENTO DE DIRIGENTES;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1368;02.1.3.03.001;;    Pro-labore a pagar;PROLPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1376;02.1.3.04;T;   ENCARGOS SOCIAIS A PAGAR;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1384;02.1.3.04.001;;    INSS a pagar;INSSPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1392;02.1.3.04.003;;    FGTS a pagar;FGTSPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1406;02.1.3.04.004;;    Contribuições Sindicais a Pagar;CSPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1414;02.1.3.04.005;;    GRRF a Pagar;GRRFPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;100007;02.1.3.05;T;   PROVISÕES DA FOLHA DE PAGAMENTO;PROV;Passivo;Balanço Patrimonial;;;;90011;Comum
+;100008;02.1.3.05.001;;    Provisão de 13º salário;PROV 13;Passivo;Balanço Patrimonial;;;;90011;Comum
+;100009;02.1.3.05.002;;    Provisão de férias;PROV FER;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1422;02.1.3.05.003;;    Provisão FGTS 13º;PROVFGTS13;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1449;02.1.3.05.004;;    Provisão FGTS férias;PROVFGTSFER;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1430;02.1.3.05.005;;    Provisão INSS 13º;PROVINSS13;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1457;02.1.3.05.006;;    Provisão INSS férias;PROVINSSFER;Passivo;Balanço Patrimonial;;;;90011;Comum
+;100031;02.1.3.05.007;;    PIS 13º a pagar;PIS13PGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;100032;02.1.3.05.008;;    PIS férias a pagar;PISFERPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1465;02.1.4;T;  OBRIGAÇÕES TRIBUTÁRIAS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1473;02.1.4.01;T;   IMPOSTOS RETIDOS A RECOLHER;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1481;02.1.4.01.001;;    IRRF a Recolher - Pessoa Física;IRFPFPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1490;02.1.4.01.002;;    IRRF a Recolher - Pessoa Jurídica;IRFPJPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1503;02.1.4.01.003;;    ISS Retido a Recolher;ISSPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1511;02.1.4.01.004;;    IRRF a Recolher - Contribuintes;IRRFPROPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1520;02.1.4.01.005;;    IRRF a Recolher - PLR;IRRFPLR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1538;02.1.4.02;T;   IMPOSTOS E CONTRIBUIÇÕES SOBRE O LUCRO;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1546;02.1.4.02.001;;    IRPJ a Pagar;IRPJPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1554;02.1.4.02.003;;    Contribuição Social s/Lucro Real a Pagar;CSLRPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1562;02.1.4.02.004;;    Contribuição Social s/Lucro Presumido a Pagar;CSLPPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1570;02.1.4.02.005;;    Contribuição Social s/Estimativa a Pagar;CSESTPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1589;02.1.4.03;T;   IMPOSTOS E CONTRIBUIÇÕES S/RECEITAS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1597;02.1.4.03.001;;    ICMS a Pagar;ICMSPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1600;02.1.4.03.002;;    COFINS a Pagar;COFINSPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1619;02.1.4.03.003;;    PIS a Pagar;PISPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1627;02.1.4.03.004;;    IPI a Pagar;IPIPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1635;02.1.4.03.005;;    Contribuição Social a Pagar;CSLLPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1643;02.1.4.03.006;;    SIMPLES a Pagar;SIMPLESPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1651;02.1.4.03.007;;    ISSQN a Pagar;ISQNPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1660;02.1.4.03.008;;    SIMPLES NACIONAL a Pagar;SNPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1678;02.1.5;T;  CONTAS A PAGAR;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1686;02.1.5.01;T;   CONTAS DE EMPRESAS PÚBLICAS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1694;02.1.5.01.001;;    Energia elétrica;EE;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1708;02.1.5.01.002;;    Brasil Telecom S/A;TELESC;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1716;02.1.5.01.003;;    Água e esgoto;AE;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1724;02.1.5.01.004;;    Embratel S/A;EMBRATEL;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1732;02.1.5.02;T;   DEMAIS CONTAS A PAGAR;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1740;02.1.5.02.001;;    Seguros a Pagar;SEGPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1759;02.1.5.02.002;;    Assinatura de Periódicos a Pagar;ASSJORNAISPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1767;02.1.5.02.003;;    Aluguel a Pagar;ALUPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1775;02.2;T; PASSIVO NÃO CIRCULANTE;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1783;02.2.1;T;  EMPRÉSTIMOS E FINANCIAMENTOS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1791;02.2.1.01;T;   EMPRÉSTIMOS E FINANCIAMENTOS BANCÁRIOS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1805;02.2.1.01.001;;    Banco do Brasil SA;EMPRBBPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1813;02.2.1.01.002;;    Caixa Econômica Federal SA;EMPRCEFPGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1902;02.3;T; PATRIMÔNIO LÍQUIDO;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1910;02.3.1;T;  CAPITAL;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1929;02.3.1.01;T;   CAPITAL SOCIAL;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1937;02.3.1.01.001;;    Capital Social Subscrito;CSSUBS;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1945;02.3.1.01.002;;    Capital Social Integralizado;CSINTEGR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1953;02.3.2;T;  RESERVAS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1961;02.3.2.01;T;   RESERVAS DE CAPITAL;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;1970;02.3.2.01.001;;    Reservas de Correção Monetária do Capita;RCM;Passivo;Balanço Patrimonial;;;;90011;Comum
+;2003;02.3.2.02;T;   RESERVAS DE LUCROS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;3832;02.3.2.02.001;;    Reserva de Lucros;RESLUCR;Passivo;Balanço Patrimonial;;;;90011;Comum
+;3840;02.3.2.02.002;;    Reserva de Contingências;RESCONT;Passivo;Balanço Patrimonial;;;;90011;Comum
+;3859;02.3.2.02.003;;    Reserva Legal;RESLEGAL;Passivo;Balanço Patrimonial;;;;90011;Comum
+;3867;02.3.2.02.004;;    Reserva Estatutária;RESESTAT;Passivo;Balanço Patrimonial;;;;90011;Comum
+;3875;02.3.2.02.005;;    Reserva de Lucros para Expansão;RESLUCEXP;Passivo;Balanço Patrimonial;;;;90011;Comum
+;4227;02.3.2.02.006;;    Reserva de Incentivos Fiscais;RESINCFISC;Passivo;Balanço Patrimonial;;;;90011;Comum
+;3999;02.3.3;T;  AJUSTES DE AVALIAÇÃO PATRIMONIAL;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;4006;02.3.3.01;T;   AJUSTES DE AVALIAÇÃO PATRIMONIAL;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;4014;02.3.3.01.001;;    Normas Internacionais de Contabilidade;AJNORMAS;Passivo;Balanço Patrimonial;;;;90011;Comum
+;4111;02.3.3.01.002;;    (-) Normas Internacionais de Contabilidade;AJNORMASS;Passivo;Balanço Patrimonial;;;;90011;Comum
+;4120;02.3.3.01.003;;    Avaliação de Instrumentos Financeiros;AJINSTRUM;Passivo;Balanço Patrimonial;;;;90011;Comum
+;4138;02.3.3.01.004;;    (-) Avaliação de Instrumentos Financeiros;AJINSTRUMM;Passivo;Balanço Patrimonial;;;;90011;Comum
+;4146;02.3.3.01.005;;    Ajustes ao Valor de Mercado;AJVLRMERC;Passivo;Balanço Patrimonial;;;;90011;Comum
+;4154;02.3.3.01.006;;    (-) Ajustes ao Valor de Mercado;AJVLRMERCC;Passivo;Balanço Patrimonial;;;;90011;Comum
+;2011;02.3.4;T;  PREJUÍZOS ACUMULADOS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;2020;02.3.4.03;T;   PREJUÍZOS ACUMULADOS;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;2038;02.3.4.03.001;;    Prejuízos Acumulados;PREJUSACUM;Passivo;Balanço Patrimonial;;;;90011;Comum
+;2054;02.3.4.04;T;   RESULTADO DO EXERCÍCIO;;Passivo;Balanço Patrimonial;;;;90011;Comum
+;2062;02.3.4.04.001;;    Resultado do Exercício;RESULTEXERC;Passivo;Balanço Patrimonial;;;;90011;Comum
+;3921;02.3.4.04.003;;    Ajustes de Exercícios Anteriores;AJUSEXERCANT;Passivo;Balanço Patrimonial;;;;90011;Comum
+;2089;03;T;RECEITAS;RECEITAS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2097;03.1;T; RECEITAS OPERACIONAIS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2100;03.1.1;T;  RECEITA BRUTA COM VENDAS E SERVIÇOS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2119;03.1.1.01;T;   RECEITA COM VENDAS NO PAÍS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2127;03.1.1.01.001;;    Vendas Produtos Fabricação Própria a Vista;VENDASV;Receita;Demonstração de Resultados;;;;90011;Comum
+;2135;03.1.1.01.002;;    Vendas Produtos Fabricação Própria a Prazo;VENDASP;Receita;Demonstração de Resultados;;;;90011;Comum
+;2143;03.1.1.01.003;;    Revenda de Mercadorias a Vista;REVENDAV;Receita;Demonstração de Resultados;;;;90011;Comum
+;2151;03.1.1.01.004;;    Revenda de Mercadorias a Prazo;REVENDAP;Receita;Demonstração de Resultados;;;;90011;Comum
+;2160;03.1.1.03;T;   RECEITAS COM SERVIÇOS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2178;03.1.1.03.001;;    Serviços Prestados a Vista;SERVIÇOSV;Receita;Demonstração de Resultados;;;;90011;Comum
+;2186;03.1.1.03.002;;    Serviços Prestados a Prazo;SERVIÇOSP;Receita;Demonstração de Resultados;;;;90011;Comum
+;2194;03.1.2;T;  DEDUÇÕES DAS RECEITAS C/VENDAS E SERVIÇO;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2208;03.1.2.01;T;   DEVOLUÇÕES E ABATIMENTOS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2216;03.1.2.01.001;;    Devoluções de Vendas;DEVOL;Receita;Demonstração de Resultados;;;;90011;Comum
+;2224;03.1.2.01.002;;    Abatimentos Concedidos;ABAT;Receita;Demonstração de Resultados;;;;90011;Comum
+;2232;03.1.2.02;T;   IMPOSTOS S/VENDAS E SERVIÇOS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2240;03.1.2.02.001;;    ICMS sobre vendas;ICMS S/VENDAS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2259;03.1.2.02.002;;    PIS sobre vendas e serviços;PIS S/VENDAS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2267;03.1.2.02.003;;    COFINS sobre vendas e serviços;COFINS S/VENDAS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2275;03.1.2.02.004;;    Contribuição social sobre vendas e serviços;CONTRSOC S/VENDAS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2283;03.1.2.02.005;;    IPI sobre vendas e serviços;IPI S/VENDAS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2291;03.1.2.02.006;;    Simples sobre vendas e serviços;SIMPLES;Receita;Demonstração de Resultados;;;;90011;Comum
+;2305;03.1.2.02.007;;    ISQN sobre serviços;ISQN S/SERVS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2313;03.1.2.02.008;;    Simples Nacional sobre vendas e serviços;SIMPLESNACIONAL;Receita;Demonstração de Resultados;;;;90011;Comum
+;2321;03.1.2.02.009;;    IRPJ sobre vendas e serviços;IRPJ S/VENDAS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2330;03.1.3;T;  RECEITAS FINANCEIRAS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2348;03.1.3.01;T;   RECEITAS COM ATUALIZAÇÕES;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2356;03.1.3.01.001;;    Variação Monetária Ativa;VMA;Receita;Demonstração de Resultados;;;;90011;Comum
+;2364;03.1.3.01.002;;    Variação Cambial Ativa;VMP;Receita;Demonstração de Resultados;;;;90011;Comum
+;2372;03.1.3.02;T;   GANHOS COM APLICAÇÕES FINANCEIRAS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2380;03.1.3.02.001;;    Rendimentos de Aplicação do FAF;JRSFAF;Receita;Demonstração de Resultados;;;;90011;Comum
+;2399;03.1.3.02.002;;    Ganho Real de Aplicações de Renda Fixa;JRSRFIXA;Receita;Demonstração de Resultados;;;;90011;Comum
+;2402;03.1.3.02.003;;    Ganho Real de Aplicações de Renda Variável;JRSRVAR;Receita;Demonstração de Resultados;;;;90011;Comum
+;2410;03.1.3.02.004;;    Rendimentos de Caderneta de Poupança;JRSPOUP;Receita;Demonstração de Resultados;;;;90011;Comum
+;2429;03.1.3.03;T;   JUROS E DESCONTOS OBTIDOS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2437;03.1.3.03.001;;    Juros Ativos;JUROSOBT;Receita;Demonstração de Resultados;;;;90011;Comum
+;2445;03.1.3.03.002;;    Descontos Obtidos;DESCOBT;Receita;Demonstração de Resultados;;;;90011;Comum
+;2453;03.1.4;T;  RECEITAS COM PARTICIPAÇÕES SOCIETÁRIAS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2461;03.1.4.01;T;   DIVIDENDOS E LUCROS DISTRIBUÍDOS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2470;03.1.4.01.001;;    Dividendos Distribuídos;DIVIDENDOS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2488;03.1.4.01.002;;    Lucros Distribuídos;LUCROS DISTR;Receita;Demonstração de Resultados;;;;90011;Comum
+;2496;03.1.4.02;T;   RESULTADO DE EQUIVALÊNCIA PATRIMONIAL;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2500;03.1.4.02.001;;    Equivalência Patrimonial Positiva;EPPOSIT;Receita;Demonstração de Resultados;;;;90011;Comum
+;2518;03.2;T; OUTRAS RECEITAS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2526;03.2.1;T;  ALIENAÇÃO DE BENS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2534;03.2.1.01;T;   ALIENAÇÃO DE INVESTIMENTOS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2542;03.2.1.01.001;;    Alienação Participação Societária Avaliada pelo Metódo Custeio;ALIENCUST;Receita;Demonstração de Resultados;;;;90011;Comum
+;2550;03.2.1.01.002;;    Alienação Participação Societária Avaliada pela Equivalencia Patrimonial;ALIENEQPATR;Receita;Demonstração de Resultados;;;;90011;Comum
+;2569;03.2.1.02;T;   ALIENAÇÃO DE IMOBILIZADO;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2577;03.2.1.02.001;;    Alienação de Máquinas e Equipamentos;AMAQUEQUI;Receita;Demonstração de Resultados;;;;90011;Comum
+;2585;03.2.1.02.002;;    Alienação de Móveis e Utensílios;AMOVUTENC;Receita;Demonstração de Resultados;;;;90011;Comum
+;2593;03.2.1.02.003;;    Alienação de Ferramentas;AFERRAMENTAS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2607;03.2.1.02.004;;    Alienação de Imóveis;AIMOVEIS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2615;03.2.1.02.005;;    Alienação de Veículos;AVEICULOS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2623;03.2.1.02.006;;    Alienação de Computadores e Periféricos;ACOMPPERIF;Receita;Demonstração de Resultados;;;;90011;Comum
+;2631;03.2.1.02.007;;    Alienação de Direito de Uso de Telefones;ADIREITO;Receita;Demonstração de Resultados;;;;90011;Comum
+;2640;03.2.2;T;  DEDUÇÕES DAS ALIENAÇÕES DE BENS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2658;03.2.2.01;T;   CUSTO DA ALIENAÇÃO DE INVESTIMENTOS;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2666;03.2.2.01.001;;    Custo Alienação Partic Soc Aval Custo Co;CUSTALIENCUST;Receita;Demonstração de Resultados;;;;90011;Comum
+;2674;03.2.2.01.002;;    Custo Alienação Partic Soc Aval Equiv Pa;CUSTALIENEQPATR;Receita;Demonstração de Resultados;;;;90011;Comum
+;2682;03.2.2.02;T;   CUSTO DA ALIENAÇÃO DE IMOBILIZADO;;Receita;Demonstração de Resultados;;;;90011;Comum
+;2690;03.2.2.02.001;;    Custo da Alienação Máquinas e Equipamentos;CAMAQUEUI;Receita;Demonstração de Resultados;;;;90011;Comum
+;2704;03.2.2.02.002;;    Custo da Alienação Móveis e Utensílios;CAMOVUTENC;Receita;Demonstração de Resultados;;;;90011;Comum
+;2712;03.2.2.02.003;;    Custo da Alienação Ferramentas;CAFERRAMENTAS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2720;03.2.2.02.004;;    Custo da Alienação Imóveis;CAIMOVEIS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2739;03.2.2.02.005;;    Custo da Alienação Veículos;CAVEICULOS;Receita;Demonstração de Resultados;;;;90011;Comum
+;2747;03.2.2.02.006;;    Custo da Alienação Computadores e Periféricos;CACOMPPERIF;Receita;Demonstração de Resultados;;;;90011;Comum
+;2755;03.2.2.02.007;;    Custo da Alienação Direito Uso Telefone;CADIREITO;Receita;Demonstração de Resultados;;;;90011;Comum
+;2763;04;T;CUSTOS E DESPESAS;DESPESAS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2771;04.1;T; CUSTOS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2780;04.1.1;T;  CUSTOS DAS MERCADORIAS VENDIDAS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2798;04.1.1.01;T;   CUSTOS DAS MERCADORIAS VENDIDAS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2801;04.1.1.01.001;;    Custo Das Mercadorias Vendidas;CMV;Despesa;Demonstração de Resultados;;;;90011;Comum
+;100020;04.1.1.01.002;;    Compra de Mercadoria para Revenda;COMPRAMERCREV;Despesa;Demonstração de Resultados;;;;90011;Comum
+;100021;04.1.1.01.003;;    Compra de Matéria Prima e Insumos;COMPRAMATPRIM;Despesa;Demonstração de Resultados;;;;90011;Comum
+;100022;04.1.1.01.004;;    Compra de Material de Almoxarifado;COMPRAMATALX;Despesa;Demonstração de Resultados;;;;90011;Comum
+;100023;04.1.1.01.005;;    Compra de Material para Uso e Consumo;COMPRAMATUSOCONS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;100024;04.1.1.01.006;;    Fretes sobre Compras;FRETECOMPRAS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;100025;04.1.1.01.007;;    ICMS sobre Compras;ICMSCOMPRAS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;100026;04.1.1.01.008;;    IPI sobre Compras;IPICOMPRAS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;100027;04.1.1.01.009;;    (-) Devolução de Compras;DEVOLCOMPRAS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2810;04.1.2;T;  CUSTO DOS PRODUTOS VENDIDOS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2828;04.1.2.01;T;   ESTOQUE INICIAL DE PRODUTOS EM ELABORAÇÃO;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2836;04.1.2.01.001;;    Estoque Inicial de Produtos Em Elaboração;EIPELAB;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2844;04.1.2.02;T;   ESTOQUE INICIAL DE PRODUTOS ACABADOS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2852;04.1.2.02.001;;    Estoque Inicial de Produtos Acabados;EIPRODACAB;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2860;04.1.2.03;T;   CUSTOS DAS MATÉRIAS-PRIMAS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2879;04.1.2.03.001;;    Custo Das Matérias-Primas;CTOMP;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2887;04.1.2.06;T;   ESTOQUE FINAL DE PRODUTOS EM ELABORAÇÃO;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2895;04.1.2.06.001;;    Estoque Final de Produtos Em Elaboração;EFPRODELAB;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2909;04.1.2.07;T;   ESTOQUE FINAL DE PRODUTOS ACABADOS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2917;04.1.2.07.001;;    Estoque Final de Produtos Acabados;EFPRODACAB;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2925;04.2;T; DESPESAS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2933;04.2.1;T;  DESPESAS OPERACIONAIS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2941;04.2.1.01;T;   DESPESAS TRABALHISTAS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2950;04.2.1.01.001;;    Salários;DCSAL;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2968;04.2.1.01.002;;    Pró-Labore;DCPROLAB;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2976;04.2.1.01.003;;    Horas extras;DCHE;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2984;04.2.1.01.004;;    Férias;DCFERIAS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;2992;04.2.1.01.005;;    13.Salário;DC13.SAL;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3000;04.2.1.01.006;;    Aviso prévio/indenizações trabalhistas;DCAVISO;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3018;04.2.1.01.007;;    Gratificações;DCGRATIFIC;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3891;04.2.1.01.008;;    Adicional noturno;DADICNOT;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3190;04.2.1.01.009;;    Sindicato patronal/associação de classe;DCSINDPAT;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3328;04.2.1.01.010;;    Vale-transporte;DCVT;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3026;04.2.1.02;T;   ENCARGOS SOCIAIS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3034;04.2.1.02.001;;    INSS;DCINSS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3042;04.2.1.02.002;;    FGTS;DCFGTS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3050;04.2.1.02.003;;    Multa rescisória FGTS;MULTARESC;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3069;04.2.1.02.004;;    PIS sobre folha;PIS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3077;04.2.1.02.005;;    Contribuições Sindicais;GRCS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3078;04.2.1.03;T;   DESPESAS DE VIAGENS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3360;04.2.1.03.001;;    Estadias;DCESTAD;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3182;04.2.1.03.002;;    Combustíveis;DCCOMBUST;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3280;04.2.1.03.003;;    Dispêndios com alimentação;DCALIMENT;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3344;04.2.1.03.004;;    Pedágios;DCPEDAG;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3079;04.2.1.04;T;   DESPESAS MENSAIS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3107;04.2.1.04.001;;    Aluguel;DCALUG;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3115;04.2.1.04.002;;    Água e esgoto;DCAGUA;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3123;04.2.1.04.003;;    Energia elétrica;DCEE;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3131;04.2.1.04.004;;    Internet;DCI;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3093;04.2.1.04.005;;    Comissões sobre vendas;DCCOMISS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3085;04.2.1.99;T;   DESPESAS GERAIS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3140;04.2.1.99.006;;    Material de expediente;DCMEXP;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3158;04.2.1.99.007;;    Material de limpeza;DCELIMP;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3166;04.2.1.99.008;;    Material de escritório;DCMATESCR;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3174;04.2.1.99.009;;    Manutenção e conservação;DCMANUT;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3204;04.2.1.99.012;;    Correios e Malotes;DCECT;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3212;04.2.1.99.013;;    Depreciações e Amortizações;DCDEPRE;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3220;04.2.1.99.014;;    Propaganda e Publicidade;DCPROPAG;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3239;04.2.1.99.015;;    Fretes e Carretos;DCFRETES;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3247;04.2.1.99.016;;    Assistência Médica;DCMEDICO;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3255;04.2.1.99.018;;    Leasing;DCLESING;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3263;04.2.1.99.019;;    Serviços de Terceiros - Pessoa Física;DCTERCPF;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3271;04.2.1.99.020;;    Serviços de Terceiros - Pessoa Jurídica;DCTERCPJ;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3298;04.2.1.99.022;;    Feiras/Congressos/Simpósios/Cursos;DCFEIRAS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3301;04.2.1.99.023;;    Serviço de comunicação;DCFONE;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3310;04.2.1.99.024;;    PAT - Programa alimentação ao trabalhador;DEPAT;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3336;04.2.1.99.026;;    Bens de pequeno valor;DCBENS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3352;04.2.1.99.028;;    Jornais;DCJORN;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3379;04.2.1.99.030;;    Confraternizações;DCCONFRAT;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3387;04.2.1.99.032;;    Leasing;DCLEASING;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3395;04.2.1.99.033;;    Condução;DCCOND;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3409;04.2.1.99.034;;    Seguros;DCSEG;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3417;04.2.1.99.035;;    Refeições;DCREF;Despesa;Demonstração de Resultados;;;;90011;Comum
+;100029;04.2.1.99.036;;    Despesas médicas;DESPMED;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3433;04.2.2;T;  DESPESAS OPERACIONAIS FINANCEIRAS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3441;04.2.2.01;T;   DESPESAS COM ATUALIZAÇÕES;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3450;04.2.2.01.001;;    Variacão Monetária Passiva;VMPAS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3468;04.2.2.01.002;;    Variacão Cambial Passiva;VCPAS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3476;04.2.2.02;T;   JUROS E DESCONTOS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3484;04.2.2.02.001;;    Juros;JUROS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3492;04.2.2.02.002;;    Descontos concedidos;DESCCONC;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3506;04.2.2.02.003;;    Multas;MULTAS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3514;04.2.3;T;  DESPESAS OPERACIONAIS TRIBUTÁRIAS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3522;04.2.3.01;T;   IMPOSTOS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3530;04.2.3.01.001;;    IOF;DFIOF;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3549;04.2.3.01.002;;    PIS sobre receitas operacionais diversas;DFPISDVS;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3557;04.2.3.01.003;;    IPTU;DFIPTU;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3565;04.2.3.01.004;;    IPVA;DFIPVA;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3573;04.2.3.01.005;;    IRRF (exclusivo Na Fonte);DFIRF;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3581;04.2.3.02;T;   MULTAS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3590;04.2.3.02.001;;    Multas Fiscais Compensatórias;DFMULTAFISC;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3603;04.2.3.02.002;;    Multas Fiscais Punitivas;DFMULTAPUNIT;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3611;04.2.3.02.003;;    Multas Contratuais;DFMULTACONTR;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3620;04.2.4;T;  DESPESAS OPERACIONAIS PERDAS C/PART SOC;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3638;04.2.4.01;T;   RESULTADO EQUIVALÊNCIA PATRIOMONIAL;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3646;04.2.4.01.001;;    Equivalência Patrimonial Negativa;EPNEGAT;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3654;04.2.5;T;  OUTRAS DESPESAS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3662;04.2.5.01;T;   PERDAS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3670;04.2.5.01.001;;    Perdas Prováveis Na Alienação Investimen;PERDASINVEST;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3689;04.2.5.01.002;;    Perdas Com Sinistros;PERDASSINIST;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3697;04.2.5.01.003;;    Perdas Na Alienação de Imobilizado;PERDASIMOBIL;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3700;04.3;T; CONTAS DE FECHAMENTO DE BALANÇO;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3719;04.3.1;T;  CONTAS DE APURAÇÕES FINAIS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3727;04.3.1.01;T;   CORREÇÃO MONETÁRIA DO BALANCO;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3735;04.3.1.01.001;;    Correção Monetária do Ativo;CMATIVO;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3743;04.3.1.01.002;;    Correção Monetária do Passivo;CMPASSIVO;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3751;04.3.2;T;  PROVISÕES P/IMPOSTOS S/LUCRO;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3760;04.3.2.01;T;   PROVISÕES P/IMPOSTOS S/LUCROS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3778;04.3.2.01.001;;    Provisão P/ IRPJ;PROVIRPJ;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3786;04.3.2.02;T;   PROVISÕES P/CONTRIBUIÇÕES S/LUCROS;;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3794;04.3.2.02.001;;    Provisão P/ Contribuição Social;PROVCONTRSOC;Despesa;Demonstração de Resultados;;;;90011;Comum
+;3808;05;T;RESULTADO LÍQUIDO DO EXERCÍCIO;;Receita;Demonstração de Resultados;;;;90011;Comum
+;100010;05.1;T; RESULTADO LIQUIDO DO EXERCICIO;;Receita;Demonstração de Resultados;;;;90011;Comum
+;100011;05.1.1;T;  RESULTADO LIQUIDO DO EXERCICIO;;Receita;Demonstração de Resultados;;;;90011;Comum
+;100012;05.1.1.01;T;   RESULTADO LIQUIDO DO EXERCICIO;;Receita;Demonstração de Resultados;;;;90011;Comum
+;3824;05.1.1.01.001;;    Resultado Líquido do Exercício;RLE;Receita;Demonstração de Resultados;;CONTA(2089)+CONTA(2763);;90011;Comum
+;122025;122025;C;DEMONSTRATIVO DE DESCONTO;DEMONS. CRÉD. TRAB.;Ativo;Balanço Patrimonial;;;;90011;Comum

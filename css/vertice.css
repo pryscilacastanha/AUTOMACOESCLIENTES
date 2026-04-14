@@ -1556,6 +1556,38 @@ tbody tr:last-child td { border-bottom: none; }
 .onb-parecer-obs {
   padding: 18px 24px;
 }
+/* ═══════════════════════════════════════════
+   SISTEMA CONTÁBIL
+   ═══════════════════════════════════════════ */
+.ctb-table { width: 100%; border-collapse: collapse; }
+.ctb-table thead tr:first-child th {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; padding: 10px 12px; white-space: nowrap;
+}
+.ctb-filter-row th { padding: 4px 6px; background: #f8fafc; }
+.ctb-filter {
+  width: 100%; padding: 6px 8px; border: 1px solid #e2e8f0;
+  border-radius: 6px; font-size: 11px; font-family: inherit;
+  transition: border-color .2s;
+}
+.ctb-filter:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px rgba(99,102,241,.12); }
+.ctb-table tbody tr { transition: background .15s; border-bottom: 1px solid #f1f5f9; }
+.ctb-table tbody tr:hover { background: #f8fafc; }
+.ctb-table tbody td { padding: 8px 12px; font-size: 13px; }
+.ctb-classified { background: #f0fdf4 !important; }
+.ctb-classified:hover { background: #dcfce7 !important; }
+.ctb-pending { background: #fffbeb !important; }
+.ctb-pending:hover { background: #fef3c7 !important; }
+.ctb-conta-input {
+  width: 100%; padding: 6px 8px; border: 1.5px solid #e2e8f0;
+  border-radius: 6px; font-size: 11.5px; font-family: inherit;
+  transition: all .2s;
+}
+.ctb-conta-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px rgba(99,102,241,.12); }
+.ctb-conta-input.has-value { border-color: #10b981; background: #f0fdf4; font-weight: 500; }
+.ctb-total-row { background: #f8fafc; border-top: 2px solid #e2e8f0; }
+.ctb-total-row td { padding: 12px !important; }
 
 /* ═══════════════════════════════════════════
    RESPONSIVE
