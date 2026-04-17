@@ -173,6 +173,7 @@ window.VDOC = (function () {
   function _renderModulo() {
     const tabs = [
       { id:'inserir',   icon:'➕', label:'Inserir Documentos' },
+      { id:'importar',  icon:'📧', label:'Importar E-mail'   },
       { id:'classificar', icon:'🏷️', label:'Classificar'    },
       { id:'validar',   icon:'✔️', label:'Validar'         },
       { id:'pendencias',icon:'⚠️', label:'Pendências'      },
@@ -234,6 +235,7 @@ window.VDOC = (function () {
   function _renderTab() {
     switch (state.activeTab) {
       case 'inserir':    return _tabInserir();
+      case 'importar':   return _tabImportarEmail();
       case 'classificar':return _tabClassificar();
       case 'validar':    return _tabValidar();
       case 'pendencias': return _tabPendencias();
@@ -241,6 +243,155 @@ window.VDOC = (function () {
       case 'relatorio':  return _tabRelatorio();
       default:           return _tabInserir();
     }
+  }
+
+  /* ─── TAB: IMPORTAR E-MAIL ─── */
+  function _tabImportarEmail() {
+    return `
+<div class="vdoc-form-card">
+  <h3 class="vdoc-section-title">📧 Importar Documentação via E-mail / Texto</h3>
+  <p style="color:var(--vdoc-muted);font-size:13px;margin-bottom:16px">
+    Cole o conteúdo do e-mail do cliente abaixo. O sistema identificará automaticamente
+    os documentos mencionados, classificará e criará os registros.
+  </p>
+  <div class="vdoc-field vdoc-field-full" style="margin-bottom:12px">
+    <label>Período de Competência dos Documentos <span class="req">*</span></label>
+    <input type="month" id="vdoc-imp-comp" class="vdoc-inp" value="${state.competencia || ''}">
+  </div>
+  <div class="vdoc-field vdoc-field-full">
+    <label>Conteúdo do E-mail</label>
+    <textarea id="vdoc-email-texto" class="vdoc-inp" rows="12"
+      placeholder="Cole aqui o texto do e-mail recebido do cliente..."></textarea>
+  </div>
+  <div class="vdoc-form-actions">
+    <button class="vdoc-btn vdoc-btn-ghost" onclick="VDOC.setTab('inserir')">← Voltar</button>
+    <button class="vdoc-btn vdoc-btn-primary" onclick="VDOC.importarDoEmail()">
+      🤖 Analisar e Importar
+    </button>
+  </div>
+</div>`;
+  }
+
+  /* ─── PARSER DE E-MAIL ─── */
+  function _parseEmail(texto, periodo) {
+    const t = texto.toLowerCase();
+    const docs = [];
+    const add = (tipo, cat, nat, orig, obs, forcar_entregue) => {
+      const base = { id: Date.now() + Math.random(), tipo, categoria: cat,
+        natureza: nat, periodo, origem: orig, obs: obs || '' };
+      // forcar_entregue: null=auto, true=sim, false=nao
+      if (forcar_entregue === false) {
+        base._forcarNaoEntregue = true;
+      } else if (forcar_entregue === true) {
+        base._forcarEntregue = true;
+      }
+      docs.push(base);
+    };
+
+    // Livro Caixa
+    if (t.includes('livro caixa')) {
+      const ausente = t.includes('livro caixa') && (t.match(/livro caixa[^\n]*x\b/i) || t.match(/x\s*\n[^\n]*livro caixa/i));
+      add('Livro Caixa','Contábil','Movimento sem impacto','Cliente',
+        ausente ? 'Solicitado no e-mail — não entregue (marcado com X)' : 'Mencionado no e-mail', !ausente ? undefined : false);
+    }
+    // Extratos bancários
+    if (t.includes('extrato')) {
+      const entregue = t.includes('em anexo') || t.includes('anexo');
+      add('Extrato Bancário','Financeiro','Movimento sem impacto','Banco',
+        entregue ? 'Entregue em anexo — jan a dez/2025' : 'Solicitado — aguardando', entregue ? true : false);
+    }
+    // Aplicações financeiras
+    if (t.includes('aplicaç') || t.includes('aplicacao')) {
+      const entregue = t.includes('em anexo');
+      add('Extrato Bancário','Financeiro','Ativo','Banco',
+        'Extrato de aplicações financeiras' + (entregue ? ' — entregue em anexo' : ''), entregue ? true : false);
+    }
+    // Saldo de caixa
+    if (t.includes('saldo de caixa') || t.includes('saldo em 31')) {
+      const entregue = t.includes('em anexo');
+      add('Livro Caixa','Financeiro','Ativo','Cliente',
+        'Saldo de caixa em 31/12/2025' + (entregue ? ' — entregue' : ''), entregue ? true : false);
+    }
+    // Empréstimos
+    if (t.includes('empr') && (t.includes('stimo') || t.includes('stimos'))) {
+      // Extrai valor se houver
+      const matchVal = texto.match(/empr[eé]stimo[^\d]*([\.\d\.]+[,\d]*)/i);
+      const valor = matchVal ? matchVal[1] : '';
+      const obsEmp = valor
+        ? `Empréstimo informado: R$${valor} — conta pessoal para a loja. Verificar contrato e lançamento como Passivo (Mútuo de Sócios).`
+        : 'Empréstimo mencionado — solicitar contrato e saldo devedor.';
+      add('Contrato de Empréstimo','Financeiro','Passivo','Cliente', obsEmp, true);
+    }
+    // Lucros distribuídos
+    if (t.includes('lucro') && t.includes('distribu')) {
+      const ausente = t.match(/lucro[^\n]*x\b/i) || t.match(/x\b[^\n]*lucro/i);
+      add('Outros','Contábil','Passivo','Cliente',
+        'Valor de lucros distribuídos — ' + (ausente ? 'NÃO informado (marcado com X)' : 'verificar'), ausente ? false : undefined);
+    }
+    // Bens patrimoniais
+    if (t.includes('bem') || t.includes('bens') || t.includes('ve\u00edculo') || t.includes('imóvel')) {
+      add('Outros','Patrimonial','Ativo','Cliente',
+        'Relação de bens — cliente informou: Não houve alteração em 2025', true);
+    }
+    // Estoque
+    if (t.includes('estoque')) {
+      const matchEst = texto.match(/estoque[^\d]*([\.\d]+[,\d]*)/i);
+      const vEst = matchEst ? matchEst[1] : '';
+      add('Inventário / Estoque','Patrimonial','Ativo','Cliente',
+        vEst ? `Estoque estimado em 31/12/2025: R$${vEst} — valor aproximado, sem inventário formal` : 'Estoque mencionado — aguardar posição final', true);
+    }
+    // Folha de pagamento
+    if (t.includes('folha') || t.includes('holerite') || t.includes('prolabore') || t.includes('pró-labore')) {
+      add('Folha de Pagamento','Contábil','Despesa','Cliente', 'Mencionado no e-mail', undefined);
+    }
+    // DEFIS
+    if (t.includes('defis')) {
+      add('DEFIS','Fiscal','Movimento sem impacto','Sistema',
+        'DEFIS obrigatória conforme e-mail — verificar prazo 31/03', true);
+    }
+
+    return docs;
+  }
+
+  /* ─── SEED DADOS EMAIL CLIENTE 84 — FENIX REPRESENTAÇÃO ─── */
+  function _seedCliente84() {
+    const comp = '2025-12'; // fechamento anual 2025
+    const chave = 'vdoc_84_' + comp;
+    if (localStorage.getItem(chave)) return; // já existe, não sobrescreve
+
+    const docsRaw = [
+      { tipo:'Livro Caixa',          categoria:'Contábil',   natureza:'Movimento sem impacto', periodo:comp, origem:'Cliente',
+        obs:'Solicitado no e-mail (23/02/2026) — NÃO entregue (marcado com X). Impacto direto na escrituração.', _forcarNaoEntregue:true },
+      { tipo:'Outros',               categoria:'Contábil',   natureza:'Passivo',               periodo:comp, origem:'Cliente',
+        obs:'Lucros distribuídos 2025 — NÃO informado (marcado com X). Necessário para DEFIS e ECD.', _forcarNaoEntregue:true },
+      { tipo:'Extrato Bancário',     categoria:'Financeiro', natureza:'Movimento sem impacto', periodo:comp, origem:'Banco',
+        obs:'Extrato de todas as contas correntes jan-dez/2025 — entregue em anexo.' },
+      { tipo:'Extrato Bancário',     categoria:'Financeiro', natureza:'Ativo',                 periodo:comp, origem:'Banco',
+        obs:'Extrato de aplicações financeiras 2025 — entregue em anexo.' },
+      { tipo:'Livro Caixa',          categoria:'Financeiro', natureza:'Ativo',                 periodo:comp, origem:'Cliente',
+        obs:'Saldo de caixa em 31/12/2025 — entregue em anexo.' },
+      { tipo:'Contrato de Empréstimo', categoria:'Financeiro', natureza:'Passivo',             periodo:comp, origem:'Cliente',
+        obs:'Empréstimo R$14.000,00 — conta pessoal para a loja (transferências: out R$8.000 + dez R$6.000). ATENÇÃO: sem contrato formal. Classificar como Mútuo de Sócios. Risco de inconsistência fiscal.' },
+      { tipo:'Outros',               categoria:'Patrimonial', natureza:'Ativo',                periodo:comp, origem:'Cliente',
+        obs:'Relação de bens — cliente informou: Não houve alteração em 2025. Sem compra/venda de bens.' },
+      { tipo:'Inventário / Estoque', categoria:'Patrimonial', natureza:'Ativo',                periodo:comp, origem:'Cliente',
+        obs:'Estoque em 31/12/2025 estimado em R$7.000,00. ALERTA: valor aproximado, sem inventário físico formal. Verificar metodologia de apuração.' },
+      { tipo:'DEFIS',                categoria:'Fiscal',     natureza:'Movimento sem impacto', periodo:comp, origem:'Sistema',
+        obs:'DEFIS obrigatória mesmo sem movimentação — prazo 31/03/2026. Verificar entrega.' },
+    ];
+
+    const validados = docsRaw.map(d => {
+      const validado = _autoValidar({ ...d, id: Date.now() + Math.random() });
+      // Override de status para itens explicitamente marcados
+      if (d._forcarNaoEntregue) {
+        validado.entregue = false;
+        validado.status = '❌'; validado.statusLabel = 'Não entregue';
+        validado.risco  = '🔴'; validado.riscoLabel  = 'Alto risco';
+      }
+      return validado;
+    });
+
+    localStorage.setItem(chave, JSON.stringify(validados));
   }
 
   /* ─── TAB: INSERIR ─── */
@@ -741,6 +892,8 @@ ${state.documentos.length > 0 ? `
 
   /* ── INIT ── */
   function init() {
+    // Pré-seed do cliente 84 na primeira vez
+    _seedCliente84();
     // Pega competência atual do topbar se disponível
     const topComp = document.getElementById('comp-topbar');
     if (topComp && topComp.value) state.competencia = topComp.value;
@@ -752,9 +905,36 @@ ${state.documentos.length > 0 ? `
     _rerender();
   }
 
+  function importarDoEmail() {
+    const texto = document.getElementById('vdoc-email-texto')?.value || '';
+    const comp  = document.getElementById('vdoc-imp-comp')?.value || state.competencia;
+    if (!texto.trim()) { alert('Cole o texto do e-mail antes de importar.'); return; }
+    if (!state.cliente) { alert('Selecione um cliente primeiro.'); return; }
+    if (!comp) { alert('Informe o período de competência.'); return; }
+
+    const novos = _parseEmail(texto, comp);
+    if (!novos.length) { alert('Nenhum documento identificado. Verifique o texto.'); return; }
+
+    novos.forEach(d => {
+      const validado = _autoValidar({ ...d, id: Date.now() + Math.random() });
+      if (d._forcarNaoEntregue) {
+        validado.entregue = false; validado.completo = 'parcial';
+        validado.status = '❌'; validado.statusLabel = 'Não entregue';
+        validado.risco  = '🔴'; validado.riscoLabel  = 'Alto risco';
+      } else if (d._forcarEntregue) {
+        validado.entregue = true;
+      }
+      state.documentos.push(validado);
+    });
+    _salvarDocs();
+    state.activeTab = 'inserir';
+    _rerender();
+    setTimeout(() => alert(`✅ ${novos.length} documento(s) importado(s) com sucesso!`), 100);
+  }
+
   return {
     render, init, setCliente, setCompetencia, setTab,
     updateField, adicionarDoc, removerDoc, limparForm,
-    exportarChecklist, imprimirRelatorio
+    exportarChecklist, imprimirRelatorio, importarDoEmail
   };
 })();
