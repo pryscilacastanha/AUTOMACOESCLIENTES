@@ -74,7 +74,8 @@ function render() {
       painel:'Escrituração 2025 — Visão Geral',
       controle:'Controle de Clientes — CM Contabilidade',
       parecer:'Parecer Técnico — Escrituração Contábil',
-      conciliacao:'Conciliação Inteligente — OFX/PDF'
+      conciliacao:'Conciliação Inteligente — OFX/PDF',
+      verificacaodocs:'🗂️ Verificação de Documentação Contábil'
     };
     document.getElementById('topbar-title').textContent = titles[state.page] || '';
     switch(state.page) {
@@ -92,9 +93,10 @@ function render() {
       case 'treinamento':   main.innerHTML = renderTreinamento(); break;
       case 'integracao':    main.innerHTML = renderIntegracao(); break;
       case 'painel':        main.innerHTML = renderEscrituracao(); break;
-      case 'controle':      main.innerHTML = renderClientesAvancado(); break;
-      case 'parecer':       main.innerHTML = renderParecerPage(); break;
-      case 'conciliacao':   main.innerHTML = renderConciliacao(); break;
+      case 'controle':       main.innerHTML = renderClientesAvancado(); break;
+      case 'parecer':        main.innerHTML = renderParecerPage(); break;
+      case 'conciliacao':    main.innerHTML = renderConciliacao(); break;
+      case 'verificacaodocs': if(window.VDOC) { window.VDOC.init(); } else { main.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Módulo não carregado.</p></div>'; } break;
     }
     attachEvents();
   } catch (err) {

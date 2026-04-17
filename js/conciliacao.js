@@ -337,6 +337,129 @@ function parseOFX(text) {
   };
 }
 
+// ─── PARSER TXT (estilo Banrisul) ───
+function parseTXT(text) {
+  const lines = text.split(/\r?\n/);
+  const txns = [];
+  let banco = '', agencia = '', conta = '', nome = '', periodo = '';
+  let mesNum = '', anoNum = '';
+  let currentDay = '';
+  let headerDone = false;
+
+  const MESES = {
+    'JANEIRO':'01','FEVEREIRO':'02','MARÇO':'03','MARCO':'03','ABRIL':'04',
+    'MAIO':'05','JUNHO':'06','JULHO':'07','AGOSTO':'08','SETEMBRO':'09',
+    'OUTUBRO':'10','NOVEMBRO':'11','DEZEMBRO':'12',
+    'JAN':'01','FEV':'02','MAR':'03','ABR':'04','MAI':'05','JUN':'06',
+    'JUL':'07','AGO':'08','SET':'09','OUT':'10','NOV':'11','DEZ':'12'
+  };
+
+  // Parse header
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    // Detect bank name (first non-empty line usually)
+    if (!banco && /^[A-ZÀ-Ú\s]{4,}$/.test(line) && !line.includes('---') && !line.includes('+++')) {
+      banco = line.trim();
+      continue;
+    }
+    const agMatch = line.match(/AGENCIA[:\s]*([\d\-]+)/i);
+    if (agMatch) { agencia = agMatch[1].trim(); continue; }
+
+    const ctMatch = line.match(/CONTA[\.:\s]*([\d\.\-]+)/i);
+    if (ctMatch) { conta = ctMatch[1].trim(); continue; }
+
+    const nmMatch = line.match(/NOME[\.:\s]*(.+)/i);
+    if (nmMatch && !headerDone) { nome = nmMatch[1].trim(); continue; }
+
+    const perMatch = line.match(/PERIODO[:\s]*(.+)/i);
+    if (perMatch) {
+      periodo = perMatch[1].trim();
+      // Extract month/year from "JANEIRO/2025"
+      const pParts = periodo.match(/([A-ZÀ-Úa-zà-ú]+)\/?(\d{4})/i);
+      if (pParts) {
+        mesNum = MESES[pParts[1].toUpperCase()] || '01';
+        anoNum = pParts[2];
+      }
+      continue;
+    }
+
+    // Detect the header-done marker
+    if (line.includes('MOVIMENTOS DA CONTA CORRENTE') || line.includes('V A L O R')) {
+      headerDone = true;
+      continue;
+    }
+    if (!headerDone) continue;
+
+    // Skip separator / decoration lines
+    if (/^[\-\+\=]+$/.test(line)) continue;
+    if (/^SAC\s/i.test(line) || /OUVIDORIA/i.test(line)) continue;
+    if (/EMITIDO AS/i.test(line)) continue;
+    if (/IDENTIFICACAO/i.test(line)) continue;
+    if (/PARA SIMPLES CONFERENCIA/i.test(line)) continue;
+
+    // Skip "SALDO ANT" and "SALDO NA DATA" and summary lines
+    if (/SALDO\s*(ANT|NA\s*DATA)/i.test(line)) continue;
+    if (/^\+\+.*MOVIMENTOS/i.test(line)) continue;
+
+    // Handle "NOME:" continuation lines — append to previous transaction
+    const nomeContMatch = line.match(/^\s*NOME[:\s]*(.+)/i);
+    if (nomeContMatch && txns.length > 0) {
+      txns[txns.length - 1].descricao += ' | ' + nomeContMatch[1].trim();
+      continue;
+    }
+
+    // === TRANSACTION LINE ===
+    // Format: DD  HISTORICO  DOCUMENTO  VALOR
+    // Day may be at col 0-2, or line may start with spaces (continuation of same day)
+    const txMatch = line.match(/^(\d{2})?\s{1,4}(.+?)\s{2,}(\d{3,10})\s+([\d\.,]+[\-]?)\s*$/);
+    if (txMatch) {
+      if (txMatch[1]) currentDay = txMatch[1];
+      const descricao = (txMatch[2] || '').trim();
+      const documento = (txMatch[3] || '').trim();
+      let valorStr = (txMatch[4] || '0').trim();
+
+      const isNeg = valorStr.endsWith('-');
+      valorStr = valorStr.replace('-', '').replace(/\./g, '').replace(',', '.');
+      let valor = parseFloat(valorStr) || 0;
+      if (isNeg) valor = -valor;
+
+      // Build date DD/MM/YYYY
+      const dataFormatada = currentDay && mesNum && anoNum
+        ? `${currentDay}/${mesNum}/${anoNum}`
+        : currentDay || '';
+      const dataSort = anoNum && mesNum && currentDay
+        ? `${anoNum}${mesNum}${currentDay}`
+        : '';
+
+      txns.push({
+        id: `txt_${txns.length}_${documento}`,
+        data: dataFormatada,
+        dataSort,
+        descricao,
+        valor: Math.abs(valor),
+        tipo: valor >= 0 ? 'credito' : 'debito',
+        tipoOFX: '',
+        original: valor,
+      });
+    }
+  }
+
+  txns.sort((a, b) => a.dataSort.localeCompare(b.dataSort));
+
+  // Build periodo display
+  const periodoDisplay = periodo || (mesNum && anoNum ? `01/${mesNum}/${anoNum} a 31/${mesNum}/${anoNum}` : '');
+
+  return {
+    banco: banco || 'BANRISUL',
+    conta: conta || agencia,
+    periodo: periodoDisplay,
+    saldo: 0,
+    transacoes: txns,
+  };
+}
+
 // ─── IDENTIFICAR ITG APLICÁVEL ───
 function identificarITG(clienteId) {
   const clientes = DB.get('clientes') || [];
@@ -470,7 +593,7 @@ function renderConciliacao() {
     🏦 Conciliação Inteligente <span style="background:rgba(16,185,129,0.2);color:#6ee7b7;padding:3px 10px;border-radius:20px;font-size:11px">v1.0</span>
   </h2>
   <p style="opacity:.8;font-size:13px;max-width:700px">
-    Importe extratos OFX/PDF → IA sugere lançamentos contábeis com base em CPC/ITG → Exporte para o Sistema Único.
+    Importe extratos OFX/PDF/TXT → IA sugere lançamentos contábeis com base em CPC/ITG → Exporte para o Sistema Único.
   </p>
 </div>
 
@@ -530,7 +653,7 @@ ${itgPanel}
   <h3 style="font-size:14px;margin-bottom:14px;color:var(--primary-dark)">2️⃣ Importar Extrato Bancário</h3>
   <div class="form-grid">
     <div class="form-group form-full">
-      <label>Arquivo OFX, OFC ou PDF</label>
+      <label>Arquivo OFX, OFC, PDF ou TXT</label>
       <input type="file" id="conc-file" multiple accept=".ofx,.ofc,.pdf,.txt"
         style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;width:100%;background:var(--card)">
     </div>
@@ -542,6 +665,7 @@ ${itgPanel}
   <div style="margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.8">
     <strong>Formatos suportados:</strong><br>
     • <strong>OFX/OFC</strong> — Leitura nativa (sem IA) — instantâneo<br>
+    • <strong>TXT</strong> — Extrato bancário em texto (Banrisul/outros) — instantâneo<br>
     • <strong>PDF</strong> — Leitura via Gemini AI (requer API Key) — ~5 segundos
   </div>
 </div>
@@ -582,6 +706,11 @@ async function importarExtratoConciliacao() {
     if (ext === 'ofx' || ext === 'ofc') {
       const text = await file.text();
       const result = parseOFX(text);
+      concState.bancoInfo = { banco: result.banco, conta: result.conta, periodo: result.periodo, saldo: result.saldo };
+      concState.transacoes.push(...result.transacoes);
+    } else if (ext === 'txt') {
+      const text = await file.text();
+      const result = parseTXT(text);
       concState.bancoInfo = { banco: result.banco, conta: result.conta, periodo: result.periodo, saldo: result.saldo };
       concState.transacoes.push(...result.transacoes);
     } else if (ext === 'pdf') {

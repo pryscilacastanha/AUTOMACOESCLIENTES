@@ -47,6 +47,9 @@
       <button class="nav-item" data-page="parecer" onclick="navigate('parecer')">
         <span class="nav-icon">📄</span><span>Parecer Técnico</span>
       </button>
+      <button class="nav-item" data-page="verificacaodocs" onclick="navigate('verificacaodocs')">
+        <span class="nav-icon">🗂️</span><span>Verificação Documental</span>
+      </button>
     </div>
 
     <div class="sidebar-divider"></div>
@@ -119,9 +122,11 @@
 <script src="js/conciliacao.js?v=2.7"></script>
 <script src="js/chat-agent.js?v=2.4" defer></script>
 <script src="js/drive-sync.js?v=2.4" defer></script>
+<script src="js/verificacao-docs.js?v=1.0" defer></script>
 <!-- Google Identity Services para OAuth2 do Drive -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="css/chat.css?v=2.4">
+<link rel="stylesheet" href="css/verificacao-docs.css?v=1.0">
 <script>
   function resetarDados() {
     if (!confirm('Apagar todos os dados operacionais e recarregar base dos clientes?')) return;
