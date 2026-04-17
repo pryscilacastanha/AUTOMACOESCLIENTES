@@ -353,36 +353,78 @@ window.VDOC = (function () {
     return docs;
   }
 
-  /* ─── SEED DADOS EMAIL CLIENTE 84 — FENIX REPRESENTAÇÃO ─── */
+  /* ─── SEED DADOS REAIS CLIENTE 84 — FENIX REPRESENTAÇÃO / SILVEIRA & SARAIVA ─── */
   function _seedCliente84() {
-    const comp = '2025-12'; // fechamento anual 2025
+    const comp = '2025-12';
     const chave = 'vdoc_84_' + comp;
-    if (localStorage.getItem(chave)) return; // já existe, não sobrescreve
+    const versaoAtual = 'v2'; // incrementar para forçar re-seed
+    const versaoKey   = 'vdoc_84_seed_v';
+    if (localStorage.getItem(versaoKey) === versaoAtual) return; // já aplicado
+    localStorage.removeItem(chave); // remove seed antigo
 
+    // DOCUMENTAÇÃO REAL encontrada na pasta do escritório em 17/04/2026
     const docsRaw = [
-      { tipo:'Livro Caixa',          categoria:'Contábil',   natureza:'Movimento sem impacto', periodo:comp, origem:'Cliente',
-        obs:'Solicitado no e-mail (23/02/2026) — NÃO entregue (marcado com X). Impacto direto na escrituração.', _forcarNaoEntregue:true },
-      { tipo:'Outros',               categoria:'Contábil',   natureza:'Passivo',               periodo:comp, origem:'Cliente',
-        obs:'Lucros distribuídos 2025 — NÃO informado (marcado com X). Necessário para DEFIS e ECD.', _forcarNaoEntregue:true },
-      { tipo:'Extrato Bancário',     categoria:'Financeiro', natureza:'Movimento sem impacto', periodo:comp, origem:'Banco',
-        obs:'Extrato de todas as contas correntes jan-dez/2025 — entregue em anexo.' },
-      { tipo:'Extrato Bancário',     categoria:'Financeiro', natureza:'Ativo',                 periodo:comp, origem:'Banco',
-        obs:'Extrato de aplicações financeiras 2025 — entregue em anexo.' },
-      { tipo:'Livro Caixa',          categoria:'Financeiro', natureza:'Ativo',                 periodo:comp, origem:'Cliente',
-        obs:'Saldo de caixa em 31/12/2025 — entregue em anexo.' },
-      { tipo:'Contrato de Empréstimo', categoria:'Financeiro', natureza:'Passivo',             periodo:comp, origem:'Cliente',
-        obs:'Empréstimo R$14.000,00 — conta pessoal para a loja (transferências: out R$8.000 + dez R$6.000). ATENÇÃO: sem contrato formal. Classificar como Mútuo de Sócios. Risco de inconsistência fiscal.' },
-      { tipo:'Outros',               categoria:'Patrimonial', natureza:'Ativo',                periodo:comp, origem:'Cliente',
-        obs:'Relação de bens — cliente informou: Não houve alteração em 2025. Sem compra/venda de bens.' },
-      { tipo:'Inventário / Estoque', categoria:'Patrimonial', natureza:'Ativo',                periodo:comp, origem:'Cliente',
-        obs:'Estoque em 31/12/2025 estimado em R$7.000,00. ALERTA: valor aproximado, sem inventário físico formal. Verificar metodologia de apuração.' },
-      { tipo:'DEFIS',                categoria:'Fiscal',     natureza:'Movimento sem impacto', periodo:comp, origem:'Sistema',
-        obs:'DEFIS obrigatória mesmo sem movimentação — prazo 31/03/2026. Verificar entrega.' },
+      // —— PENDENTES (e-mail marcado com X) ——
+      { tipo:'Livro Caixa', categoria:'Contábil', natureza:'Movimento sem impacto', periodo:comp, origem:'Cliente',
+        obs:'⚠️ PENDENTE: solicitado no e-mail 23/02/2026, marcado com X pelo cliente. Impacto direto na escrituração 2025.', _forcarNaoEntregue:true },
+      { tipo:'Outros', categoria:'Contábil', natureza:'Passivo', periodo:comp, origem:'Cliente',
+        obs:'⚠️ PENDENTE: Valor total de lucros distribuídos 2025 — marcado com X. Necessário para DEFIS, ECD e ECF.', _forcarNaoEntregue:true },
+
+      // —— EXTRATOS BANCÁRIOS — BRADESCO ——
+      { tipo:'Extrato Bancário', categoria:'Financeiro', natureza:'Movimento sem impacto', periodo:'2025-12', origem:'Banco',
+        obs:'✅ ENTREGUE: Bradesco extrato PDF (12/01/2026) + arquivo OFX disponível para importação. Arquivo: Bradesco_12012026_100042 extrato.pdf + .OFX' },
+
+      // —— EXTRATOS BANCÁRIOS — SICREDI (jan-dez 2025) ——
+      { tipo:'Extrato Bancário', categoria:'Financeiro', natureza:'Movimento sem impacto', periodo:comp, origem:'Banco',
+        obs:'✅ ENTREGUE: Sicredi extratos completos jan-dez/2025 (12 PDFs mensais). Inclui extrato de investimento (XLS) e relatório de investimento PDF.' },
+
+      // —— EXTRATOS — SICOOB ——
+      { tipo:'Extrato Bancário', categoria:'Financeiro', natureza:'Movimento sem impacto', periodo:comp, origem:'Banco',
+        obs:'✅ ENTREGUE: Sicoob — 12 arquivos PDF (mar/2026). Verificar se são extratos do ano 2025 ou posição atual — conciliar período.' },
+
+      // —— APLICAÇÕES / INVESTIMENTOS ——
+      { tipo:'Extrato Bancário', categoria:'Financeiro', natureza:'Ativo', periodo:comp, origem:'Banco',
+        obs:'✅ ENTREGUE: Extrato de investimento Sicredi (XLS) + relatório PDF. Verificar saldo em 31/12/2025 para classificação como Ativo Financeiro.' },
+
+      // —— PLANILHAS MENSAIS (xlsx por mês) ——
+      { tipo:'Livro Caixa', categoria:'Contábil', natureza:'Movimento sem impacto', periodo:comp, origem:'Cliente',
+        obs:'✅ ENTREGUE: 12 planilhas mensais xlsx (Jan-Dez/2025). Verificar se contêm fluxo de caixa completo ou apenas controles parciais.' },
+
+      // —— CONTRATO EMPRÉSTIMO BNDS ——
+      { tipo:'Contrato de Empréstimo', categoria:'Financeiro', natureza:'Passivo', periodo:comp, origem:'Cliente',
+        obs:'✅ ENTREGUE: CONTRATO EMPRESTIMO BNDS 2025.pdf (2,6MB). Classificar como Financiamento de Longo Prazo — verificar parcelas, saldo devedor e vencimentos.' },
+
+      // —— CONTRATO EMPRÉSTIMO ENERGIA SOLAR ——
+      { tipo:'Contrato de Empréstimo', categoria:'Financeiro', natureza:'Passivo', periodo:comp, origem:'Cliente',
+        obs:'✅ ENTREGUE: CONTRATO EMPRESTIMO ENERGIA SOLAR.pdf (2,6MB). Verificar se o bem (painel solar) foi ativado no Ativo Imobilizado e se há depreciação.' },
+
+      // —— VEÍCULO FASTBACK ——
+      { tipo:'Contrato', categoria:'Patrimonial', natureza:'Ativo', periodo:comp, origem:'Cliente',
+        obs:'✅ ENTREGUE: CONTRATO fastback.pdf — Veículo Fastback. Verificar se está no nome da empresa ou do sócio. Classificar em Ativo Imobilizado se empresarial.' },
+
+      // —— CDC VEÍCULOS (Abarth + outro) ——
+      { tipo:'Outros', categoria:'Patrimonial', natureza:'Passivo', periodo:comp, origem:'Cliente',
+        obs:'⚠️ ATENÇÃO: 2 orçamentos CDC Veículos (Fastback + Abarth) — são orçamentos, não contratos fechados. Verificar se houve efetivação do financiamento. Impacto em Passivo se contratados.' },
+
+      // —— CONSÓRCIO / APÓLICE SILVEIRA SARAIVA ——
+      { tipo:'Outros', categoria:'Patrimonial', natureza:'Ativo', periodo:comp, origem:'Cliente',
+        obs:'✅ ENTREGUE: Dec. consórcio + apólice seguro (Silveira Saraiva CC 543315). Classificar cota de consórcio como Ativo e seguro como Despesa Pré-paga ou Despesa.' },
+
+      // —— SALDO ESTOQUE ——
+      { tipo:'Inventário / Estoque', categoria:'Patrimonial', natureza:'Ativo', periodo:comp, origem:'Cliente',
+        obs:'⚠️ Valor estimado R$7.000,00 em 31/12/2025 (informado por e-mail). Sem inventário físico formal. Solicitar confirmação.' },
+
+      // —— EMPRÉSTIMO PESSOAL (conta pessoal → loja) ——
+      { tipo:'Transferência Bancária', categoria:'Financeiro', natureza:'Passivo', periodo:comp, origem:'Cliente',
+        obs:'⚠️ RISCO: Empréstimo R$14.000 conta pessoal → loja (out: R$8.000 + dez: R$6.000 via Fluxo Caixa). SEM contrato formal. Classificar como Mútuo de Sócios. Risco fiscal de caracterização como receita.' },
+
+      // —— DEFIS ——
+      { tipo:'DEFIS', categoria:'Fiscal', natureza:'Movimento sem impacto', periodo:comp, origem:'Sistema',
+        obs:'⚠️ DEFIS obrigatória mesmo sem movimentação — prazo 31/03/2026. Verificar se já foi entregue.' },
     ];
 
     const validados = docsRaw.map(d => {
       const validado = _autoValidar({ ...d, id: Date.now() + Math.random() });
-      // Override de status para itens explicitamente marcados
       if (d._forcarNaoEntregue) {
         validado.entregue = false;
         validado.status = '❌'; validado.statusLabel = 'Não entregue';
@@ -392,6 +434,7 @@ window.VDOC = (function () {
     });
 
     localStorage.setItem(chave, JSON.stringify(validados));
+    localStorage.setItem(versaoKey, versaoAtual); // marca versão aplicada
   }
 
   /* ─── TAB: INSERIR ─── */
