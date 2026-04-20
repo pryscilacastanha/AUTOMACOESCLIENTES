@@ -357,7 +357,7 @@ window.VDOC = (function () {
   function _seedCliente84() {
     const comp = '2025-12';
     const chave = 'vdoc_84_' + comp;
-    const versaoAtual = 'v2'; // incrementar para forçar re-seed
+    const versaoAtual = 'v5'; // incrementar para forçar re-seed
     const versaoKey   = 'vdoc_84_seed_v';
     if (localStorage.getItem(versaoKey) === versaoAtual) return; // já aplicado
     localStorage.removeItem(chave); // remove seed antigo
@@ -421,7 +421,125 @@ window.VDOC = (function () {
       // —— DEFIS ——
       { tipo:'DEFIS', categoria:'Fiscal', natureza:'Movimento sem impacto', periodo:comp, origem:'Sistema',
         obs:'⚠️ DEFIS obrigatória mesmo sem movimentação — prazo 31/03/2026. Verificar se já foi entregue.' },
+
+      // —— TRIBUTOS A RECUPERAR — ACHADO 17/04/2026 ——
+      // 1. IRRF retido na fonte (recebimentos de clientes PJ com retenção)
+      { tipo:'Comprovante de Pagamento', categoria:'Fiscal', natureza:'Ativo', periodo:comp, origem:'Cliente',
+        obs:'🔍 ANÁLISE PENDENTE — IRRF A RECUPERAR: verificar se houve RETENÇÃO DE IRRF por clientes PJ nos recebimentos de 2025. '
+          +'Conta contábil: 01.1.2.08.003 (IRRF a Recuperar). Procedimento: levantar todos os comprovantes de retenção (informe de rendimentos, guias, e-mails de clientes). '
+          +'Se confirmado, o IRRF retido é Ativo Circulante e pode ser compensado com impostos futuros ou restituído. RISCO: sem controle, o crédito expira e é perdido.', _forcarNaoEntregue:true },
+
+      // 2. INSS retido de terceiros (se a empresa presta serviços com INSS retido pelo tomador)
+      { tipo:'GPS / DARF', categoria:'Fiscal', natureza:'Ativo', periodo:comp, origem:'Cliente',
+        obs:'🔍 ANÁLISE PENDENTE — INSS RETIDO A RECUPERAR: verificar se tomadores de serviço realizaram retenção de 11% de INSS (art. 31 da Lei 8.212/91). '
+          +'Conta contábil: 01.1.2.08.010 (INSS a Recuperar). Procedimento: cruzar notas fiscais emitidas no SPED/portal com GPS recolhidas pelos tomadores. '
+          +'Se confirmado, o INSS retido compensa a GPS patronal. RISCO: se não escriturado, a empresa paga em duplicidade.', _forcarNaoEntregue:true },
+
+      // 3. Créditos de tributos de exercícios anteriores (2024 não escriturado)
+      { tipo:'Outros', categoria:'Fiscal', natureza:'Ativo', periodo:'2024-12', origem:'Sistema',
+        obs:'🔴 RISCO CRÍTICO — TRIBUTOS A RECUPERAR DE 2024 (EXERCÍCIO NÃO ESCRITURADO): existem possíveis créditos de IRRF, INSS e outros tributos do exercício 2024 que não foram mapeados pois 2024 não foi escriturado. '
+          +'Procedimento: solicitar ao cliente todos os comprovantes de retenção de 2024 (informes de rendimentos de clientes PJ). '
+          +'Prazo de compensação/restituição: 5 anos (art. 168 do CTN). Escriturar via conta 02.3.4.04.003 Ajustes de Exercícios Anteriores.', _forcarNaoEntregue:true },
+
+      // 4. ISS a Recuperar (retenção na fonte pelo tomador do serviço)
+      { tipo:'Nota Fiscal de Serviço (NFS-e)', categoria:'Fiscal', natureza:'Ativo', periodo:comp, origem:'Cliente',
+        obs:'🔍 ANÁLISE PENDENTE — ISS RETIDO A RECUPERAR: verificar se o município do tomador determina retenção de ISS na fonte. '
+          +'Conta contábil: 01.1.2.08.006 (ISS a Recuperar). Procedimento: analisar as NFS-e emitidas — verificar se o ISS está “Retido na Fonte”. '
+          +'Simples Nacional: o ISS retido não pode ser compensado no DAS, mas deve constar como crédito na escrituração para evitar pagamento em duplicidade ao município da prestação.', _forcarNaoEntregue:true },
+
+      // 5. Resumo / apontamento geral
+      { tipo:'Outros', categoria:'Fiscal', natureza:'Ativo', periodo:comp, origem:'Manual',
+        obs:'📊 ACHADO CONTÁBIL 17/04/2026 — SALDO DE TRIBUTOS A RECUPERAR: identificado que a empresa pode possuir saldo de tributos a recuperar não mapeados. '
+          +'ITENS A ANALISAR: (1) IRRF retido por clientes PJ — conta 01.1.2.08.003; (2) INSS retido por tomadores — conta 01.1.2.08.010; '
+          +'(3) ISS retido na fonte — conta 01.1.2.08.006; (4) Créditos de 2024 não escriturados. '
+          +'AÇÃO: Analista deve solicitar Informe de Rendimentos de todos os clientes PJ e cruzar com as notas emitidas. '
+          +'Base legal: art. 150, § 7º da CF/88; IN RFB 2.055/2021; art. 168 do CTN (prazo 5 anos). '
+          +'Impacto no BP de abertura 2025: caso confirmado, lançar como Ativo Circulante (Tributos a Recuperar).', _forcarNaoEntregue:false },
+
+      // —— EMPRÉSTIMOS A SÓCIO — SALDO INVERTIDO NO PASSIVO — ACHADO 17/04/2026 ——
+      // Contexto: o sócio aportou R$14.000 da conta pessoal à empresa (out: R$8.000 + dez: R$6.000)
+      // A conta de Mútuo de Sócios (Passivo) foi lançada a DÉBITO — saldo invertido
+
+      // 6. Registro do Mútuo — saldo invertido detectado
+      { tipo:'Transferência Bancária', categoria:'Financeiro', natureza:'Passivo', periodo:comp, origem:'Cliente',
+        obs:'🔴 SALDO INVERTIDO IDENTIFICADO — MÚTUO DE SÓCIOS (EMPRÉSTIMO DO SÓCIO À EMPRESA): '
+          +'O sócio realizou 2 aportes pessoais na empresa: R$8.000 (outubro/2025) + R$6.000 (dezembro/2025) = R$14.000 total. '
+          +'A conta está com SALDO DEVEDOR (débito) no Passivo, o que indica lançamento INVERTIDO. '
+          +'SITUAÇÃO CORRETA: Conta 02.1.2.02 — Empréstimos de Pessoas Ligadas deve ter saldo CREDOR (não devedor). '
+          +'VER REGRA ABAIXO para o lançamento de correção.', _forcarNaoEntregue:true },
+
+      // 7. Regra técnica: como corrigir o lançamento invertido
+      { tipo:'Outros', categoria:'Contábil', natureza:'Passivo', periodo:comp, origem:'Manual',
+        obs:'📚 REGRA CONTÁBIL — EMPRÉSTIMO DO SÓCIO À EMPRESA (MÚTUO): '
+          +'LANÇAMENTO CORRETO quando o sócio empresta à empresa: '
+          +'D — Banco/Caixa (Ativo Circulante) R$14.000 | '
+          +'C — 02.1.2.02 Empréstimos de Pessoas Ligadas (Passivo Circulante) R$14.000. '
+          +'SE o lançamento foi feito ao contrário (D no Passivo / C no Ativo), isso gera SALDO INVERTIDO. '
+          +'CORREÇÃO: estornar o lançamento inválido e refazer conforme acima, ou lançar o dobro a crédito para zerar e reposicionar. '
+          +'ATENÇÃO ADICIONAL: não há contrato de mútuo formalizado — existe risco fiscal de a Receita caracterizar como RECEITA OMITIDA. '
+          +'RECOMENDAÇÃO: formalizar contrato de mútuo retroativamente com taxa de juros mínima (SELIC ou TJLP).', _forcarNaoEntregue:true },
+
+      // 8. Alerta: se o fluxo for invertido (empresa → sócio), trata-se de Ativo e risco de DDL
+      { tipo:'Outros', categoria:'Contábil', natureza:'Ativo', periodo:comp, origem:'Manual',
+        obs:'⚠️ VERIFICAÇÃO NECESSÁRIA — SE A EMPRESA EMPRESTOU AO SÓCIO (direção inversa): '
+          +'Se o fluxo foi EMPRESA → SÓCIO (a empresa tirou recursos para o sócio), o lançamento correto é: '
+          +'D — 01.2.1.04 Empréstimos a Pessoas Ligadas (ATIVO NÃO CIRCULANTE) | '
+          +'C — Banco/Caixa (Ativo Circulante). '
+          +'Neste caso a conta CORRETA é no ATIVO, não no Passivo. '
+          +'RISCO FISCAL GRAVE: empréstimos da empresa ao sócio sem contrato e sem juros são qualificados como '
+          +'DISTRIBUIÇÃO DISFARÇADA DE LUCROS — art. 464 do RIR/2018 (Decreto 9.580/2018). '
+          +'Impacto: incidência de IRPJ + CSLL sobre o valor como se fosse lucro distribuído. '
+          +'AÇÃO: confirmar com o cliente a direção real do fluxo (extrato) antes de lançar.', _forcarNaoEntregue:true },
+
+      // —— PASSIVO SICREDI R$500.000 — SALDO INVERTIDO (DÉBITO) — SEM DOCUMENTAÇÃO 2024 ——
+
+      // 9. Achado principal — saldo crítico R$500k
+      { tipo:'Contrato de Empréstimo', categoria:'Financeiro', natureza:'Passivo', periodo:'2024-12', origem:'Sistema',
+        obs:'🔴 ACHADO CRÍTICO — PASSIVO BANCO SICREDI R$500.000 COM SALDO INVERTIDO (A DÉBITO): '
+          +'O Passivo de Empréstimos/Financiamentos Sicredi apresenta SALDO DEVEDOR de R$500.000. '
+          +'Passivo tem natureza CREDORA — saldo a débito = CONTA INVERTIDA. '
+          +'SEM DOCUMENTAÇÃO disponível para o exercício de 2024. '
+          +'IMPACTO: o Balanço Patrimonial de fechamento 2024 e abertura 2025 está INCORRETO — '
+          +'o PL está subavaliado ou superavaliado em R$500.000. '
+          +'BASE LEGAL DO AJUSTE: NBC TG 23 (Políticas Contábeis, Mudança de Estimativa e Retificação de Erro) '
+          +'+ art. 25 da Lei 11.638/07. Conta de ajuste: 02.3.4.04.003 Ajustes de Exercícios Anteriores.', _forcarNaoEntregue:true },
+
+      // 10. Lançamentos de ajuste — 3 cenários possíveis
+      { tipo:'Outros', categoria:'Contábil', natureza:'Passivo', periodo:'2024-12', origem:'Manual',
+        obs:'📚 LANÇAMENTOS DE AJUSTE NBC TG 23 — PASSIVO SICREDI R$500.000 A DÉBITO: '
+          +'[CENÁRIO 1 — Empréstimo já foi quitado mas não baixado] '
+          +'Se o financiamento foi pago integralmente e o saldo devedor no passivo é resíduo de pagamentos sem baixa: '
+          +'D — 02.1.2.01 Emp. e Fin. Bancários Sicredi (Passivo) R$500.000 | '
+          +'C — 02.3.4.04.003 Ajustes de Exercícios Anteriores (PL) R$500.000. '
+          +'Efeito: zera o saldo invertido. O lucro acumulado aumenta R$500k. '
+          +'[CENÁRIO 2 — Empréstimo ainda existe e o lançamento foi feito ao contrário] '
+          +'O débito no passivo ocorreu por inversão de lançamento. O saldo correto deveria ser CREDOR R$500k: '
+          +'PASSO 1: D — 02.3.4.04.003 Ajustes Ex. Anteriores (PL) R$1.000.000 | '
+          +'C — 02.1.2.01 Emp. Sicredi (Passivo) R$1.000.000. '
+          +'Efeito: passa de -R$500k para +R$500k (saldo credor correto). '
+          +'[CENÁRIO 3 — Saldo bancário Sicredi classificado errado no Passivo] '
+          +'Se o valor R$500k é de conta corrente Sicredi (Ativo) equivocadamente lançado como Passivo: '
+          +'D — 01.1.1.02 Bancos — Sicredi (Ativo Circulante) R$500.000 | '
+          +'C — Conta erroneamente classificada no Passivo R$500.000. '
+          +'AÇÃO IMEDIATA: verificar extrato Sicredi + contrato de financiamento para identificar o cenário correto.', _forcarNaoEntregue:true },
+
+      // 11. Alerta: impacto no fechamento 2024 e abertura 2025
+      { tipo:'Balanço / BP', categoria:'Contábil', natureza:'Passivo', periodo:'2024-12', origem:'Manual',
+        obs:'⚠️ IMPACTO NO FECHAMENTO 2024 E ABERTURA 2025 — PASSIVO SICREDI R$500.000: '
+          +'Sem documentação de 2024, o ajuste via Ajustes de Exercícios Anteriores é OBRIGATÓRIO antes de fechar 2025. '
+          +'PROCEDIMENTO PARA O FECHAMENTO SEM DOCUMENTAÇÃO (NBC TG 23): '
+          +'1. Verificar extrato Sicredi de 31/12/2024 — saldo disponível online mesmo sem contrato; '
+          +'2. Verificar posição de saldo devedor com o banco (carta de saldo devedor); '
+          +'3. Definir o cenário correto (quitado / em aberto / conta corrente); '
+          +'4. Fazer o lançamento de ajuste conforme cenário (veja REGRA acima); '
+          +'5. Elaborar Nota Explicativa no ECD 2024 informando o ajuste retroativo; '
+          +'6. Registrar no LALUR o ajuste; '
+          +'7. Atualizar o Balanço de Abertura de 2025 com o saldo corrigido. '
+          +'ATENÇÃO: R$500.000 É VALOR MATERIAL — não pode ser ignorado ou diferido para exercícios futuros. '
+          +'Base: NBC TG 23 item 42 — erros materiais de períodos anteriores devem ser corrigidos retrospectivamente.', _forcarNaoEntregue:true },
     ];
+
+
 
     const validados = docsRaw.map(d => {
       const validado = _autoValidar({ ...d, id: Date.now() + Math.random() });

@@ -1008,10 +1008,19 @@ const TRILHAS_TREINAMENTO = [
         ]
       },
       { id:'ass3', titulo:'3. Conciliações e Checklist',
-        conteudo:['Conciliação bancária: extrato x livro caixa','Conciliação de cartão de crédito','Preenchimento correto do checklist: Recebido / Pendente / Divergente'],
+        conteudo:[
+          'Conciliação bancária: extrato x livro caixa',
+          'Conciliação de cartão de crédito',
+          'Preenchimento correto do checklist: Recebido / Pendente / Divergente',
+          '🔴 REGRA: Relatório de Recebimentos de Clientes é OBRIGATÓRIO — sem ele não é possível conciliar receitas nem validar saldo de Contas a Receber (AR)',
+          '🔴 REGRA: Relatório de Pagamentos a Fornecedores é OBRIGATÓRIO — sem ele não é possível conciliar despesas nem validar saldo de Contas a Pagar (AP)',
+          'Quando estes relatórios estão ausentes: registrar como pendência crítica (🔴 Alto Risco) e bloquear fechamento até recebimento'
+        ],
         quiz:[
           { q:'Um valor no extrato sem contrapartida contábil é:', op:['Normal','Pendência a investigar','Lucro extra'], r:1 },
           { q:'Ao identificar divergência, devo:', op:['Corrigir sem registrar','Registrar apontamento e informar analista','Ignorar se valor pequeno'], r:1 },
+          { q:'O Relatório de Recebimentos de Clientes está ausente. O que fazer?', op:['Lançar as receitas estimando pelo extrato','Registrar como pendência crítica e solicitar ao cliente antes de fechar','Fechar normalmente e ajustar no mês seguinte'], r:1 },
+          { q:'Sem o Relatório de Pagamentos a Fornecedores, é possível emitir parecer técnico?', op:['Sim, usando apenas o extrato bancário','Não — a conciliação de AP fica incompleta e o parecer não tem base documental','Sim, desde que o cliente confirme os valores por e-mail'], r:1 },
         ]
       },
     ]
@@ -1036,10 +1045,19 @@ const TRILHAS_TREINAMENTO = [
         ]
       },
       { id:'an3', titulo:'3. Parecer Técnico e Auditoria',
-        conteudo:['Estrutura: apontamento + impacto + recomendação','Risco fiscal e risco contábil','Regra de ouro: nenhuma contabilidade sem conciliação + checklist + apontamentos'],
+        conteudo:[
+          'Estrutura do parecer: Apontamento + Impacto + Recomendação',
+          'Risco fiscal e risco contábil: como classificar e comunicar',
+          'Regra de ouro: nenhuma contabilidade sem conciliação + checklist + apontamentos',
+          '🔴 PENDÊhNCIA CRÍTICA: cliente sem Relatório de Recebimentos de Clientes — o Parecer Técnico DEVE mencionar: "Documento não entregue. Impacto: contas a receber não conciliadas, risco de omissão de receita. Recomendação: solicitar com urgência e suspender fechamento."',
+          '🔴 PENDÊhNCIA CRÍTICA: cliente sem Relatório de Pagamentos a Fornecedores — o Parecer Técnico DEVE mencionar: "Documento não entregue. Impacto: contas a pagar não conciliadas, risco de sub ou superavaliação de despesas. Recomendação: solicitar com urgência."',
+          'Modelo de observação padrão: "Não recebemos o [nome do relatório]. Sem este documento a escrituração do período fica incompleta e o parecer técnico não pode ser conclusivo."'
+        ],
         quiz:[
           { q:'Um parecer técnico deve conter:', op:['Apenas o problema','Problema + impacto + recomendação','Apenas a recomendação'], r:1 },
           { q:'Risco fiscal alto significa:', op:['Empresa muito lucrativa','Possibilidade de autuação pela Receita','Saldo de caixa elevado'], r:1 },
+          { q:'O cliente não entregou o Relatório de Recebimentos. O parecer deve:', op:['Omitir a pendência para não preocupar o cliente','Mencionar explicitamente como pendência crítica com impacto na escrituração','Usar os valores do extrato sem registrar a ausência'], r:1 },
+          { q:'A ausência do Relatório de Pagamentos a Fornecedores impacta principalmente:', op:['O cálculo da depreciação','A conciliação de Contas a Pagar (AP) e validação de despesas','O cálculo do IRPJ'], r:1 },
         ]
       },
     ]

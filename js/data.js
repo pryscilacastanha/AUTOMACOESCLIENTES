@@ -25,6 +25,7 @@ const CHECKLIST_TEMPLATE = [
   ]},
   { cat:"📈 1.3 ATIVO — RELATÓRIOS E CONTAS A RECEBER", icon:"📈", items:[
     {key:"cr",           nome:"Relatório de Contas a Receber",                      regimes:["todos"], condicao:null,       obs:"Clientes e vencimentos"},
+    {key:"rel_receb_cli",nome:"⚠️ Relatório de Recebimentos de Clientes",           regimes:["todos"], condicao:null,       obs:"🔴 OBRIGATÓRIO: sem este relatório não é possível conciliar receitas, validar saldo de Clientes/AR e emitir parecer técnico. Solicitar por mês."},
     {key:"maquininha",   nome:"Extrato de Recebimentos em Maquininha (Cartão/PIX)", regimes:["todos"], condicao:"mf_cc_maq", obs:"Resumo de vendas"},
     {key:"operadoras",   nome:"Extrato de Operadoras de Cartão (múltiplas)",        regimes:["todos"], condicao:"mf_cc_multi", obs:"Cielo, Stone, PagSeguro, etc. Consolidado"},
     {key:"antecipacao",  nome:"Relatório de Antecipação de Recebíveis",             regimes:["todos"], condicao:"mf_cc_antec", obs:"⚠️ Essencial para conciliação BRUTO x LÍQUIDO"},
@@ -50,6 +51,7 @@ const CHECKLIST_TEMPLATE = [
   { cat:"📋 2. PASSIVO OPERACIONAL", icon:"📋", items:[
     // Fornecedores
     {key:"cp",           nome:"Relatório de Contas a Pagar (Fornecedores)",         regimes:["todos"], condicao:null,       obs:"Fornecedores e vencimentos"},
+    {key:"rel_pgto",     nome:"⚠️ Relatório de Pagamentos a Fornecedores",          regimes:["todos"], condicao:null,       obs:"🔴 OBRIGATÓRIO: sem este relatório não é possível conciliar despesas, validar saldo de Fornecedores/AP e emitir parecer técnico. Solicitar por mês."},
     {key:"cartao_corp",  nome:"Cartão Corporativo — Faturas Fechadas",              regimes:["todos"], condicao:"mf_cc_corp", obs:"Para conciliação de despesas do mês"},
 
     // Empréstimos e financiamentos

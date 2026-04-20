@@ -64,6 +64,9 @@
       <button class="nav-item" data-page="integracao" onclick="navigate('integracao')">
         <span class="nav-icon">🔄</span><span>Integração</span>
       </button>
+      <button class="nav-item" data-page="unicoexport" onclick="navigate('unicoexport')">
+        <span class="nav-icon">📤</span><span>Exportar Único</span>
+      </button>
       <button class="nav-item" data-page="planocontas" onclick="navigate('planocontas')">
         <span class="nav-icon">📊</span><span>Plano de Contas</span>
       </button>
@@ -112,6 +115,8 @@
 <link rel="preconnect" href="https://accounts.google.com">
 <!-- Supabase — crítico, carrega primeiro -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<!-- SheetJS — leitura de Excel para módulo Único -->
+<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 <script src="js/data.js?v=2.4"></script>
 <script src="js/gemini.js?v=2.4"></script>
 <script src="js/supabase-client.js?v=2.4"></script>
@@ -123,10 +128,12 @@
 <script src="js/chat-agent.js?v=2.4" defer></script>
 <script src="js/drive-sync.js?v=2.4" defer></script>
 <script src="js/verificacao-docs.js?v=1.0" defer></script>
+<script src="js/unico-export.js?v=1.0" defer></script>
 <!-- Google Identity Services para OAuth2 do Drive -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="css/chat.css?v=2.4">
 <link rel="stylesheet" href="css/verificacao-docs.css?v=1.0">
+<link rel="stylesheet" href="css/unico-export.css?v=1.0">
 <script>
   function resetarDados() {
     if (!confirm('Apagar todos os dados operacionais e recarregar base dos clientes?')) return;

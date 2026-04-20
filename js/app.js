@@ -75,7 +75,8 @@ function render() {
       controle:'Controle de Clientes — CM Contabilidade',
       parecer:'Parecer Técnico — Escrituração Contábil',
       conciliacao:'Conciliação Inteligente — OFX/PDF',
-      verificacaodocs:'🗂️ Verificação de Documentação Contábil'
+      verificacaodocs:'🗂️ Verificação de Documentação Contábil',
+      unicoexport:'📤 Exportar para Único Contábil'
     };
     document.getElementById('topbar-title').textContent = titles[state.page] || '';
     switch(state.page) {
@@ -97,6 +98,7 @@ function render() {
       case 'parecer':        main.innerHTML = renderParecerPage(); break;
       case 'conciliacao':    main.innerHTML = renderConciliacao(); break;
       case 'verificacaodocs': if(window.VDOC) { window.VDOC.init(); } else { main.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Módulo não carregado.</p></div>'; } break;
+      case 'unicoexport': main.innerHTML = (window.UnicoExport ? window.UnicoExport.renderPage(state.clienteId) : '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Módulo não carregado. Recarregue a página.</p></div>'); break;
     }
     attachEvents();
   } catch (err) {

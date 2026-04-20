@@ -460,6 +460,122 @@ function parseTXT(text) {
   };
 }
 
+// ─── PARSER EXCEL (resultado_normalizado.xlsx — formato Banrisul SCI) ───
+// Colunas esperadas: Banco|AGENCIA|CONTA|DATA|DIA|MES|ANO|DOCUMENTO|ORIGEM_DOC|DESCRICAO|REF_TRANSACAO|VALOR|ENTRADAS|SAIDAS|SALDO ACUMULADO
+function parseXLSX(file) {
+  return new Promise((resolve, reject) => {
+    if (typeof XLSX === 'undefined') {
+      reject(new Error('Biblioteca SheetJS não carregada. Recarregue a página.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'binary' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        if (!rows.length) { resolve({ banco: '', conta: '', periodo: '', saldo: 0, transacoes: [] }); return; }
+
+        // Detectar nomes reais das colunas (case-insensitive)
+        const sample = rows[0];
+        const keys = Object.keys(sample);
+        const find = (names) => keys.find(k => names.some(n => k.toUpperCase().includes(n.toUpperCase()))) || '';
+
+        const colBanco   = find(['Banco','BANCO']);
+        const colAgencia = find(['AGENCIA','AGÊNCIA']);
+        const colConta   = find(['CONTA']);
+        const colData    = find(['DATA']);
+        const colDia     = find(['DIA']);
+        const colMes     = find(['MES','MÊS']);
+        const colAno     = find(['ANO']);
+        const colDoc     = find(['DOCUMENTO']);
+        const colDesc    = find(['DESCRICAO','DESCRIÇÃO']);
+        const colValor   = find(['VALOR']);
+        const colEntr    = find(['ENTRADAS']);
+        const colSaid    = find(['SAIDAS','SAÍDAS']);
+        const colSaldo   = find(['SALDO']);
+
+        // Banco/conta/período do primeiro registro
+        const first = rows[0];
+        const banco  = String(first[colBanco]  || 'BANRISUL').trim();
+        const agencia = String(first[colAgencia] || '').trim();
+        const conta  = String(first[colConta]  || agencia).trim();
+
+        // Período: min e max de datas
+        let dtMin = '', dtMax = '';
+
+        const txns = [];
+        rows.forEach((row, idx) => {
+          const valor = parseFloat(row[colValor] || 0);
+          if (!valor) return;
+
+          const entradas = parseFloat(row[colEntr] || 0);
+          const saidas   = parseFloat(row[colSaid] || 0);
+          const isCredito = entradas > 0;
+
+          // Converter data: serial Excel → DD/MM/YYYY
+          let dataFormatada = '';
+          let dataSort = '';
+          const rawData = row[colData];
+          const dia = String(row[colDia] || '').padStart(2, '0');
+          const mes = String(row[colMes] || '').padStart(2, '0');
+          const ano = String(row[colAno] || '');
+
+          if (dia && mes && ano) {
+            dataFormatada = `${dia}/${mes}/${ano}`;
+            dataSort = `${ano}${mes}${dia}`;
+          } else if (typeof rawData === 'number') {
+            // Excel serial date
+            const d = new Date(Math.round((rawData - 25569) * 86400 * 1000));
+            const y = d.getUTCFullYear();
+            const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+            const dd = String(d.getUTCDate()).padStart(2, '0');
+            dataFormatada = `${dd}/${m}/${y}`;
+            dataSort = `${y}${m}${dd}`;
+          } else if (typeof rawData === 'string') {
+            dataFormatada = rawData;
+            dataSort = rawData.split('/').reverse().join('');
+          }
+
+          if (!dtMin || dataSort < dtMin) dtMin = dataSort;
+          if (!dtMax || dataSort > dtMax) dtMax = dataSort;
+
+          const descricao = String(row[colDesc] || '').trim();
+          const documento = String(row[colDoc]  || '').trim();
+
+          txns.push({
+            id: `xlsx_${idx}`,
+            data: dataFormatada,
+            dataSort,
+            descricao: descricao || documento || 'Lançamento',
+            valor: Math.abs(valor),
+            tipo: isCredito ? 'credito' : 'debito',
+            tipoOFX: '',
+            original: valor,
+            documento,
+          });
+        });
+
+        txns.sort((a, b) => a.dataSort.localeCompare(b.dataSort));
+
+        // Período formatado
+        const fmtDt = (s) => s ? `${s.slice(6,8)}/${s.slice(4,6)}/${s.slice(0,4)}` : '';
+        const periodo = dtMin ? `${fmtDt(dtMin)} a ${fmtDt(dtMax)}` : '';
+        // Saldo final
+        const ultimaLinha = rows[rows.length - 1];
+        const saldo = parseFloat(ultimaLinha?.[colSaldo] || 0);
+
+        resolve({ banco, conta: conta || agencia, periodo, saldo, transacoes: txns });
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsBinaryString(file);
+  });
+}
+
 // ─── IDENTIFICAR ITG APLICÁVEL ───
 function identificarITG(clienteId) {
   const clientes = DB.get('clientes') || [];
@@ -653,8 +769,8 @@ ${itgPanel}
   <h3 style="font-size:14px;margin-bottom:14px;color:var(--primary-dark)">2️⃣ Importar Extrato Bancário</h3>
   <div class="form-grid">
     <div class="form-group form-full">
-      <label>Arquivo OFX, OFC, PDF ou TXT</label>
-      <input type="file" id="conc-file" multiple accept=".ofx,.ofc,.pdf,.txt"
+      <label>Arquivo OFX, OFC, PDF, TXT ou <strong>Excel</strong></label>
+      <input type="file" id="conc-file" multiple accept=".ofx,.ofc,.pdf,.txt,.xlsx,.xls"
         style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;width:100%;background:var(--card)">
     </div>
   </div>
@@ -666,6 +782,7 @@ ${itgPanel}
     <strong>Formatos suportados:</strong><br>
     • <strong>OFX/OFC</strong> — Leitura nativa (sem IA) — instantâneo<br>
     • <strong>TXT</strong> — Extrato bancário em texto (Banrisul/outros) — instantâneo<br>
+    • <strong>XLSX/XLS</strong> — Excel no formato resultado_normalizado (Banrisul SCI) — instantâneo 🆕<br>
     • <strong>PDF</strong> — Leitura via Gemini AI (requer API Key) — ~5 segundos
   </div>
 </div>
@@ -713,6 +830,12 @@ async function importarExtratoConciliacao() {
       const result = parseTXT(text);
       concState.bancoInfo = { banco: result.banco, conta: result.conta, periodo: result.periodo, saldo: result.saldo };
       concState.transacoes.push(...result.transacoes);
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      try {
+        const result = await parseXLSX(file);
+        concState.bancoInfo = { banco: result.banco, conta: result.conta, periodo: result.periodo, saldo: result.saldo };
+        concState.transacoes.push(...result.transacoes);
+      } catch (e) { alert(`Erro ao processar Excel: ${e.message}`); }
     } else if (ext === 'pdf') {
       if (!getApiKey()) { alert('Configure a API Key para leitura de PDFs.'); continue; }
       const clientes = DB.get('clientes') || [];
