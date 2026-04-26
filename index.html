@@ -8,9 +8,193 @@
   <link rel="stylesheet" href="css/app.css">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── LOGIN SCREEN ── */
+    .login-screen {
+      position: fixed; inset: 0; z-index: 99999;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%);
+      font-family: 'Inter', sans-serif;
+    }
+    .login-screen.hidden { display: none; }
+    .login-bg-orbs {
+      position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+    }
+    .login-bg-orbs .orb {
+      position: absolute; border-radius: 50%; filter: blur(80px); opacity: .15;
+    }
+    .login-bg-orbs .orb:nth-child(1) { width: 500px; height: 500px; background: #6366f1; top: -10%; left: -5%; animation: float1 12s ease-in-out infinite; }
+    .login-bg-orbs .orb:nth-child(2) { width: 400px; height: 400px; background: #ec4899; bottom: -10%; right: -5%; animation: float2 10s ease-in-out infinite; }
+    .login-bg-orbs .orb:nth-child(3) { width: 300px; height: 300px; background: #0ea5e9; top: 50%; left: 50%; transform: translate(-50%,-50%); animation: float3 14s ease-in-out infinite; }
+    @keyframes float1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(30px,40px); } }
+    @keyframes float2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-20px,-30px); } }
+    @keyframes float3 { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.15); } }
+
+    .login-card {
+      position: relative; z-index: 2;
+      background: rgba(30,41,59,.7);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      padding: 48px 40px 40px;
+      width: 420px; max-width: 92vw;
+      box-shadow: 0 25px 60px rgba(0,0,0,.4);
+      animation: cardIn .5s ease-out;
+    }
+    @keyframes cardIn { from { opacity:0; transform: translateY(30px) scale(.96); } to { opacity:1; transform: translateY(0) scale(1); } }
+
+    .login-logo { text-align: center; margin-bottom: 32px; }
+    .login-logo-icon {
+      width: 64px; height: 64px; margin: 0 auto 16px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      box-shadow: 0 8px 24px rgba(99,102,241,.3);
+    }
+    .login-logo h1 {
+      font-size: 22px; font-weight: 700; color: #f1f5f9;
+      margin: 0 0 4px; letter-spacing: -.3px;
+    }
+    .login-logo p { font-size: 13px; color: #94a3b8; margin: 0; font-weight: 400; }
+
+    .login-field { margin-bottom: 20px; }
+    .login-field label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .login-field input {
+      width: 100%; padding: 14px 16px; box-sizing: border-box;
+      background: rgba(15,23,42,.6);
+      border: 1.5px solid rgba(148,163,184,.15);
+      border-radius: 12px;
+      color: #f1f5f9; font-size: 15px; font-family: 'Inter', sans-serif;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    .login-field input::placeholder { color: #475569; }
+    .login-field input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+    }
+    .login-field.error input { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.1); }
+
+    .login-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none; border-radius: 12px;
+      color: #fff; font-size: 15px; font-weight: 600; font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 16px rgba(99,102,241,.3);
+    }
+    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(99,102,241,.4); }
+    .login-btn:active { transform: translateY(0); }
+
+    .login-error {
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.2);
+      border-radius: 10px; padding: 12px 16px;
+      color: #fca5a5; font-size: 13px; margin-bottom: 20px;
+      display: none; align-items: center; gap: 8px;
+    }
+    .login-error.show { display: flex; }
+
+    .login-forgot {
+      text-align: center; margin-top: 20px;
+    }
+    .login-forgot a {
+      font-size: 13px; color: #6366f1; text-decoration: none; font-weight: 500;
+      transition: color .2s;
+    }
+    .login-forgot a:hover { color: #818cf8; }
+
+    .login-recovery {
+      background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.15);
+      border-radius: 10px; padding: 14px 16px;
+      margin-top: 16px; display: none; animation: cardIn .3s ease-out;
+    }
+    .login-recovery.show { display: block; }
+    .login-recovery p {
+      font-size: 13px; color: #94a3b8; margin: 0 0 8px; line-height: 1.5;
+    }
+    .login-recovery .email-link {
+      color: #818cf8; font-weight: 600; text-decoration: none;
+    }
+
+    .login-footer {
+      text-align: center; margin-top: 28px; padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,.05);
+    }
+    .login-footer p { font-size: 11px; color: #475569; margin: 0; }
+
+    /* Logout button in sidebar */
+    .logout-btn {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 10px 20px; margin-top: 8px;
+      background: none; border: none;
+      color: #94a3b8; font-size: 13px; font-family: inherit;
+      cursor: pointer; transition: color .2s, background .2s;
+      border-radius: 8px; text-align: left;
+    }
+    .logout-btn:hover { color: #ef4444; background: rgba(239,68,68,.08); }
+  </style>
 </head>
 <body>
-<div class="app">
+
+<!-- ══════════════════════════════════════════ -->
+<!-- LOGIN SCREEN                              -->
+<!-- ══════════════════════════════════════════ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-bg-orbs">
+    <div class="orb"></div>
+    <div class="orb"></div>
+    <div class="orb"></div>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">📊</div>
+      <h1>Pryscila Castanha</h1>
+      <p>Automação de Clientes</p>
+    </div>
+
+    <div class="login-error" id="login-error">
+      <span>⚠️</span>
+      <span>Login ou senha incorretos. Tente novamente.</span>
+    </div>
+
+    <form id="login-form" onsubmit="return handleLogin(event)">
+      <div class="login-field" id="login-field-user">
+        <label>Login</label>
+        <input type="text" id="login-user" placeholder="Digite seu login" autocomplete="username" autofocus>
+      </div>
+      <div class="login-field" id="login-field-pass">
+        <label>Senha</label>
+        <input type="password" id="login-pass" placeholder="Digite sua senha" autocomplete="current-password">
+      </div>
+      <button type="submit" class="login-btn" id="login-btn">🔐 Entrar</button>
+    </form>
+
+    <div class="login-forgot">
+      <a href="#" onclick="showRecovery(); return false;">Esqueceu a senha?</a>
+    </div>
+
+    <div class="login-recovery" id="login-recovery">
+      <p>📧 Um e-mail com suas credenciais será enviado para:</p>
+      <p><a href="mailto:ypcastanha@gmail.com?subject=Recuperação de Senha - Automação de Clientes&body=Olá Pryscila,%0A%0ASolicito a recuperação das credenciais de acesso ao sistema de Automação de Clientes.%0A%0AObrigado(a)." class="email-link">ypcastanha@gmail.com</a></p>
+      <p style="font-size:11px;color:#64748b;margin-top:8px;">Clique no e-mail acima para enviar a solicitação.</p>
+    </div>
+
+    <div class="login-footer">
+      <p>© 2026 Pryscila Castanha — Consultoria Contábil</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- APP (hidden until login)                  -->
+<!-- ══════════════════════════════════════════ -->
+<div class="app" id="app-container" style="display:none">
 
   <!-- ── SIDEBAR ── -->
   <nav class="sidebar">
@@ -55,6 +239,7 @@
         Sistema Automação v3.0<br>
         <span id="gemini-status-sidebar" style="color:#10b981"></span>
       </div>
+      <button class="logout-btn" onclick="handleLogout()">🚪 Sair</button>
     </div>
   </nav>
 
@@ -76,25 +261,68 @@
 
 </div>
 
-<!-- Supabase -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="js/data.js?v=3.0"></script>
-<script src="js/gemini.js?v=3.0"></script>
-<script src="js/supabase-client.js?v=3.0"></script>
-<script src="js/app.js?v=3.0"></script>
-<script src="js/modules.js?v=3.0"></script>
-<script src="js/seed.js?v=3.0"></script>
-<script src="js/onboarding-engine.js?v=3.0"></script>
+<!-- ══════════════════════════════════════════ -->
+<!-- AUTH + APP SCRIPTS                        -->
+<!-- ══════════════════════════════════════════ -->
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
+  // ── AUTH SYSTEM ──
+  const AUTH = {
+    hash: 'a3f7c2e1b9d8', // validation token
+    check: (u, p) => u === 'administrador' && p === 'Pry@2026*',
+    isLogged: () => sessionStorage.getItem('auth_session') === 'active',
+    login: () => sessionStorage.setItem('auth_session', 'active'),
+    logout: () => { sessionStorage.removeItem('auth_session'); location.reload(); }
+  };
+
+  function handleLogin(e) {
+    e.preventDefault();
+    const user = document.getElementById('login-user').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-error');
+    const fieldU = document.getElementById('login-field-user');
+    const fieldP = document.getElementById('login-field-pass');
+
+    fieldU.classList.remove('error');
+    fieldP.classList.remove('error');
+    errEl.classList.remove('show');
+
+    if (!user || !pass) {
+      if (!user) fieldU.classList.add('error');
+      if (!pass) fieldP.classList.add('error');
+      return false;
+    }
+
+    if (AUTH.check(user, pass)) {
+      AUTH.login();
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-container').style.display = '';
+      bootApp();
+    } else {
+      errEl.classList.add('show');
+      fieldU.classList.add('error');
+      fieldP.classList.add('error');
+      document.getElementById('login-pass').value = '';
+      document.getElementById('login-pass').focus();
+    }
+    return false;
+  }
+
+  function handleLogout() {
+    if (confirm('Deseja sair do sistema?')) AUTH.logout();
+  }
+
+  function showRecovery() {
+    document.getElementById('login-recovery').classList.toggle('show');
+  }
+
+  // ── BOOT APP (after login) ──
+  function bootApp() {
     try {
       if (typeof bootstrapAppOnce === 'function') bootstrapAppOnce();
       else if (typeof bootstrapApp === 'function') bootstrapApp();
     } catch(e) {
-      console.error('[index.html] bootstrapApp falhou:', e);
+      console.error('[boot] bootstrapApp falhou:', e);
     }
-  });
-  window.addEventListener('load', () => {
     const el = document.getElementById('gemini-status-sidebar');
     if (el) el.textContent = (typeof getApiKey === 'function' && getApiKey()) ? '🤖 Gemini AI ativo' : '';
     const cfg = JSON.parse(localStorage.getItem('app_config') || '{}');
@@ -105,14 +333,36 @@
       initSeed();
       if (typeof navigate === 'function') navigate('dashboard');
     }
-    // Update sidebar count
     const countEl = document.getElementById('sidebar-count');
     if (countEl) {
       const clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
       countEl.textContent = `${clientes.length} clientes cadastrados`;
     }
+  }
+
+  // ── AUTO-LOGIN CHECK ──
+  document.addEventListener('DOMContentLoaded', () => {
+    if (AUTH.isLogged()) {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-container').style.display = '';
+      bootApp();
+    }
+    // Enter on password field
+    document.getElementById('login-pass').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleLogin(e);
+    });
   });
 </script>
+
+<!-- Supabase -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="js/data.js?v=3.1"></script>
+<script src="js/gemini.js?v=3.1"></script>
+<script src="js/supabase-client.js?v=3.1"></script>
+<script src="js/app.js?v=3.1"></script>
+<script src="js/modules.js?v=3.1"></script>
+<script src="js/seed.js?v=3.1"></script>
+<script src="js/onboarding-engine.js?v=3.1"></script>
 
 </body>
 </html>
