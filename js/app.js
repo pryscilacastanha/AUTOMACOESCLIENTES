@@ -68,6 +68,11 @@ function render() {
       educacao:'Educação do Cliente',
       configuracoes:'Configurações',
       treinamento:'Treinamento da Equipe',
+      diagnostico:'Diagnóstico Societário',
+      simulador:'Simulador Tributário',
+      documentos:'Gerador de Documentos',
+      playbook:'Playbook Executor',
+      'academia-soc':'Academia Societária',
     };
     document.getElementById('topbar-title').textContent = titles[state.page] || '';
     switch(state.page) {
@@ -77,6 +82,11 @@ function render() {
       case 'educacao':      main.innerHTML = renderEducacao(); break;
       case 'configuracoes': main.innerHTML = renderConfiguracoes(); break;
       case 'treinamento':   main.innerHTML = renderTreinamento(); break;
+      case 'diagnostico':   main.innerHTML = renderDiagnostico(); break;
+      case 'simulador':     main.innerHTML = renderSimulador(); break;
+      case 'documentos':    main.innerHTML = renderGeradorDocumentos(); break;
+      case 'playbook':      main.innerHTML = renderPlaybook(); break;
+      case 'academia-soc':  main.innerHTML = renderAcademiaSoc(); break;
       default: main.innerHTML = renderDashboard(); break;
     }
     attachEvents();
