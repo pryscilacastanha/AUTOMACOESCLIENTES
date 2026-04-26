@@ -3,141 +3,150 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pryscila Castanha — Automação de Clientes</title>
-  <meta name="description" content="Sistema de automação e onboarding de clientes — Pryscila Castanha Consultoria Contábil">
+  <title>Pryscila Castanha — Gestão Societária & Automação</title>
+  <meta name="description" content="Sistema de gestão societária e automação de clientes — Pryscila Castanha Contadora & Consultora">
   <link rel="stylesheet" href="css/app.css">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    /* ── LOGIN SCREEN ── */
+    /* ── LOGIN SCREEN — Navy Authority ── */
     .login-screen {
       position: fixed; inset: 0; z-index: 99999;
       display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%);
+      background: linear-gradient(160deg, #060d1e 0%, #0f1f3d 35%, #0a1628 70%, #050a15 100%);
       font-family: 'Inter', sans-serif;
     }
     .login-screen.hidden { display: none; }
-    .login-bg-orbs {
-      position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+
+    /* Subtle geometric pattern */
+    .login-bg-pattern {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(circle at 15% 50%, rgba(37,99,235,.06) 0%, transparent 50%),
+        radial-gradient(circle at 85% 20%, rgba(201,168,76,.04) 0%, transparent 50%),
+        radial-gradient(circle at 50% 85%, rgba(37,99,235,.03) 0%, transparent 50%);
     }
-    .login-bg-orbs .orb {
-      position: absolute; border-radius: 50%; filter: blur(80px); opacity: .15;
+    .login-bg-lines {
+      position: absolute; inset: 0; pointer-events: none; opacity: .03;
+      background-image:
+        linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px);
+      background-size: 60px 60px;
     }
-    .login-bg-orbs .orb:nth-child(1) { width: 500px; height: 500px; background: #6366f1; top: -10%; left: -5%; animation: float1 12s ease-in-out infinite; }
-    .login-bg-orbs .orb:nth-child(2) { width: 400px; height: 400px; background: #ec4899; bottom: -10%; right: -5%; animation: float2 10s ease-in-out infinite; }
-    .login-bg-orbs .orb:nth-child(3) { width: 300px; height: 300px; background: #0ea5e9; top: 50%; left: 50%; transform: translate(-50%,-50%); animation: float3 14s ease-in-out infinite; }
-    @keyframes float1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(30px,40px); } }
-    @keyframes float2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-20px,-30px); } }
-    @keyframes float3 { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.15); } }
 
     .login-card {
       position: relative; z-index: 2;
-      background: rgba(30,41,59,.7);
+      background: rgba(15,31,61,.75);
       backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.07);
       border-radius: 20px;
-      padding: 48px 40px 40px;
-      width: 420px; max-width: 92vw;
-      box-shadow: 0 25px 60px rgba(0,0,0,.4);
+      padding: 48px 44px 40px;
+      width: 440px; max-width: 92vw;
+      box-shadow: 0 30px 80px rgba(0,0,0,.5), 0 0 100px rgba(37,99,235,.05);
       animation: cardIn .5s ease-out;
     }
     @keyframes cardIn { from { opacity:0; transform: translateY(30px) scale(.96); } to { opacity:1; transform: translateY(0) scale(1); } }
 
-    .login-logo { text-align: center; margin-bottom: 32px; }
+    .login-logo { text-align: center; margin-bottom: 36px; }
     .login-logo-icon {
-      width: 64px; height: 64px; margin: 0 auto 16px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px;
-      box-shadow: 0 8px 24px rgba(99,102,241,.3);
+      width: 72px; height: 72px; margin: 0 auto 18px;
+      border-radius: 18px; overflow: hidden;
+      box-shadow: 0 8px 28px rgba(15,37,87,.4);
     }
+    .login-logo-icon img { width: 100%; height: 100%; object-fit: cover; }
     .login-logo h1 {
-      font-size: 22px; font-weight: 700; color: #f1f5f9;
-      margin: 0 0 4px; letter-spacing: -.3px;
+      font-size: 23px; font-weight: 800; color: #f1f5f9;
+      margin: 0 0 4px; letter-spacing: -.4px;
     }
-    .login-logo p { font-size: 13px; color: #94a3b8; margin: 0; font-weight: 400; }
+    .login-logo p {
+      font-size: 13px; color: #c9a84c; margin: 0; font-weight: 500;
+      letter-spacing: .3px;
+    }
 
-    .login-field { margin-bottom: 20px; }
+    .login-field { margin-bottom: 22px; }
     .login-field label {
-      display: block; font-size: 12px; font-weight: 600;
-      color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px;
+      display: block; font-size: 11px; font-weight: 700;
+      color: #8da2c4; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .6px;
     }
     .login-field input {
       width: 100%; padding: 14px 16px; box-sizing: border-box;
-      background: rgba(15,23,42,.6);
-      border: 1.5px solid rgba(148,163,184,.15);
+      background: rgba(10,22,40,.6);
+      border: 1.5px solid rgba(141,162,196,.15);
       border-radius: 12px;
       color: #f1f5f9; font-size: 15px; font-family: 'Inter', sans-serif;
       transition: border-color .2s, box-shadow .2s;
       outline: none;
     }
-    .login-field input::placeholder { color: #475569; }
+    .login-field input::placeholder { color: #3d5578; }
     .login-field input:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
     }
     .login-field.error input { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.1); }
 
     .login-btn {
-      width: 100%; padding: 14px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border: none; border-radius: 12px;
-      color: #fff; font-size: 15px; font-weight: 600; font-family: 'Inter', sans-serif;
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, #0f2557, #1e3a7a);
+      border: 1px solid rgba(37,99,235,.3);
+      border-radius: 12px;
+      color: #fff; font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;
       cursor: pointer;
-      transition: transform .15s, box-shadow .2s;
-      box-shadow: 0 4px 16px rgba(99,102,241,.3);
+      transition: all .2s;
+      box-shadow: 0 4px 16px rgba(15,37,87,.3);
+      letter-spacing: .3px;
     }
-    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(99,102,241,.4); }
+    .login-btn:hover { 
+      background: linear-gradient(135deg, #1e3a7a, #2563eb);
+      box-shadow: 0 8px 28px rgba(37,99,235,.3);
+      transform: translateY(-1px); 
+    }
     .login-btn:active { transform: translateY(0); }
 
     .login-error {
-      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.2);
+      background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2);
       border-radius: 10px; padding: 12px 16px;
       color: #fca5a5; font-size: 13px; margin-bottom: 20px;
       display: none; align-items: center; gap: 8px;
     }
     .login-error.show { display: flex; }
 
-    .login-forgot {
-      text-align: center; margin-top: 20px;
-    }
+    .login-forgot { text-align: center; margin-top: 22px; }
     .login-forgot a {
-      font-size: 13px; color: #6366f1; text-decoration: none; font-weight: 500;
+      font-size: 13px; color: #8da2c4; text-decoration: none; font-weight: 500;
       transition: color .2s;
     }
-    .login-forgot a:hover { color: #818cf8; }
+    .login-forgot a:hover { color: #c9a84c; }
 
     .login-recovery {
-      background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.15);
-      border-radius: 10px; padding: 14px 16px;
+      background: rgba(37,99,235,.06); border: 1px solid rgba(37,99,235,.12);
+      border-radius: 10px; padding: 16px;
       margin-top: 16px; display: none; animation: cardIn .3s ease-out;
     }
     .login-recovery.show { display: block; }
     .login-recovery p {
-      font-size: 13px; color: #94a3b8; margin: 0 0 8px; line-height: 1.5;
+      font-size: 13px; color: #8da2c4; margin: 0 0 8px; line-height: 1.5;
     }
     .login-recovery .email-link {
-      color: #818cf8; font-weight: 600; text-decoration: none;
+      color: #c9a84c; font-weight: 600; text-decoration: none;
     }
 
     .login-footer {
-      text-align: center; margin-top: 28px; padding-top: 20px;
-      border-top: 1px solid rgba(255,255,255,.05);
+      text-align: center; margin-top: 30px; padding-top: 22px;
+      border-top: 1px solid rgba(255,255,255,.04);
     }
-    .login-footer p { font-size: 11px; color: #475569; margin: 0; }
+    .login-footer p { font-size: 11px; color: #2d4366; margin: 0; }
 
-    /* Logout button in sidebar */
+    /* Logout button */
     .logout-btn {
       display: flex; align-items: center; gap: 8px;
-      width: 100%; padding: 10px 20px; margin-top: 8px;
+      width: 100%; padding: 10px 14px; margin-top: 8px;
       background: none; border: none;
-      color: #94a3b8; font-size: 13px; font-family: inherit;
+      color: #8da2c4; font-size: 13px; font-family: inherit;
       cursor: pointer; transition: color .2s, background .2s;
       border-radius: 8px; text-align: left;
     }
-    .logout-btn:hover { color: #ef4444; background: rgba(239,68,68,.08); }
+    .logout-btn:hover { color: #ef4444; background: rgba(239,68,68,.06); }
   </style>
 </head>
 <body>
@@ -146,16 +155,15 @@
 <!-- LOGIN SCREEN                              -->
 <!-- ══════════════════════════════════════════ -->
 <div class="login-screen" id="login-screen">
-  <div class="login-bg-orbs">
-    <div class="orb"></div>
-    <div class="orb"></div>
-    <div class="orb"></div>
-  </div>
+  <div class="login-bg-pattern"></div>
+  <div class="login-bg-lines"></div>
   <div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-icon">📊</div>
+      <div class="login-logo-icon">
+        <img src="favicon.png" alt="Logo">
+      </div>
       <h1>Pryscila Castanha</h1>
-      <p>Automação de Clientes</p>
+      <p>Contadora & Consultora Societária</p>
     </div>
 
     <div class="login-error" id="login-error">
@@ -172,7 +180,7 @@
         <label>Senha</label>
         <input type="password" id="login-pass" placeholder="Digite sua senha" autocomplete="current-password">
       </div>
-      <button type="submit" class="login-btn" id="login-btn">🔐 Entrar</button>
+      <button type="submit" class="login-btn" id="login-btn">Entrar</button>
     </form>
 
     <div class="login-forgot">
@@ -180,13 +188,12 @@
     </div>
 
     <div class="login-recovery" id="login-recovery">
-      <p>📧 Um e-mail com suas credenciais será enviado para:</p>
-      <p><a href="mailto:ypcastanha@gmail.com?subject=Recuperação de Senha - Automação de Clientes&body=Olá Pryscila,%0A%0ASolicito a recuperação das credenciais de acesso ao sistema de Automação de Clientes.%0A%0AObrigado(a)." class="email-link">ypcastanha@gmail.com</a></p>
-      <p style="font-size:11px;color:#64748b;margin-top:8px;">Clique no e-mail acima para enviar a solicitação.</p>
+      <p>📧 Envie um e-mail para recuperar suas credenciais:</p>
+      <p><a href="mailto:ypcastanha@gmail.com?subject=Recuperação de Senha - Sistema Pryscila Castanha&body=Olá Pryscila,%0A%0ASolicito a recuperação das credenciais de acesso ao sistema.%0A%0AObrigado(a)." class="email-link">ypcastanha@gmail.com</a></p>
     </div>
 
     <div class="login-footer">
-      <p>© 2026 Pryscila Castanha — Consultoria Contábil</p>
+      <p>© 2026 Pryscila Castanha — Gestão Societária & Automação</p>
     </div>
   </div>
 </div>
@@ -200,17 +207,19 @@
   <nav class="sidebar">
     <div class="sidebar-brand">
       <div class="logo">
-        <div class="logo-icon">📊</div>
+        <div class="logo-icon">
+          <img src="favicon.png" alt="Logo">
+        </div>
         <div>
           <div class="logo-text">Pryscila Castanha</div>
-          <div class="logo-sub">Automação de Clientes</div>
+          <div class="logo-sub">Gestão Societária</div>
         </div>
       </div>
     </div>
 
     <div class="sidebar-section">
       <button class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
-        <span class="nav-icon">🏢</span><span>Carteira de Clientes</span>
+        <span class="nav-icon">🏛️</span><span>Carteira de Clientes</span>
       </button>
     </div>
 
@@ -233,13 +242,13 @@
       </button>
     </div>
 
-    <div style="padding:16px 20px;margin-top:auto;border-top:1px solid rgba(255,255,255,.07)">
-      <div style="font-size:11px;color:#475569;line-height:1.7">
-        <div style="color:#64748b;font-weight:600;margin-bottom:2px" id="sidebar-count"></div>
-        Sistema Automação v3.0<br>
+    <div style="padding:18px 24px;margin-top:auto;border-top:1px solid rgba(255,255,255,.05)">
+      <div style="font-size:11px;color:#3d5578;line-height:1.8">
+        <div style="color:#8da2c4;font-weight:600;margin-bottom:2px" id="sidebar-count"></div>
+        Sistema v3.1<br>
         <span id="gemini-status-sidebar" style="color:#10b981"></span>
       </div>
-      <button class="logout-btn" onclick="handleLogout()">🚪 Sair</button>
+      <button class="logout-btn" onclick="handleLogout()">🚪 <span>Sair</span></button>
     </div>
   </nav>
 
@@ -248,7 +257,7 @@
     <div class="topbar">
       <div>
         <div id="topbar-title" class="topbar-title">Carteira de Clientes</div>
-        <div class="topbar-sub">Pryscila Castanha — Consultoria Contábil</div>
+        <div class="topbar-sub">Pryscila Castanha — Contadora & Consultora Societária</div>
       </div>
       <div class="topbar-actions">
         <button class="btn btn-primary" onclick="navigate('clientes');openModal('new')">+ Novo Cliente</button>
@@ -265,9 +274,7 @@
 <!-- AUTH + APP SCRIPTS                        -->
 <!-- ══════════════════════════════════════════ -->
 <script>
-  // ── AUTH SYSTEM ──
   const AUTH = {
-    hash: 'a3f7c2e1b9d8', // validation token
     check: (u, p) => u === 'administrador' && p === 'Pry@2026*',
     isLogged: () => sessionStorage.getItem('auth_session') === 'active',
     login: () => sessionStorage.setItem('auth_session', 'active'),
@@ -315,7 +322,6 @@
     document.getElementById('login-recovery').classList.toggle('show');
   }
 
-  // ── BOOT APP (after login) ──
   function bootApp() {
     try {
       if (typeof bootstrapAppOnce === 'function') bootstrapAppOnce();
@@ -340,14 +346,12 @@
     }
   }
 
-  // ── AUTO-LOGIN CHECK ──
   document.addEventListener('DOMContentLoaded', () => {
     if (AUTH.isLogged()) {
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app-container').style.display = '';
       bootApp();
     }
-    // Enter on password field
     document.getElementById('login-pass').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') handleLogin(e);
     });

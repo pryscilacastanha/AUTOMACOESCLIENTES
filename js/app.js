@@ -166,6 +166,7 @@ function renderDashboard() {
       <td style="white-space:nowrap">
         <button class="btn btn-ghost btn-sm" onclick="openModal('edit','${c.id}')" title="Dados do Cliente / Onboarding">✏️</button>
         <button class="btn btn-ghost btn-sm" onclick="emitirParecerAvulso('${c.id}')" title="Gerar Parecer Técnico / Relatório">📋</button>
+        <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteCliente('${c.id}')" title="Excluir Cliente">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -217,6 +218,20 @@ ${pendObs.length ? `<div class="card mb-4" style="border-left:4px solid var(--wa
 }
 
 // ─── CLIENTES ───
+function deleteCliente(id) {
+  const clientes = DB.get('clientes') || [];
+  const c = clientes.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`Tem certeza que deseja EXCLUIR o cliente #${id} — ${c.nome}?\n\nEsta ação não pode ser desfeita.`)) return;
+  const updated = clientes.filter(x => x.id !== id);
+  DB.set('clientes', updated);
+  // Update sidebar count
+  const countEl = document.getElementById('sidebar-count');
+  if (countEl) countEl.textContent = `${updated.length} clientes cadastrados`;
+  navigate(state.page);
+}
+window.deleteCliente = deleteCliente;
+
 let openClienteId = null;
 function renderClientes() {
   const clientes = DB.get('clientes') || [];
@@ -234,6 +249,7 @@ function renderClientes() {
       <button class="btn btn-ghost btn-sm" onclick="openModal('edit','${c.id}')">✏️ Editar</button>
       <button class="btn btn-ghost btn-sm" onclick="navigate('checklist');openClienteChecklist('${c.id}')">📋 Checklist</button>
       <button class="btn btn-ghost btn-sm" onclick="navigate('onboarding');openClienteOnboarding('${c.id}')">📁 C-006</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteCliente('${c.id}')">🗑️</button>
     </td>
   </tr>`).join('');
 
