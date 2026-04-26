@@ -63,42 +63,21 @@ function render() {
   const main = document.getElementById('main-content');
   try {
     const titles = {
-      dashboard:'Carteira de Clientes — Diagnóstico', clientes:'Clientes',
-      escrituracao:'📁 Escrituração 2025 — Documentação Recebida',
-      checklist:'Escrituração 2025 — Documentação Recebida',
-      onboarding:'Onboarding de Clientes', auditoria:'Parecer Técnico — Escrituração Contábil',
-      educacao:'Educação do Cliente', importacao:'Importação com Gemini AI',
-      configuracoes:'Configurações', obrigacoes:'Obrigações Acessórias',
-      planocontas:'Plano de Contas', treinamento:'Treinamento da Equipe',
-      integracao:'Integração — Import & Export',
-      painel:'Escrituração 2025 — Visão Geral',
-      controle:'Controle de Clientes — CM Contabilidade',
-      parecer:'Parecer Técnico — Escrituração Contábil',
-      conciliacao:'Conciliação Inteligente — OFX/PDF',
-      verificacaodocs:'🗂️ Verificação de Documentação Contábil',
-      unicoexport:'📤 Exportar para Único Contábil'
+      dashboard:'Carteira de Clientes', clientes:'Clientes',
+      onboarding:'Onboarding de Clientes',
+      educacao:'Educação do Cliente',
+      configuracoes:'Configurações',
+      treinamento:'Treinamento da Equipe',
     };
     document.getElementById('topbar-title').textContent = titles[state.page] || '';
     switch(state.page) {
       case 'dashboard':     main.innerHTML = renderDashboard(); break;
       case 'clientes':      main.innerHTML = renderClientes(); break;
-      case 'escrituracao':  main.innerHTML = renderEscrituracao(); break;
-      case 'checklist':     main.innerHTML = renderEscrituracao(); break;
       case 'onboarding':    main.innerHTML = renderOnboarding(); break;
-      case 'auditoria':     navigate('parecer'); break;
       case 'educacao':      main.innerHTML = renderEducacao(); break;
-      case 'importacao':    main.innerHTML = renderImportacao(); break;
       case 'configuracoes': main.innerHTML = renderConfiguracoes(); break;
-      case 'obrigacoes':    main.innerHTML = renderObrigacoes(); break;
-      case 'planocontas':   main.innerHTML = renderPlanoContas(); break;
       case 'treinamento':   main.innerHTML = renderTreinamento(); break;
-      case 'integracao':    main.innerHTML = renderIntegracao(); break;
-      case 'painel':        main.innerHTML = renderEscrituracao(); break;
-      case 'controle':       main.innerHTML = renderClientesAvancado(); break;
-      case 'parecer':        main.innerHTML = renderParecerPage(); break;
-      case 'conciliacao':    main.innerHTML = renderConciliacao(); break;
-      case 'verificacaodocs': if(window.VDOC) { window.VDOC.init(); } else { main.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Módulo não carregado.</p></div>'; } break;
-      case 'unicoexport': main.innerHTML = (window.UnicoExport ? window.UnicoExport.renderPage(state.clienteId) : '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Módulo não carregado. Recarregue a página.</p></div>'); break;
+      default: main.innerHTML = renderDashboard(); break;
     }
     attachEvents();
   } catch (err) {

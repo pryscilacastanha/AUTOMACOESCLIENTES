@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Criscontab &amp; Madeira — Sistema de Automação Contábil</title>
-  <meta name="description" content="Sistema de gestão contábil multitenant — Criscontab &amp; Madeira Contabilidade">
+  <title>Pryscila Castanha — Automação de Clientes</title>
+  <meta name="description" content="Sistema de automação e onboarding de clientes — Pryscila Castanha Consultoria Contábil">
   <link rel="stylesheet" href="css/app.css">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="favicon.png">
@@ -18,8 +18,8 @@
       <div class="logo">
         <div class="logo-icon">📊</div>
         <div>
-          <div class="logo-text">Criscontab &amp; Madeira</div>
-          <div class="logo-sub">Gestão Contábil</div>
+          <div class="logo-text">Pryscila Castanha</div>
+          <div class="logo-sub">Automação de Clientes</div>
         </div>
       </div>
     </div>
@@ -33,49 +33,17 @@
     <div class="sidebar-divider"></div>
 
     <div class="sidebar-section">
-      <button class="nav-item" data-page="escrituracao" onclick="navigate('escrituracao')">
-        <span class="nav-icon">📁</span><span>Escrituração 2025</span>
-      </button>
-      <button class="nav-item" data-page="obrigacoes" onclick="navigate('obrigacoes')">
-        <span class="nav-icon">📋</span><span>Obrigações</span>
-      </button>
-    </div>
-
-    <div class="sidebar-divider"></div>
-
-    <div class="sidebar-section">
-      <button class="nav-item" data-page="parecer" onclick="navigate('parecer')">
-        <span class="nav-icon">📄</span><span>Parecer Técnico</span>
-      </button>
-      <button class="nav-item" data-page="verificacaodocs" onclick="navigate('verificacaodocs')">
-        <span class="nav-icon">🗂️</span><span>Verificação Documental</span>
-      </button>
-    </div>
-
-    <div class="sidebar-divider"></div>
-
-    <div class="sidebar-section">
-      <button class="nav-item" data-page="conciliacao" onclick="navigate('conciliacao')">
-        <span class="nav-icon">🏦</span><span>Conciliação Inteligente</span>
-      </button>
-      <button class="nav-item" data-page="importacao" onclick="navigate('importacao')">
-        <span class="nav-icon">🤖</span><span>Importar com IA</span>
-      </button>
-      <button class="nav-item" data-page="integracao" onclick="navigate('integracao')">
-        <span class="nav-icon">🔄</span><span>Integração</span>
-      </button>
-      <button class="nav-item" data-page="unicoexport" onclick="navigate('unicoexport')">
-        <span class="nav-icon">📤</span><span>Exportar Único</span>
-      </button>
-      <button class="nav-item" data-page="planocontas" onclick="navigate('planocontas')">
-        <span class="nav-icon">📊</span><span>Plano de Contas</span>
-      </button>
       <button class="nav-item" data-page="treinamento" onclick="navigate('treinamento')">
         <span class="nav-icon">🎓</span><span>Treinamento</span>
       </button>
       <button class="nav-item" data-page="educacao" onclick="navigate('educacao')">
         <span class="nav-icon">📖</span><span>Educação Cliente</span>
       </button>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section">
       <button class="nav-item" data-page="configuracoes" onclick="navigate('configuracoes')">
         <span class="nav-icon">⚙️</span><span>Configurações</span>
       </button>
@@ -83,8 +51,8 @@
 
     <div style="padding:16px 20px;margin-top:auto;border-top:1px solid rgba(255,255,255,.07)">
       <div style="font-size:11px;color:#475569;line-height:1.7">
-        <div style="color:#64748b;font-weight:600;margin-bottom:2px" id="sidebar-count">87 clientes cadastrados</div>
-        Sistema contábil v2.4<br>
+        <div style="color:#64748b;font-weight:600;margin-bottom:2px" id="sidebar-count"></div>
+        Sistema Automação v3.0<br>
         <span id="gemini-status-sidebar" style="color:#10b981"></span>
       </div>
     </div>
@@ -94,8 +62,8 @@
   <div class="main">
     <div class="topbar">
       <div>
-        <div id="topbar-title" class="topbar-title">Dashboard</div>
-        <div class="topbar-sub">Criscontab &amp; Madeira Contabilidade</div>
+        <div id="topbar-title" class="topbar-title">Carteira de Clientes</div>
+        <div class="topbar-sub">Pryscila Castanha — Consultoria Contábil</div>
       </div>
       <div class="topbar-actions">
         <label style="font-size:13px;font-weight:600;color:var(--text-muted)">Competência:</label>
@@ -110,77 +78,43 @@
 
 </div>
 
-<!-- Performance: preconnect to external services -->
-<link rel="preconnect" href="https://unpkg.com">
-<link rel="preconnect" href="https://accounts.google.com">
-<!-- Supabase — crítico, carrega primeiro -->
+<!-- Supabase -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<!-- SheetJS — leitura de Excel para módulo Único -->
-<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-<script src="js/data.js?v=2.4"></script>
-<script src="js/gemini.js?v=2.4"></script>
-<script src="js/supabase-client.js?v=2.4"></script>
-<script src="js/app.js?v=2.7"></script>
-<script src="js/modules.js?v=2.7"></script>
-<script src="js/seed.js?v=2.4"></script>
-<script src="js/planos-data.js?v=2.4"></script>
-<script src="js/conciliacao.js?v=2.7"></script>
-<script src="js/chat-agent.js?v=2.4" defer></script>
-<script src="js/drive-sync.js?v=2.4" defer></script>
-<script src="js/verificacao-docs.js?v=1.0" defer></script>
-<script src="js/unico-export.js?v=1.0" defer></script>
-<!-- Google Identity Services para OAuth2 do Drive -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<link rel="stylesheet" href="css/chat.css?v=2.4">
-<link rel="stylesheet" href="css/verificacao-docs.css?v=1.0">
-<link rel="stylesheet" href="css/unico-export.css?v=1.0">
+<script src="js/data.js?v=3.0"></script>
+<script src="js/gemini.js?v=3.0"></script>
+<script src="js/supabase-client.js?v=3.0"></script>
+<script src="js/app.js?v=3.0"></script>
+<script src="js/modules.js?v=3.0"></script>
+<script src="js/seed.js?v=3.0"></script>
+<script src="js/onboarding-engine.js?v=3.0"></script>
 <script>
-  function resetarDados() {
-    if (!confirm('Apagar todos os dados operacionais e recarregar base dos clientes?')) return;
-    localStorage.clear();
-    location.reload();
-  }
-  // Inicialização — DOMContentLoaded garante todos os scripts carregados
   document.addEventListener('DOMContentLoaded', () => {
     try {
       if (typeof bootstrapAppOnce === 'function') bootstrapAppOnce();
       else if (typeof bootstrapApp === 'function') bootstrapApp();
-      // Carregar planos de contas SCI pré-embutidos
-      if (typeof seedPlanosContas === 'function') seedPlanosContas();
     } catch(e) {
       console.error('[index.html] bootstrapApp falhou:', e);
     }
   });
-  // Fallback de segurança — garante seed após load completo
   window.addEventListener('load', () => {
     const el = document.getElementById('gemini-status-sidebar');
     if (el) el.textContent = (typeof getApiKey === 'function' && getApiKey()) ? '🤖 Gemini AI ativo' : '';
-    // Carregar GOOGLE_CLIENT_ID salvo nas configs
     const cfg = JSON.parse(localStorage.getItem('app_config') || '{}');
     if (cfg.google_client_id) window.GOOGLE_CLIENT_ID = cfg.google_client_id;
-    // Se clientes vazio, tenta seed novamente
     const c = JSON.parse(localStorage.getItem('clientes') || '[]');
     if (c.length === 0 && typeof initSeed === 'function') {
-      console.log('[Fallback] Clientes vazio, rodando initSeed...');
       if (typeof initDB === 'function') initDB();
       initSeed();
       if (typeof navigate === 'function') navigate('dashboard');
     }
+    // Update sidebar count
+    const countEl = document.getElementById('sidebar-count');
+    if (countEl) {
+      const clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
+      countEl.textContent = `${clientes.length} clientes cadastrados`;
+    }
   });
 </script>
-  <!-- AI Chat Agent Widget -->
-  <button class="ai-chat-btn" onclick="AI_AGENT.toggle()">🤖</button>
-  <div class="ai-chat-window" id="ai-chat-window">
-    <div class="ai-chat-header">
-      <div class="title">🤖 Criscontab AI</div>
-      <button class="ai-chat-close" onclick="AI_AGENT.toggle()">✖</button>
-    </div>
-    <div class="ai-chat-messages" id="ai-chat-messages"></div>
-    <div class="ai-chat-input">
-      <input type="text" id="ai-chat-input-text" placeholder="Pergunte algo à IA..." onkeypress="if(event.key==='Enter') AI_AGENT.sendMessage()">
-      <button id="ai-chat-submit" onclick="AI_AGENT.sendMessage()">Enviar</button>
-    </div>
-  </div>
 
 </body>
 </html>
